@@ -1,0 +1,5 @@
+entity.universal_route.add_form:
+  route_name: entity.universal_route.add_form
+  title: 'Add smart route'
+  appears_on:
+    - entity.universal_route.collection

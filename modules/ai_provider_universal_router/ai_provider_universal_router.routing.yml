@@ -1,0 +1,7 @@
+ai_provider_universal_router.report:
+  path: '/admin/config/ai/providers/universal/routes/log'
+  defaults:
+    _controller: '\Drupal\ai_provider_universal_router\Controller\RouterLogController::report'
+    _title: 'Routing decisions'
+  requirements:
+    _permission: 'administer ai providers'

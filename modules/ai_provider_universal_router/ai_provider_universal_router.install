@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the smart router: decision log table.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function ai_provider_universal_router_schema(): array {
+  $schema['ai_universal_router_log'] = [
+    'description' => 'One row per routing decision, for the savings dashboard.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'timestamp' => ['type' => 'int', 'not null' => TRUE],
+      'route_id' => ['type' => 'varchar_ascii', 'length' => 255, 'not null' => TRUE],
+      'operation_type' => ['type' => 'varchar_ascii', 'length' => 64, 'not null' => TRUE],
+      'complexity' => ['type' => 'varchar_ascii', 'length' => 16, 'not null' => TRUE],
+      'est_tokens' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'chosen_model' => ['type' => 'varchar_ascii', 'length' => 255, 'not null' => TRUE],
+      'candidates' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'est_cost' => ['type' => 'float', 'not null' => TRUE, 'default' => 0],
+      'est_cost_worst' => [
+        'type' => 'float',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Estimated cost had the most expensive candidate been used.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => ['timestamp' => ['timestamp']],
+  ];
+  return $schema;
+}

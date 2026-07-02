@@ -387,7 +387,54 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     // every server). Group by server so the model select renders <optgroup>s
     // per server, keeping options short and unambiguous even when two servers
     // expose a model with the same raw id.
-    return $this->modelCatalog->getModelsGroupedByServer($operation_type);
+    $grouped = $this->modelCatalog->getModelsGroupedByServer($operation_type);
+
+    // When the router submodule is enabled, expose each smart route as a
+    // virtual model ("route__<id>"); it resolves to a real model per request.
+    $routes = $this->getRouteModelOptions($operation_type);
+    if ($routes) {
+      $grouped = [(string) $this->t('Smart Routing') => $routes] + $grouped;
+    }
+
+    return $grouped;
+  }
+
+  /**
+   * Lists smart routes as virtual model options, if the router is enabled.
+   *
+   * @return array<string, string>
+   *   Map of "route__<id>" => route label.
+   */
+  protected function getRouteModelOptions(?string $operation_type): array {
+    if (!$this->entityTypeManager->hasDefinition('universal_route')) {
+      return [];
+    }
+    $options = [];
+    foreach ($this->entityTypeManager->getStorage('universal_route')->loadMultiple() as $route) {
+      if ($operation_type === NULL || $route->getOperationType() === $operation_type) {
+        $options['route__' . $route->id()] = (string) $this->t('Auto: @label', ['@label' => $route->label()]);
+      }
+    }
+    return $options;
+  }
+
+  /**
+   * Resolves a virtual "route__<id>" model to a real model entity id.
+   *
+   * No-op for regular model ids. Requires the router submodule when a route
+   * id is used (the option only appears in the UI when it is enabled, so a
+   * missing service here means it was uninstalled after configuration).
+   */
+  protected function resolveRoutedModel(string $model_id, mixed $input, string $operation_type): string {
+    if (!str_starts_with($model_id, 'route__')) {
+      return $model_id;
+    }
+    $container = \Drupal::getContainer();
+    if (!$container->has('ai_provider_universal_router.decider')) {
+      throw new AiSetupFailureException(sprintf('Model "%s" is a smart route, but the ai_provider_universal_router module is not enabled.', $model_id));
+    }
+    return $container->get('ai_provider_universal_router.decider')
+      ->resolve(substr($model_id, 7), $input, $operation_type);
   }
 
   /**
@@ -422,6 +469,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function chat(array|string|ChatInput $input, string $model_id, array $tags = []): ChatOutput {
+    $model_id = $this->resolveRoutedModel($model_id, $input, 'chat');
     $this->setActiveServerForModel($model_id);
     try {
       $resolved = $this->getModel($model_id);
@@ -436,6 +484,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function embeddings(string|EmbeddingsInput $input, string $model_id, array $tags = []): EmbeddingsOutput {
+    $model_id = $this->resolveRoutedModel($model_id, $input instanceof EmbeddingsInput ? '' : $input, 'embeddings');
     $this->setActiveServerForModel($model_id);
     try {
       $resolved = $this->getModel($model_id);

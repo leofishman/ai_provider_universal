@@ -1,0 +1,16 @@
+services:
+  Drupal\ai_provider_universal_router\Service\RouteDecider:
+    class: Drupal\ai_provider_universal_router\Service\RouteDecider
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@logger.channel.ai_provider_universal_router'
+
+  logger.channel.ai_provider_universal_router:
+    parent: logger.channel_base
+    arguments: ['ai_provider_universal_router']
+
+  # Stable alias consumed by the provider (which must not hard-depend on
+  # this submodule's classes).
+  ai_provider_universal_router.decider:
+    alias: Drupal\ai_provider_universal_router\Service\RouteDecider

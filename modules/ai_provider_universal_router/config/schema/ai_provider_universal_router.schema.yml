@@ -1,0 +1,25 @@
+ai_provider_universal_router.route.*:
+  type: config_entity
+  label: 'Smart Route'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    operation_type:
+      type: string
+      label: 'Operation Type'
+    candidates:
+      type: sequence
+      label: 'Candidate model IDs'
+      sequence:
+        type: string
+        label: 'Model ID'
+    simple_tier:
+      type: integer
+      label: 'Minimum tier for simple prompts'
+    complex_tier:
+      type: integer
+      label: 'Minimum tier for complex prompts'
