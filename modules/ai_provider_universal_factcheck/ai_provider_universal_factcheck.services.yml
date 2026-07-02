@@ -1,0 +1,23 @@
+services:
+  Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever:
+    class: Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@module_handler'
+
+  Drupal\ai_provider_universal_factcheck\Service\FactChecker:
+    class: Drupal\ai_provider_universal_factcheck\Service\FactChecker
+    arguments:
+      - '@ai.provider'
+      - '@config.factory'
+      - '@Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever'
+      - '@logger.channel.ai_provider_universal_factcheck'
+
+  # Stable alias consumed by the provider (no hard class dependency).
+  ai_provider_universal_factcheck.checker:
+    alias: Drupal\ai_provider_universal_factcheck\Service\FactChecker
+
+  logger.channel.ai_provider_universal_factcheck:
+    parent: logger.channel_base
+    arguments: ['ai_provider_universal_factcheck']

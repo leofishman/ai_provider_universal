@@ -116,6 +116,39 @@ class RouteDecider {
   }
 
   /**
+   * Resolves the strongest candidate for a route, for escalation.
+   *
+   * Used by the fact-check cascade: when a routed answer fails
+   * verification, retry with the highest-tier candidate (cheapest among
+   * equals), excluding models already tried.
+   *
+   * @return string|null
+   *   The model entity id, or NULL when there is nothing to escalate to.
+   */
+  public function resolveBest(string $routeId, string $operationType = 'chat', array $exclude = []): ?string {
+    $route = $this->entityTypeManager->getStorage('universal_route')->load($routeId);
+    if (!$route instanceof UniversalRouteInterface) {
+      return NULL;
+    }
+
+    $candidates = array_filter(
+      $this->candidateModels($route, $operationType),
+      static fn (UniversalModelInterface $m) => !in_array($m->id(), $exclude, TRUE),
+    );
+    if (!$candidates) {
+      return NULL;
+    }
+
+    usort($candidates, fn ($a, $b) =>
+      [($b->getQualityTier() ?? self::DEFAULT_TIER), $this->costOf($a, 0)]
+      <=> [($a->getQualityTier() ?? self::DEFAULT_TIER), $this->costOf($b, 0)]);
+
+    $chosen = reset($candidates);
+    $this->log($route, $operationType, 'escalated', 0, $chosen, count($candidates), $this->costOf($chosen, 0), $this->costOf($chosen, 0));
+    return $chosen->id();
+  }
+
+  /**
    * Loads candidate models: the route's list, or all capable models.
    *
    * @return \Drupal\ai_provider_universal\Entity\UniversalModelInterface[]

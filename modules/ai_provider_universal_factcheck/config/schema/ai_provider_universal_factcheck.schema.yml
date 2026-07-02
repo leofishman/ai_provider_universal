@@ -1,0 +1,13 @@
+ai_provider_universal_factcheck.settings:
+  type: config_object
+  label: 'Fact check settings'
+  mapping:
+    checker_model:
+      type: string
+      label: 'Checker model (universal_model id)'
+    evidence_index:
+      type: string
+      label: 'Search API index for evidence (optional)'
+    max_claims:
+      type: integer
+      label: 'Maximum claims to verify per answer'

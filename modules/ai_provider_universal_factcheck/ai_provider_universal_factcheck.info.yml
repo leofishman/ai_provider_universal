@@ -1,0 +1,9 @@
+name: 'AI Provider: Universal — Fact Check'
+type: module
+description: 'Verifies routed answers claim by claim (optionally against an ai_search index) and escalates to a stronger model when verification fails.'
+core_version_requirement: ^10.2 || ^11 || ^12
+package: AI Providers
+dependencies:
+  - ai_provider_universal:ai_provider_universal
+  - ai_provider_universal:ai_provider_universal_router
+configure: ai_provider_universal_factcheck.settings

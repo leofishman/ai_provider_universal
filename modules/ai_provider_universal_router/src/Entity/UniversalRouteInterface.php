@@ -32,4 +32,16 @@ interface UniversalRouteInterface extends ConfigEntityInterface {
    */
   public function getComplexTier(): int;
 
+  /**
+   * Whether chat answers on this route are fact-checked.
+   *
+   * Requires the ai_provider_universal_factcheck module; ignored otherwise.
+   */
+  public function isFactcheckEnabled(): bool;
+
+  /**
+   * Minimum support score in [0, 1]; below it the request escalates.
+   */
+  public function getFactcheckMinScore(): float;
+
 }

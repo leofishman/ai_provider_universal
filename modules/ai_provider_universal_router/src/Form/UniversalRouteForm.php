@@ -97,6 +97,27 @@ class UniversalRouteForm extends EntityForm {
       '#default_value' => $route->getComplexTier(),
     ];
 
+    if (\Drupal::moduleHandler()->moduleExists('ai_provider_universal_factcheck')) {
+      $form['factcheck'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Fact-check answers and escalate on failure'),
+        '#description' => $this->t('Chat answers are verified claim by claim (see the Fact Check settings for checker model and evidence index). Below the score threshold the request is retried with the best candidate.'),
+        '#default_value' => $route->isFactcheckEnabled(),
+      ];
+      $form['factcheck_min_score'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Minimum support score'),
+        '#description' => $this->t('Fraction of claims that must be SUPPORTED (0–1).'),
+        '#default_value' => $route->getFactcheckMinScore(),
+        '#min' => 0,
+        '#max' => 1,
+        '#step' => 0.05,
+        '#states' => [
+          'visible' => [':input[name="factcheck"]' => ['checked' => TRUE]],
+        ],
+      ];
+    }
+
     return $form;
   }
 

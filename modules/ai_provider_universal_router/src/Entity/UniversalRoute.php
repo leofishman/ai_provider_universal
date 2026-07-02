@@ -47,6 +47,8 @@ use Drupal\ai_provider_universal_router\UniversalRouteListBuilder;
     'candidates',
     'simple_tier',
     'complex_tier',
+    'factcheck',
+    'factcheck_min_score',
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/routes/add',
@@ -98,6 +100,34 @@ class UniversalRoute extends ConfigEntityBase implements UniversalRouteInterface
    * @var int
    */
   protected int $complex_tier = 4;
+
+  /**
+   * Whether answers on this route are fact-checked (chat only).
+   *
+   * @var bool
+   */
+  protected bool $factcheck = FALSE;
+
+  /**
+   * Minimum support score; below it the request escalates.
+   *
+   * @var float
+   */
+  protected float $factcheck_min_score = 0.7;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isFactcheckEnabled(): bool {
+    return $this->factcheck;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFactcheckMinScore(): float {
+    return $this->factcheck_min_score;
+  }
 
   /**
    * {@inheritdoc}

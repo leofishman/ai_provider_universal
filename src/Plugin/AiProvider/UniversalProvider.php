@@ -469,7 +469,24 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function chat(array|string|ChatInput $input, string $model_id, array $tags = []): ChatOutput {
-    $model_id = $this->resolveRoutedModel($model_id, $input, 'chat');
+    $route_id = NULL;
+    if (str_starts_with($model_id, 'route__')) {
+      $route_id = substr($model_id, 7);
+      $model_id = $this->resolveRoutedModel($model_id, $input, 'chat');
+    }
+
+    $output = $this->doChat($input, $model_id, $tags);
+
+    if ($route_id !== NULL) {
+      $output = $this->maybeEscalate($route_id, $input, $model_id, $output, $tags);
+    }
+    return $output;
+  }
+
+  /**
+   * Executes one chat call against a concrete model entity id.
+   */
+  protected function doChat(array|string|ChatInput $input, string $model_id, array $tags): ChatOutput {
     $this->setActiveServerForModel($model_id);
     try {
       $resolved = $this->getModel($model_id);
@@ -478,6 +495,59 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     finally {
       $this->clearActiveServer();
     }
+  }
+
+  /**
+   * Fact-check cascade: verify a routed answer, retry stronger on failure.
+   *
+   * Only active when the route enables fact checking and the factcheck
+   * module is installed with a checker model configured. The escalated
+   * answer is returned as-is (verified best effort, not re-verified, to
+   * bound cost at one escalation per request).
+   */
+  protected function maybeEscalate(string $route_id, array|string|ChatInput $input, string $model_id, ChatOutput $output, array $tags): ChatOutput {
+    $container = \Drupal::getContainer();
+    if (!$container->has('ai_provider_universal_factcheck.checker')) {
+      return $output;
+    }
+
+    $route = $this->entityTypeManager->getStorage('universal_route')->load($route_id);
+    if (!$route || !$route->isFactcheckEnabled()) {
+      return $output;
+    }
+
+    $checker = $container->get('ai_provider_universal_factcheck.checker');
+    if (!$checker->isConfigured()) {
+      return $output;
+    }
+
+    $question = $input instanceof ChatInput
+      ? implode("\n", array_map(static fn ($m) => $m->getText(), $input->getMessages()))
+      : (is_string($input) ? $input : '');
+
+    $result = $checker->verify($question, $output->getNormalized()->getText());
+    if ($result['score'] >= $route->getFactcheckMinScore()) {
+      return $output;
+    }
+
+    $best = $container->get('ai_provider_universal_router.decider')
+      ->resolveBest($route_id, 'chat', [$model_id]);
+    if (!$best) {
+      return $output;
+    }
+
+    $this->loggerFactory->get('ai_provider_universal')->info(
+      'Fact check failed for route @route (score @score < @min, model @model); escalating to @best.',
+      [
+        '@route' => $route_id,
+        '@score' => round($result['score'], 2),
+        '@min' => $route->getFactcheckMinScore(),
+        '@model' => $model_id,
+        '@best' => $best,
+      ],
+    );
+
+    return $this->doChat($input, $best, $tags);
   }
 
   /**

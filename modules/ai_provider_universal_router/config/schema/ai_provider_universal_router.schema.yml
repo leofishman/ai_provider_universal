@@ -23,3 +23,9 @@ ai_provider_universal_router.route.*:
     complex_tier:
       type: integer
       label: 'Minimum tier for complex prompts'
+    factcheck:
+      type: boolean
+      label: 'Fact-check answers'
+    factcheck_min_score:
+      type: float
+      label: 'Minimum support score before escalation'
