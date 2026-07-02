@@ -23,6 +23,11 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [x] `openrouter` backend: default endpoint, capability detection from
       `architecture.output_modalities`, pricing/context prefilled live from
       the catalog (no hardcoded table). 340 models verified against the API.
+- [x] `litellm` backend (covers amazee.ai, which is managed LiteLLM):
+      discovery via /model/info (mode, per-token costs, context), graceful
+      fallback to /v1/models. Payload shape cross-checked against
+      ai_provider_amazeeio's DTO; not yet tested against a live proxy (no
+      account).
 
 ## Hackathon week (Jul 2–6 prep, Jul 6+ event)
 

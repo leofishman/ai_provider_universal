@@ -92,15 +92,7 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
    * vLLM's max_model_len, ...) that capability and metadata detection need.
    */
   public function listModels(UniversalServerInterface $server): array {
-    $options = ['headers' => ['Accept' => 'application/json'] + $this->getHttpHeaders($server)];
-
-    $keyId = $server->getApiKey();
-    if ($keyId && $this->keyRepository) {
-      $keyValue = $this->keyRepository->getKey($keyId)?->getKeyValue();
-      if ($keyValue) {
-        $options['headers']['Authorization'] = 'Bearer ' . $keyValue;
-      }
-    }
+    $options = ['headers' => ['Accept' => 'application/json'] + $this->getHttpHeaders($server) + $this->authHeaders($server)];
 
     $client = $this->httpClientFactory->fromOptions(['timeout' => $server->getTimeout() ?: 600]);
     $response = $client->request('GET', rtrim($this->getBaseUri($server), '/') . '/models', $options);
@@ -173,6 +165,23 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
       $metadata['context_length'] = (int) $ctx;
     }
     return $metadata;
+  }
+
+  /**
+   * Builds the Authorization header for a server, empty when unauthenticated.
+   *
+   * @return array<string, string>
+   *   Header map with the Bearer token, or empty array.
+   */
+  protected function authHeaders(UniversalServerInterface $server): array {
+    $keyId = $server->getApiKey();
+    if ($keyId && $this->keyRepository) {
+      $keyValue = $this->keyRepository->getKey($keyId)?->getKeyValue();
+      if ($keyValue) {
+        return ['Authorization' => 'Bearer ' . $keyValue];
+      }
+    }
+    return [];
   }
 
   /**

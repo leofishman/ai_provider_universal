@@ -29,6 +29,12 @@ with two backends:
   Capability detection uses llama.cpp's per-model `status.args` (router
   mode), HuggingFace `pipeline_tag` lookup for `--hf-repo` models, and
   model-name heuristics.
+- `litellm` — LiteLLM proxy servers, including **amazee.ai** (managed
+  LiteLLM: point the host at your private `litellm_api_url` and use your
+  amazee.ai key). Discovery uses LiteLLM's `/model/info` endpoint:
+  operation types from the structured `mode` field, per-token costs and
+  context window read live — falling back to the plain OpenAI catalog when
+  the key cannot read `/model/info`.
 - `openrouter` — OpenRouter unified API (openrouter.ai): 300+ models from
   OpenAI, Anthropic, Google, Meta and others behind one endpoint. Fixed
   default endpoint, capability detection from the catalog's
