@@ -41,6 +41,41 @@ multi-instance UI come for free.
 - [AI](https://www.drupal.org/project/ai) ^1.2
 - [Key](https://www.drupal.org/project/key)
 
+## Installation
+
+```bash
+composer require drupal/ai_provider_universal:1.0.x-dev
+drush pm:enable ai_provider_universal
+# optional submodules:
+drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck
+```
+
+### Recommended core AI patches
+
+Two small bugs in the AI module affect this provider; fixes ship in
+`patches/` and are declared in this module's `composer.json`:
+
+- `ai-support-optgrouped-model-options.patch` — the AI settings form
+  rejects models presented in optgroups (this provider groups models by
+  server).
+- `ai-search-embeddings-engine-explode-limit.patch` — `ai_search` breaks
+  model ids containing double underscores (used here for
+  `server__model` ids).
+
+Composer does **not** apply patches from dependencies by default. To apply
+them in your site, install [composer-patches](https://github.com/cweagans/composer-patches)
+and enable dependency patching:
+
+```bash
+composer require cweagans/composer-patches
+composer config extra.enable-patching true
+composer update drupal/ai
+```
+
+Without the patches the provider works, but route/model selects in the AI
+settings form may not validate, and `ai_search` cannot use this provider's
+embedding models. Upstream issues are being filed against the AI module.
+
 ## Setup
 
 1. Enable the module.
@@ -50,12 +85,13 @@ multi-instance UI come for free.
    per-model operation types if needed.
 4. Select provider/models per operation type in the AI module settings.
 
-Discovery can be re-run any time with `drush universal:discover-models
-[server_id]` or by re-saving the server.
+Discovery can be re-run any time with `drush aip:discover-models
+[server_id]` (alias `aipdm`) or by re-saving the server.
 
 ## Relation to ai_provider_llama_cpp
 
 This module is the evolution of
 [ai_provider_llama_cpp](https://www.drupal.org/project/ai_provider_llama_cpp)
-2.x. Both can be installed side by side; there is no automated migration —
-re-create your servers here and remove the old provider when done.
+2.x, which is no longer maintained. Both can be installed side by side;
+there is no automated migration — re-create your servers here and remove
+the old provider when done.
