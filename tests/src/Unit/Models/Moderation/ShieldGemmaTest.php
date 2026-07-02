@@ -22,8 +22,7 @@ use PHPUnit\Framework\Attributes\Group;
 final class ShieldGemmaTest extends UnitTestCase {
 
   /**
-   * @covers ::responseIndicatesViolation
-   * @dataProvider providerResponses
+   * Tests response parsing for violation indication.
    */
   #[DataProvider('providerResponses')]
   public function testResponseIndicatesViolation(string $response, bool $expected): void {
@@ -47,7 +46,7 @@ final class ShieldGemmaTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::getDefaultGuidelines
+   * Tests default guidelines structure.
    */
   public function testGetDefaultGuidelines(): void {
     $guidelines = ShieldGemma::getDefaultGuidelines();
@@ -61,7 +60,7 @@ final class ShieldGemmaTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::buildPrompt
+   * Tests prompt construction for ShieldGemma.
    */
   public function testBuildPrompt(): void {
     $guideline = '"No Harassment": The prompt shall not contain abusive content.';

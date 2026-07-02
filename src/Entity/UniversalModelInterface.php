@@ -113,4 +113,17 @@ interface UniversalModelInterface extends ConfigEntityInterface {
    */
   public function setContextLength(?int $length): self;
 
+  /**
+   * Gets the reasoning effort override (none/low/medium/high).
+   *
+   * NULL means "use the server/model default": no reasoning parameter is
+   * sent with the request at all.
+   */
+  public function getReasoning(): ?string;
+
+  /**
+   * Sets the reasoning effort override (invalid values become NULL).
+   */
+  public function setReasoning(?string $reasoning): self;
+
 }

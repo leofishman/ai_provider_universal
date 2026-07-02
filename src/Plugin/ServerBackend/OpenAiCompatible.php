@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
 
+use OpenAI\Client;
 use Drupal\ai_provider_universal\Attribute\ServerBackend;
 use Drupal\ai_provider_universal\Backend\ServerBackendPluginBase;
 use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
@@ -177,7 +178,7 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
   /**
    * Creates an OpenAI client for the given server.
    */
-  protected function createClient(UniversalServerInterface $server): \OpenAI\Client {
+  protected function createClient(UniversalServerInterface $server): Client {
     $factory = \OpenAI::factory();
 
     $keyId = $server->getApiKey();

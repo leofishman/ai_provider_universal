@@ -488,11 +488,29 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   protected function doChat(array|string|ChatInput $input, string $model_id, array $tags): ChatOutput {
     $this->setActiveServerForModel($model_id);
+
+    // Per-model reasoning override. The parent builds the request payload
+    // from $this->configuration, so merging here reaches every chat call.
+    // "reasoning_effort" is the OpenAI-compatible parameter (OpenAI, vLLM,
+    // llama.cpp, Fireworks); lenient local servers ignore it when unsupported.
+    $model = $this->entityTypeManager->getStorage('universal_model')->load($model_id);
+    $had_reasoning = array_key_exists('reasoning_effort', $this->configuration);
+    $previous_reasoning = $this->configuration['reasoning_effort'] ?? NULL;
+    if ($model instanceof UniversalModelInterface && ($effort = $model->getReasoning()) !== NULL) {
+      $this->configuration['reasoning_effort'] = $effort;
+    }
+
     try {
       $resolved = $this->getModel($model_id);
       return parent::chat($input, $resolved, $tags);
     }
     finally {
+      if ($had_reasoning) {
+        $this->configuration['reasoning_effort'] = $previous_reasoning;
+      }
+      else {
+        unset($this->configuration['reasoning_effort']);
+      }
       $this->clearActiveServer();
     }
   }

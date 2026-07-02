@@ -79,6 +79,19 @@
     "versionable",
     "vllm",
     "vosk",
-    "whisper"
+    "whisper",
+    "aipdm",
+    "Bespoke",
+    "Chunker",
+    "deepseek",
+    "estas",
+    "factcheck",
+    "Factcheck",
+    "minicheck",
+    "MiniCheck",
+    "mixtral",
+    "palabra",
+    "pgvector",
+    "varchar"
   ]
 }

@@ -5,6 +5,9 @@ ai_provider_universal_factcheck.settings:
     checker_model:
       type: string
       label: 'Checker model (universal_model id)'
+    extractor_model:
+      type: string
+      label: 'Claim extractor model (universal_model id, empty = checker model)'
     evidence_index:
       type: string
       label: 'Search API index for evidence (optional)'

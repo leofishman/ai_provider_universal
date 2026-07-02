@@ -42,6 +42,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'cost_output',
     'quality_tier',
     'context_length',
+    'reasoning',
   ],
   links: [
     'collection' => '/admin/config/ai/providers/universal/models',
@@ -122,6 +123,16 @@ class UniversalModel extends ConfigEntityBase implements UniversalModelInterface
    * @var int|null
    */
   protected ?int $context_length = NULL;
+
+  /**
+   * Reasoning effort override: none/low/medium/high. NULL = server default.
+   *
+   * Translated to the OpenAI-compatible reasoning_effort request parameter
+   * by the provider; NULL sends nothing so the server/model default applies.
+   *
+   * @var string|null
+   */
+  protected ?string $reasoning = NULL;
 
   /**
    * {@inheritdoc}
@@ -251,6 +262,22 @@ class UniversalModel extends ConfigEntityBase implements UniversalModelInterface
    */
   public function setContextLength(?int $length): self {
     $this->context_length = $length;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getReasoning(): ?string {
+    return $this->reasoning;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setReasoning(?string $reasoning): self {
+    $allowed = ['none', 'low', 'medium', 'high'];
+    $this->reasoning = in_array($reasoning, $allowed, TRUE) ? $reasoning : NULL;
     return $this;
   }
 

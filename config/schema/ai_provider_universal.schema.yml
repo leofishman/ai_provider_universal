@@ -77,3 +77,7 @@ ai_provider_universal.model.*:
       type: integer
       label: 'Context length (tokens)'
       nullable: true
+    reasoning:
+      type: string
+      label: 'Reasoning effort (none/low/medium/high, empty = server default)'
+      nullable: true

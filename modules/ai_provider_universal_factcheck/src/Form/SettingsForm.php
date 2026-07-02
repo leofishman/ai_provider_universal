@@ -42,10 +42,19 @@ class SettingsForm extends ConfigFormBase {
     $form['checker_model'] = [
       '#type' => 'select',
       '#title' => $this->t('Checker model'),
-      '#description' => $this->t('Model used to extract and verify claims. A small fast local model is usually enough; it only judges, it does not generate content.'),
+      '#description' => $this->t('Model that judges each claim. A small fast local model is usually enough. Specialized checkers like Bespoke-MiniCheck are auto-detected by name, but they require an evidence index and a separate extractor model.'),
       '#options' => $model_options,
       '#empty_option' => $this->t('- Disabled -'),
       '#default_value' => $config->get('checker_model'),
+    ];
+
+    $form['extractor_model'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Claim extractor model'),
+      '#description' => $this->t('General chat model that splits the answer into atomic claims (JSON output). Leave empty to use the checker model — not valid when the checker is MiniCheck, which cannot extract.'),
+      '#options' => $model_options,
+      '#empty_option' => $this->t('- Same as checker -'),
+      '#default_value' => $config->get('extractor_model'),
     ];
 
     $index_options = [];
@@ -80,9 +89,21 @@ class SettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    parent::validateForm($form, $form_state);
+    $checker = (string) $form_state->getValue('checker_model');
+    if (str_contains(strtolower($checker), 'minicheck') && !$form_state->getValue('extractor_model')) {
+      $form_state->setErrorByName('extractor_model', $this->t('MiniCheck cannot extract claims; pick a general chat model as extractor.'));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('ai_provider_universal_factcheck.settings')
       ->set('checker_model', $form_state->getValue('checker_model'))
+      ->set('extractor_model', $form_state->getValue('extractor_model') ?? '')
       ->set('evidence_index', $form_state->getValue('evidence_index') ?? '')
       ->set('max_claims', (int) $form_state->getValue('max_claims'))
       ->save();

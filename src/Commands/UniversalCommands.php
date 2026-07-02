@@ -33,11 +33,11 @@ class UniversalCommands extends DrushCommands {
    *   Optional ID of the server to run discovery for. If omitted, runs for
    *   all servers.
    *
-   * @command universal:discover-models
-   * @aliases aiudm, universal-discover
-   * @usage drush universal:discover-models
+   * @command aip:discover-models
+   * @aliases aipdm, aip-discover
+   * @usage drush aip:discover-models
    *   Discover models for all configured servers.
-   * @usage drush universal:discover-models my_server
+   * @usage drush aip:discover-models my_server
    *   Discover models specifically for the server "my_server".
    */
   public function discoverModels(?string $server_id = NULL): void {

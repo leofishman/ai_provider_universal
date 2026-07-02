@@ -244,6 +244,20 @@ class UniversalServerForm extends EntityForm {
         '#default_value' => $model->getQualityTier(),
       ];
 
+      $element[$key]['reasoning'] = [
+        '#type'          => 'select',
+        '#title'         => $this->t('Reasoning effort'),
+        '#description'   => $this->t('Sent as <code>reasoning_effort</code> on chat requests. Leave as default for non-reasoning models or to keep the server-side setting.'),
+        '#options'       => [
+          'none'   => $this->t('None (disable thinking)'),
+          'low'    => $this->t('Low'),
+          'medium' => $this->t('Medium'),
+          'high'   => $this->t('High'),
+        ],
+        '#empty_option'  => $this->t('- Server default -'),
+        '#default_value' => $model->getReasoning(),
+      ];
+
       $element[$key]['context_length'] = [
         '#type'          => 'number',
         '#title'         => $this->t('Context length (tokens)'),
@@ -363,6 +377,9 @@ class UniversalServerForm extends EntityForm {
 
       $ctx = $values['context_length'] ?? '';
       $model->setContextLength($ctx === '' || $ctx === NULL ? NULL : (int) $ctx);
+
+      $reasoning = $values['reasoning'] ?? '';
+      $model->setReasoning($reasoning === '' ? NULL : (string) $reasoning);
 
       $model->save();
     }

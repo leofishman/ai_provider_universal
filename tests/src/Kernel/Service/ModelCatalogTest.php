@@ -39,8 +39,6 @@ final class ModelCatalogTest extends KernelTestBase {
 
   /**
    * Tests offline operation-type detection from args and model-name heuristics.
-   *
-   * @dataProvider providerDetection
    */
   #[DataProvider('providerDetection')]
   public function testDetectOperationTypes(array $model, array $expected): void {

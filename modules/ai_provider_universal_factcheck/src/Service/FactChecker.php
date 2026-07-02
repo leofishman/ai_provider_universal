@@ -12,12 +12,19 @@ use Psr\Log\LoggerInterface;
  * Verifies an answer claim by claim and returns a support score.
  *
  * Pipeline (Fabric-style prompts, embedded — no external pattern files):
- * 1. Extract up to N atomic factual claims from the answer.
+ * 1. Extract up to N atomic factual claims from the answer, using the
+ *    extractor model (falls back to the checker model when unset).
  * 2. For each claim, retrieve evidence from the configured index (optional)
  *    and ask the checker model for a verdict:
  *    SUPPORTED / UNSUPPORTED / CONTRADICTED.
  * 3. score = supported / total (claims with no verdict count as unsupported;
  *    an answer with no factual claims scores 1.0).
+ *
+ * Checker models whose id contains "minicheck" (Bespoke-MiniCheck) are
+ * driven through their fine-tuned interface instead of the generic prompt:
+ * "Document: ...\nClaim: ..." answered with Yes/No. They cannot extract
+ * claims and cannot judge without evidence, so they need a separate
+ * extractor model and an evidence index.
  */
 class FactChecker {
 
@@ -97,7 +104,8 @@ PROMPT;
    */
   public function extractClaims(string $answer): array {
     $max = (int) ($this->settings()->get('max_claims') ?: 5);
-    $raw = $this->ask(sprintf(self::EXTRACT_PROMPT, $max, $answer));
+    $extractor = (string) ($this->settings()->get('extractor_model') ?: $this->settings()->get('checker_model'));
+    $raw = $this->ask(sprintf(self::EXTRACT_PROMPT, $max, $answer), $extractor);
 
     // Models often wrap JSON in fences or prose; grab the first array.
     if (!preg_match('/\[.*\]/s', $raw, $match)) {
@@ -119,6 +127,20 @@ PROMPT;
    */
   protected function verifyClaim(string $claim): string {
     $passages = $this->evidenceRetriever->retrieve($claim);
+    $checker = (string) $this->settings()->get('checker_model');
+
+    // Specialized grounded-checking models (Bespoke-MiniCheck) only know
+    // one task: does this document support this claim? Yes/No.
+    if (str_contains(strtolower($checker), 'minicheck')) {
+      if (!$passages) {
+        $this->logger->warning('MiniCheck checker needs an evidence index; claim treated as unsupported: @claim', ['@claim' => $claim]);
+        return 'UNSUPPORTED';
+      }
+      $document = implode("\n", array_map(static fn ($p) => mb_substr($p, 0, 1000), $passages));
+      $raw = $this->ask("Document: {$document}\nClaim: {$claim}", $checker);
+      // MiniCheck's "No" means "not grounded", not "false": UNSUPPORTED.
+      return str_starts_with(strtolower(trim($raw)), 'yes') ? 'SUPPORTED' : 'UNSUPPORTED';
+    }
 
     if ($passages) {
       $evidenceBlock = "\n\nEVIDENCE:\n- " . implode("\n- ", array_map(
@@ -132,7 +154,7 @@ PROMPT;
       $supportedSuffix = ' to the best of your knowledge';
     }
 
-    $raw = strtoupper($this->ask(sprintf(self::VERIFY_PROMPT, $evidenceBlock, $supportedSuffix, $claim)));
+    $raw = strtoupper($this->ask(sprintf(self::VERIFY_PROMPT, $evidenceBlock, $supportedSuffix, $claim), $checker));
 
     foreach (['SUPPORTED', 'CONTRADICTED', 'UNSUPPORTED'] as $verdict) {
       // Order matters: check SUPPORTED before UNSUPPORTED would match inside
@@ -145,10 +167,9 @@ PROMPT;
   }
 
   /**
-   * Sends a single-message chat to the configured checker model.
+   * Sends a single-message chat to the given model.
    */
-  protected function ask(string $prompt): string {
-    $model = (string) $this->settings()->get('checker_model');
+  protected function ask(string $prompt, string $model): string {
     if (!$model) {
       return '';
     }

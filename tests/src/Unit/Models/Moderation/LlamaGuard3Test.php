@@ -35,8 +35,7 @@ final class LlamaGuard3Test extends UnitTestCase {
   }
 
   /**
-   * @covers ::parse
-   * @dataProvider providerSafeResponses
+   * Tests parsing of safe responses.
    */
   #[DataProvider('providerSafeResponses')]
   public function testSafeResponses(string $response): void {
@@ -57,8 +56,7 @@ final class LlamaGuard3Test extends UnitTestCase {
   }
 
   /**
-   * @covers ::parse
-   * @dataProvider providerUnsafeResponses
+   * Tests parsing of unsafe responses and category extraction.
    */
   #[DataProvider('providerUnsafeResponses')]
   public function testUnsafeResponses(string $response, array $expectedReasons): void {

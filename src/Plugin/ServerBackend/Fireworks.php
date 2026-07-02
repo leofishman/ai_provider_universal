@@ -34,49 +34,69 @@ class Fireworks extends OpenAiCompatible {
   /**
    * Routing metadata by raw-model-id substring, first match wins.
    *
-   * cost_input / cost_output in USD per 1M tokens (serverless list prices),
-   * quality_tier 1-5, context_length in tokens.
+   * Values: cost_input / cost_output in USD per 1M tokens (serverless list
+   * prices), quality_tier 1-5, context_length in tokens.
    */
   protected const MODEL_METADATA = [
     'llama4-maverick' => [
-      'cost_input' => 0.22, 'cost_output' => 0.88,
-      'quality_tier' => 4, 'context_length' => 1000000,
+      'cost_input' => 0.22,
+      'cost_output' => 0.88,
+      'quality_tier' => 4,
+      'context_length' => 1000000,
     ],
     'llama4-scout' => [
-      'cost_input' => 0.15, 'cost_output' => 0.60,
-      'quality_tier' => 3, 'context_length' => 10000000,
+      'cost_input' => 0.15,
+      'cost_output' => 0.60,
+      'quality_tier' => 3,
+      'context_length' => 10000000,
     ],
     'llama-v3p1-405b' => [
-      'cost_input' => 3.00, 'cost_output' => 3.00,
-      'quality_tier' => 4, 'context_length' => 131072,
+      'cost_input' => 3.00,
+      'cost_output' => 3.00,
+      'quality_tier' => 4,
+      'context_length' => 131072,
     ],
     'llama-v3p1-70b' => [
-      'cost_input' => 0.90, 'cost_output' => 0.90,
-      'quality_tier' => 4, 'context_length' => 131072,
+      'cost_input' => 0.90,
+      'cost_output' => 0.90,
+      'quality_tier' => 4,
+      'context_length' => 131072,
     ],
     'llama-v3p1-8b' => [
-      'cost_input' => 0.20, 'cost_output' => 0.20,
-      'quality_tier' => 3, 'context_length' => 131072,
+      'cost_input' => 0.20,
+      'cost_output' => 0.20,
+      'quality_tier' => 3,
+      'context_length' => 131072,
     ],
     'deepseek-r1' => [
-      'cost_input' => 3.00, 'cost_output' => 8.00,
-      'quality_tier' => 5, 'context_length' => 163840,
+      'cost_input' => 3.00,
+      'cost_output' => 8.00,
+      'quality_tier' => 5,
+      'context_length' => 163840,
     ],
     'deepseek-v3' => [
-      'cost_input' => 0.90, 'cost_output' => 0.90,
-      'quality_tier' => 4, 'context_length' => 131072,
+      'cost_input' => 0.90,
+      'cost_output' => 0.90,
+      'quality_tier' => 4,
+      'context_length' => 131072,
     ],
     'qwen3-235b' => [
-      'cost_input' => 0.22, 'cost_output' => 0.88,
-      'quality_tier' => 4, 'context_length' => 131072,
+      'cost_input' => 0.22,
+      'cost_output' => 0.88,
+      'quality_tier' => 4,
+      'context_length' => 131072,
     ],
     'qwen3-30b' => [
-      'cost_input' => 0.15, 'cost_output' => 0.60,
-      'quality_tier' => 3, 'context_length' => 131072,
+      'cost_input' => 0.15,
+      'cost_output' => 0.60,
+      'quality_tier' => 3,
+      'context_length' => 131072,
     ],
     'mixtral-8x22b' => [
-      'cost_input' => 1.20, 'cost_output' => 1.20,
-      'quality_tier' => 3, 'context_length' => 65536,
+      'cost_input' => 1.20,
+      'cost_output' => 1.20,
+      'quality_tier' => 3,
+      'context_length' => 65536,
     ],
     'whisper-v3' => [
       'quality_tier' => 3,
@@ -85,8 +105,10 @@ class Fireworks extends OpenAiCompatible {
       'quality_tier' => 4,
     ],
     'nomic-embed' => [
-      'cost_input' => 0.008, 'cost_output' => 0.0,
-      'quality_tier' => 3, 'context_length' => 8192,
+      'cost_input' => 0.008,
+      'cost_output' => 0.0,
+      'quality_tier' => 3,
+      'context_length' => 8192,
     ],
   ];
 

@@ -22,8 +22,7 @@ use PHPUnit\Framework\Attributes\Group;
 final class ModelFilterTest extends UnitTestCase {
 
   /**
-   * @covers ::matches
-   * @dataProvider providerMatches
+   * Tests model id glob matching.
    */
   #[DataProvider('providerMatches')]
   public function testMatches(string $model_id, string $pattern, bool $expected): void {
@@ -46,7 +45,7 @@ final class ModelFilterTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::matchGlob
+   * Tests the matchGlob helper with wildcards.
    */
   public function testMatchGlobWildcard(): void {
     $this->assertTrue(ModelFilter::matchGlob('foo-bar-baz', 'foo*baz'));
