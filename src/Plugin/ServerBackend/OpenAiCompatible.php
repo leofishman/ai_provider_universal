@@ -85,11 +85,27 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
 
   /**
    * {@inheritdoc}
+   *
+   * Fetches /models with a plain HTTP request instead of the openai-php
+   * client: its Model DTO drops non-standard fields (llama.cpp's status.args,
+   * vLLM's max_model_len, ...) that capability and metadata detection need.
    */
   public function listModels(UniversalServerInterface $server): array {
-    $client = $this->createClient($server);
-    $response = $client->models()->list()->toArray();
-    return $response['data'] ?? [];
+    $options = ['headers' => ['Accept' => 'application/json']];
+
+    $keyId = $server->getApiKey();
+    if ($keyId && $this->keyRepository) {
+      $keyValue = $this->keyRepository->getKey($keyId)?->getKeyValue();
+      if ($keyValue) {
+        $options['headers']['Authorization'] = 'Bearer ' . $keyValue;
+      }
+    }
+
+    $client = $this->httpClientFactory->fromOptions(['timeout' => $server->getTimeout() ?: 600]);
+    $response = $client->request('GET', rtrim($this->getBaseUri($server), '/') . '/models', $options);
+    $data = json_decode($response->getBody()->getContents(), TRUE);
+
+    return $data['data'] ?? [];
   }
 
   /**
@@ -136,13 +152,22 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
   /**
    * {@inheritdoc}
    *
-   * llama.cpp exposes the training context size in the model entry's "meta"
-   * block; other OpenAI-compatible servers usually don't, in which case the
-   * fields stay unset for the user (or a more specific backend) to fill.
+   * Context length sources, in order of precedence:
+   * - "--ctx-size" in status.args (llama.cpp router mode: the configured
+   *   context per model preset),
+   * - meta.n_ctx_train (llama.cpp single-model mode: training context),
+   * - max_model_len (vLLM).
+   * Ollama exposes nothing usable in /v1/models; fields stay unset there.
    */
   public function detectModelMetadata(array $modelEntry): array {
     $metadata = [];
-    $ctx = $modelEntry['meta']['n_ctx_train'] ?? NULL;
+
+    $args = $modelEntry['status']['args'] ?? [];
+    $index = array_search('--ctx-size', $args, TRUE);
+    $ctx = ($index !== FALSE && isset($args[$index + 1])) ? $args[$index + 1] : NULL;
+
+    $ctx ??= $modelEntry['meta']['n_ctx_train'] ?? $modelEntry['max_model_len'] ?? NULL;
+
     if (is_numeric($ctx) && $ctx > 0) {
       $metadata['context_length'] = (int) $ctx;
     }
