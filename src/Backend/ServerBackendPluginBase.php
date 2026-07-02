@@ -1,0 +1,15 @@
+<?php
+
+namespace Drupal\ai_provider_universal\Backend;
+
+use Drupal\Core\Plugin\PluginBase;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+
+/**
+ * Base class for server backend plugins.
+ */
+abstract class ServerBackendPluginBase extends PluginBase implements ServerBackendInterface {
+
+  use StringTranslationTrait;
+
+}

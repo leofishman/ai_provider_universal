@@ -1,0 +1,17 @@
+includes:
+  - phar://phpstan.phar/conf/bleedingEdge.neon
+
+parameters:
+  level: 1
+
+  paths:
+    - .
+
+  fileExtensions:
+    - php
+    - module
+    - inc
+    - install
+
+  ignoreErrors:
+    - '#Unsafe usage of new static\(\)#'

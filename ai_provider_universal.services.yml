@@ -1,0 +1,17 @@
+services:
+  Drupal\ai_provider_universal\Hook\AiProviderUniversalHooks:
+    class: Drupal\ai_provider_universal\Hook\AiProviderUniversalHooks
+    autowire: true
+
+  Drupal\ai_provider_universal\Backend\ServerBackendManager:
+    class: Drupal\ai_provider_universal\Backend\ServerBackendManager
+    parent: default_plugin_manager
+
+  plugin.manager.ai_provider_universal.server_backend:
+    alias: Drupal\ai_provider_universal\Backend\ServerBackendManager
+
+  Drupal\ai_provider_universal\Service\ModelCatalog:
+    class: Drupal\ai_provider_universal\Service\ModelCatalog
+    autowire: true
+    arguments:
+      $transliteration: '@transliteration'

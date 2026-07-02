@@ -1,0 +1,18 @@
+--- a/src/Form/AiSettingsForm.php
++++ b/src/Form/AiSettingsForm.php
+@@ -1199,8 +1199,13 @@
+     }
+ 
+     // If we have a current model value, check if it's still
+-    // valid for the new provider.
+-    if ($current_model && !isset($models[$current_model])) {
++    // valid for the new provider. Flatten first so providers that return
++    // optgrouped (nested) model options are handled correctly.
++    $flat_models = [];
++    array_walk_recursive($models, function ($label, $key) use (&$flat_models) {
++      $flat_models[$key] = $label;
++    });
++    if ($current_model && !isset($flat_models[$current_model])) {
+       // If the current model is not valid for the new provider, clear it.
+       $current_model = '';
+       unset($user_input['model__' . $operation_type]);

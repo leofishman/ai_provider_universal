@@ -1,0 +1,5 @@
+entity.universal_server.add_form:
+  route_name: entity.universal_server.add_form
+  title: 'Add server'
+  appears_on:
+    - entity.universal_server.collection

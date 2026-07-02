@@ -1,0 +1,63 @@
+ai_provider_universal.server.*:
+  type: config_entity
+  label: 'AI Server'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    backend:
+      type: string
+      label: 'Backend plugin ID'
+    host_name:
+      type: string
+      label: 'Host Name'
+    port:
+      type: string
+      label: 'Port'
+    api_key:
+      type: string
+      label: 'API Key (Key entity ID)'
+    timeout:
+      type: integer
+      label: 'Timeout'
+    operation_types:
+      type: sequence
+      label: 'Operation Types'
+      sequence:
+        type: string
+        label: 'Operation Type'
+    model_filter:
+      type: string
+      label: 'Model Filter'
+
+ai_provider_universal.model.*:
+  type: config_entity
+  label: 'llama.cpp Model'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    server_id:
+      type: string
+      label: 'Server ID'
+    raw_model_id:
+      type: string
+      label: 'Raw Model ID'
+    detected_operation_types:
+      type: sequence
+      label: 'Detected Operation Types'
+      sequence:
+        type: string
+        label: 'Operation Type'
+    operation_types:
+      type: sequence
+      label: 'Operation Types (overrides)'
+      sequence:
+        type: string
+        label: 'Operation Type'
