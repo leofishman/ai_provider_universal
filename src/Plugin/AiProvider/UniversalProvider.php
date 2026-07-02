@@ -197,8 +197,10 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $server = $this->getServerEntity();
 
     if ($server) {
-      // Specific server context.
-      if (!$server->getHostName()) {
+      // Specific server context. The backend decides whether the server is
+      // reachable in principle (some backends have a default endpoint and
+      // need no host).
+      if ($this->modelCatalog->getBackend($server)->getBaseUri($server) === '') {
         return FALSE;
       }
       if ($operation_type) {
@@ -218,7 +220,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $servers = $server_storage->loadMultiple();
 
     foreach ($servers as $srv) {
-      if (!$srv->getHostName()) {
+      if ($this->modelCatalog->getBackend($srv)->getBaseUri($srv) === '') {
         continue;
       }
       if ($operation_type === NULL) {
@@ -334,14 +336,24 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   protected function loadClient(): void {
     if (empty($this->client)) {
-      $host = $this->getBaseHost();
-      if (!$host) {
-        throw new AiRequestErrorException('Server host is not configured.');
+      $server = $this->getServerEntity();
+
+      // With a server context the backend plugin owns the base URI (it may
+      // have a protocol-specific default, e.g. Fireworks). The legacy
+      // host-in-configuration path remains for validation flows without a
+      // server entity.
+      if ($server) {
+        $this->setEndpoint($this->modelCatalog->getBackend($server)->getBaseUri($server));
       }
-      $this->setEndpoint(rtrim($host, '/') . '/v1');
+      else {
+        $host = $this->getBaseHost();
+        if (!$host) {
+          throw new AiRequestErrorException('Server host is not configured.');
+        }
+        $this->setEndpoint(rtrim($host, '/') . '/v1');
+      }
 
       $timeout = 600;
-      $server = $this->getServerEntity();
       if ($server) {
         $timeout = $server->getTimeout() ?: 600;
       }

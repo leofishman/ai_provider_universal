@@ -72,6 +72,11 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
    */
   public function getBaseUri(UniversalServerInterface $server): string {
     $host = rtrim($server->getHostName(), '/');
+    if ($host === '') {
+      // No default endpoint for the generic backend; the server is unusable
+      // until a host is configured. Specific backends may override this.
+      return '';
+    }
     if ($port = $server->getPort()) {
       $host .= ':' . $port;
     }

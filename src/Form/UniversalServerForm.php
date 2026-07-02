@@ -96,8 +96,7 @@ class UniversalServerForm extends EntityForm {
     $form['connection']['host_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Host Name'),
-      '#description' => $this->t('The host name including protocol. Local examples: http://127.0.0.1 (llama.cpp, vLLM, LM Studio, LiteLLM), http://host.docker.internal (from DDEV/Docker). Remote examples: https://api.fireworks.ai/inference, https://api.openai.com.'),
-      '#required' => TRUE,
+      '#description' => $this->t('The host name including protocol. Local examples: http://127.0.0.1 (llama.cpp, vLLM, LM Studio, LiteLLM), http://host.docker.internal (from DDEV/Docker). Remote examples: https://api.fireworks.ai/inference, https://api.openai.com. Backends with a default endpoint (e.g. Fireworks AI) allow leaving this empty.'),
       '#default_value' => $server->getHostName(),
       '#attributes' => ['placeholder' => 'http://127.0.0.1'],
     ];
@@ -165,7 +164,7 @@ class UniversalServerForm extends EntityForm {
 
     $element = [
       '#type'  => 'details',
-      '#title' => $this->t('Models: capabilities &amp; routing metadata'),
+      '#title' => $this->t('Models: capabilities and routing metadata'),
       '#description' => $this->t(
         'Capabilities are auto-detected from server metadata and HuggingFace; override them here when detection fails. Cost, quality tier and context length feed the smart router: it picks the cheapest model that satisfies a route.'
       ),

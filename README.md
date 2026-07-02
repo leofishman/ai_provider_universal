@@ -19,8 +19,11 @@ Unlike single-endpoint providers, this module models your AI infrastructure as
 ## Backends
 
 Protocol-specific logic lives in **ServerBackend plugins**. The module ships
-with one backend:
+with two backends:
 
+- `fireworks` — Fireworks AI serverless inference: fixed default endpoint,
+  Fireworks-specific capability detection, and published pricing + context
+  lengths prefilled at discovery for smart routing.
 - `openai_compatible` — llama.cpp, Ollama, vLLM, LM Studio, LiteLLM,
   Fireworks, OpenAI, and anything else speaking the OpenAI REST protocol.
   Capability detection uses llama.cpp's per-model `status.args` (router
