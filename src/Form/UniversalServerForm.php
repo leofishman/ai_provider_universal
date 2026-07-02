@@ -96,7 +96,7 @@ class UniversalServerForm extends EntityForm {
     $form['connection']['host_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Host Name'),
-      '#description' => $this->t('The host name including protocol. For DDEV use http://host.docker.internal.'),
+      '#description' => $this->t('The host name including protocol. Local examples: http://127.0.0.1 (llama.cpp, vLLM, LM Studio, LiteLLM), http://host.docker.internal (from DDEV/Docker). Remote examples: https://api.fireworks.ai/inference, https://api.openai.com.'),
       '#required' => TRUE,
       '#default_value' => $server->getHostName(),
       '#attributes' => ['placeholder' => 'http://127.0.0.1'],
@@ -105,7 +105,7 @@ class UniversalServerForm extends EntityForm {
     $form['connection']['port'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Port'),
-      '#description' => $this->t('Port number. Leave empty for default. llama.cpp default is 8080, Ollama is 11434.'),
+      '#description' => $this->t('Port number. Leave empty for default. Common defaults: llama.cpp 8080, Ollama 11434, vLLM 8000, LM Studio 1234, LiteLLM 4000. Remote APIs (Fireworks, OpenAI) usually need no port (HTTPS 443).'),
       '#default_value' => $server->getPort() ?: '8080',
       '#attributes' => ['placeholder' => '8080'],
     ];
@@ -113,7 +113,7 @@ class UniversalServerForm extends EntityForm {
     $form['connection']['api_key'] = [
       '#type' => 'key_select',
       '#title' => $this->t('API Key'),
-      '#description' => $this->t('Optional. Select a Key for authenticated servers (e.g. vLLM, LiteLLM). Leave empty for local llama.cpp servers without authentication.'),
+      '#description' => $this->t('Optional. Select a Key for authenticated servers (vLLM or LiteLLM with an api-key set, Fireworks, OpenAI). Leave empty for local servers without authentication (llama.cpp, Ollama, LM Studio).'),
       '#default_value' => $server->getApiKey(),
     ];
 
