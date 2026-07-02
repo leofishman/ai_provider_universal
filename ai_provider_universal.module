@@ -7,13 +7,13 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Hook\Attribute\LegacyHook;
-use Drupal\ai_provider_llama_cpp\Hook\AiProviderLlamaCppHooks;
+use Drupal\ai_provider_universal\Hook\AiProviderLlamaCppHooks;
 
 /**
  * Implements hook_entity_insert().
  */
 #[LegacyHook]
-function ai_provider_llama_cpp_entity_insert(EntityInterface $entity): void {
+function ai_provider_universal_entity_insert(EntityInterface $entity): void {
   \Drupal::service(AiProviderLlamaCppHooks::class)->entityInsert($entity);
 }
 
@@ -21,7 +21,7 @@ function ai_provider_llama_cpp_entity_insert(EntityInterface $entity): void {
  * Implements hook_entity_update().
  */
 #[LegacyHook]
-function ai_provider_llama_cpp_entity_update(EntityInterface $entity): void {
+function ai_provider_universal_entity_update(EntityInterface $entity): void {
   \Drupal::service(AiProviderLlamaCppHooks::class)->entityUpdate($entity);
 }
 
@@ -29,6 +29,6 @@ function ai_provider_llama_cpp_entity_update(EntityInterface $entity): void {
  * Implements hook_entity_delete().
  */
 #[LegacyHook]
-function ai_provider_llama_cpp_entity_delete(EntityInterface $entity): void {
+function ai_provider_universal_entity_delete(EntityInterface $entity): void {
   \Drupal::service(AiProviderLlamaCppHooks::class)->entityDelete($entity);
 }
