@@ -10,7 +10,8 @@
   "extra": {
     "patches": {
       "drupal/ai": {
-        "Fix AiSettingsForm model validity check for optgrouped (server-grouped) model options": "patches/ai-support-optgrouped-model-options.patch"
+        "Fix AiSettingsForm model validity check for optgrouped (server-grouped) model options": "patches/ai-support-optgrouped-model-options.patch",
+        "Fix ai_search embeddings_engine parsing for model ids containing double underscores (explode limit 2)": "patches/ai-search-embeddings-engine-explode-limit.patch"
       }
     }
   }

@@ -27,7 +27,7 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       extraction + verification services, optional RAG evidence from an
       ai_search index (pgvector), routes can require verification and
       escalate to the best candidate on failure.
-- [ ] Configure ai_search index on the hackathon site (nomic-embed local →
+- [x] Configure ai_search index on the hackathon site (nomic-embed local →
       pgvector), index demo content, wire factcheck to it.
 - [ ] Add ollama + vLLM (Qwen 0.5B, shieldgemma) servers to the hackathon
       site; set tiers/costs; demo route across the full local fleet +

@@ -41,22 +41,29 @@ class EvidenceRetriever {
       }
 
       /** @var \Drupal\search_api\IndexInterface $index */
-      $results = $index->query()
+      $query = $index->query()
         ->keys($claim)
-        ->range(0, $limit)
-        ->execute();
+        ->range(0, $limit);
+      // Verification is a server-side concern, not a user-facing search: the
+      // checker judges answers against published, indexed content regardless
+      // of who triggered the request. ai_search runs entity access checks by
+      // default (and would return nothing for anonymous/cron contexts), so
+      // bypass them and request the raw chunks.
+      $query->setOption('search_api_bypass_access', TRUE);
+      $query->setOption('search_api_ai_get_chunks_result', TRUE);
+      $results = $query->execute();
 
       $passages = [];
       foreach ($results as $item) {
-        // Prefer the search excerpt (ai_search returns the matched chunk);
-        // fall back to the source entity label.
-        $text = $item->getExcerpt();
+        // ai_search attaches the matched chunk as extra data; excerpt and
+        // entity label are fallbacks for other Search API backends.
+        $text = $item->getExtraData('content') ?: $item->getExcerpt();
         if (!$text) {
           $entity = $item->getOriginalObject()?->getValue();
           $text = $entity && method_exists($entity, 'label') ? (string) $entity->label() : '';
         }
         if ($text) {
-          $passages[] = strip_tags($text);
+          $passages[] = strip_tags(is_array($text) ? implode(' ', $text) : (string) $text);
         }
       }
       return $passages;

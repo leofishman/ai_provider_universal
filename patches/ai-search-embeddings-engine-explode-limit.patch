@@ -1,0 +1,45 @@
+diff -ur a/modules/ai_search/src/Base/EmbeddingStrategyPluginBase.php b/modules/ai_search/src/Base/EmbeddingStrategyPluginBase.php
+--- a/modules/ai_search/src/Base/EmbeddingStrategyPluginBase.php	2026-07-02 09:06:46.961256668 -0300
++++ b/modules/ai_search/src/Base/EmbeddingStrategyPluginBase.php	2026-07-02 09:06:46.969707999 -0300
+@@ -119,7 +119,7 @@
+    *   The embedding strategy configuration.
+    */
+   public function init(string $embedding_engine, string $chat_model, array $configuration): void {
+-    [$this->providerId, $this->modelId] = explode('__', $embedding_engine);
++    [$this->providerId, $this->modelId] = explode('__', $embedding_engine, 2);
+     $chat_model_id = $this->aiProviderManager->getModelNameFromSimpleOption($chat_model);
+     $chat_model_id = $chat_model_id ?: 'gpt-3.5';
+     $this->textChunker->setModel($chat_model_id);
+diff -ur a/modules/ai_search/src/Plugin/search_api/backend/SearchApiAiSearchBackend.php b/modules/ai_search/src/Plugin/search_api/backend/SearchApiAiSearchBackend.php
+--- a/modules/ai_search/src/Plugin/search_api/backend/SearchApiAiSearchBackend.php	2026-07-02 09:06:46.962998815 -0300
++++ b/modules/ai_search/src/Plugin/search_api/backend/SearchApiAiSearchBackend.php	2026-07-02 09:06:46.981117894 -0300
+@@ -570,7 +570,7 @@
+     }
+     $search_words = $query->getKeys();
+     if (!empty($search_words)) {
+-      [$provider_id, $model_id] = explode('__', $this->configuration['embeddings_engine']);
++      [$provider_id, $model_id] = explode('__', $this->configuration['embeddings_engine'], 2);
+       $embedding_llm = $this->aiProviderManager->createInstance($provider_id);
+       // We don't have to redo this.
+       if (!isset($params['vector_input'])) {
+diff -ur a/modules/ai_search/src/Trait/AiSearchBackendEmbeddingsEngineTrait.php b/modules/ai_search/src/Trait/AiSearchBackendEmbeddingsEngineTrait.php
+--- a/modules/ai_search/src/Trait/AiSearchBackendEmbeddingsEngineTrait.php	2026-07-02 09:06:46.963518526 -0300
++++ b/modules/ai_search/src/Trait/AiSearchBackendEmbeddingsEngineTrait.php	2026-07-02 09:06:46.977117603 -0300
+@@ -131,7 +131,7 @@
+     // If the embeddings engine is set, add the configuration form.
+     if (!empty($this->engineConfiguration['embeddings_engine']) || $form_state->getValue('embeddings_engine')) {
+       $plugin_manager = \Drupal::service('ai.provider');
+-      $parts = explode('__', $this->engineConfiguration['embeddings_engine'] ?? $form_state->get('embeddings_engine'));
++      $parts = explode('__', $this->engineConfiguration['embeddings_engine'] ?? $form_state->get('embeddings_engine'), 2);
+       try {
+         $dimensions = $plugin_manager->createInstance($parts[0])->embeddingsVectorSize($parts[1]);
+         $form['embeddings_engine_configuration']['dimensions']['#value'] = $dimensions;
+@@ -152,7 +152,7 @@
+    */
+   public function loadEmbeddingsEngine(): AiProviderInterface|ProviderProxy {
+     $plugin_manager = \Drupal::service('ai.provider');
+-    $parts = explode('__', $this->engineConfiguration['embeddings_engine']);
++    $parts = explode('__', $this->engineConfiguration['embeddings_engine'], 2);
+     return $plugin_manager->createInstance($parts[0]);
+   }
+ 
