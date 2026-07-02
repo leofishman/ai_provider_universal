@@ -55,4 +55,21 @@ interface ServerBackendInterface {
    */
   public function detectOperationTypes(array $modelEntry): array;
 
+  /**
+   * Detects routing-relevant metadata for a discovered model.
+   *
+   * Values are applied to the universal_model entity only when the
+   * corresponding field is still unset, so user edits are never clobbered
+   * by re-discovery.
+   *
+   * @param array $modelEntry
+   *   A single entry as returned by listModels().
+   *
+   * @return array{cost_input?: float, cost_output?: float, quality_tier?: int, context_length?: int}
+   *   Any subset of: cost_input / cost_output (USD per million tokens),
+   *   quality_tier (1-5), context_length (tokens). Empty array when the
+   *   backend cannot infer anything.
+   */
+  public function detectModelMetadata(array $modelEntry): array;
+
 }

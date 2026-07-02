@@ -12,4 +12,11 @@ abstract class ServerBackendPluginBase extends PluginBase implements ServerBacke
 
   use StringTranslationTrait;
 
+  /**
+   * {@inheritdoc}
+   */
+  public function detectModelMetadata(array $modelEntry): array {
+    return [];
+  }
+
 }

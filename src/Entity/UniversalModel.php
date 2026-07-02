@@ -38,6 +38,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'raw_model_id',
     'detected_operation_types',
     'operation_types',
+    'cost_input',
+    'cost_output',
+    'quality_tier',
+    'context_length',
   ],
   links: [
     'collection' => '/admin/config/ai/providers/universal/models',
@@ -87,6 +91,37 @@ class UniversalModel extends ConfigEntityBase implements UniversalModelInterface
    * @var string[]
    */
   protected array $operation_types = [];
+
+  /**
+   * Cost in USD per million input tokens. NULL = unknown.
+   *
+   * Local models are typically 0. Used by smart routing to pick the cheapest
+   * capable model.
+   *
+   * @var float|null
+   */
+  protected ?float $cost_input = NULL;
+
+  /**
+   * Cost in USD per million output tokens. NULL = unknown.
+   *
+   * @var float|null
+   */
+  protected ?float $cost_output = NULL;
+
+  /**
+   * Subjective quality tier, 1 (lowest) to 5 (frontier). NULL = unrated.
+   *
+   * @var int|null
+   */
+  protected ?int $quality_tier = NULL;
+
+  /**
+   * Maximum context length in tokens. NULL = unknown.
+   *
+   * @var int|null
+   */
+  protected ?int $context_length = NULL;
 
   /**
    * {@inheritdoc}
@@ -156,6 +191,66 @@ class UniversalModel extends ConfigEntityBase implements UniversalModelInterface
    */
   public function setServerId(string $server_id): self {
     $this->server_id = $server_id;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCostInput(): ?float {
+    return $this->cost_input;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setCostInput(?float $cost): self {
+    $this->cost_input = $cost;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCostOutput(): ?float {
+    return $this->cost_output;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setCostOutput(?float $cost): self {
+    $this->cost_output = $cost;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getQualityTier(): ?int {
+    return $this->quality_tier;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setQualityTier(?int $tier): self {
+    $this->quality_tier = $tier === NULL ? NULL : max(1, min(5, $tier));
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getContextLength(): ?int {
+    return $this->context_length;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setContextLength(?int $length): self {
+    $this->context_length = $length;
     return $this;
   }
 

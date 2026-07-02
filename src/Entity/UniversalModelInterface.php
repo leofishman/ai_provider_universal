@@ -70,4 +70,47 @@ interface UniversalModelInterface extends ConfigEntityInterface {
    */
   public function setServerId(string $server_id): self;
 
+  /**
+   * Gets the cost in USD per million input tokens (NULL = unknown).
+   *
+   * Local/self-hosted models are typically 0. Consumed by smart routing to
+   * pick the cheapest capable model.
+   */
+  public function getCostInput(): ?float;
+
+  /**
+   * Sets the cost in USD per million input tokens (NULL = unknown).
+   */
+  public function setCostInput(?float $cost): self;
+
+  /**
+   * Gets the cost in USD per million output tokens (NULL = unknown).
+   */
+  public function getCostOutput(): ?float;
+
+  /**
+   * Sets the cost in USD per million output tokens (NULL = unknown).
+   */
+  public function setCostOutput(?float $cost): self;
+
+  /**
+   * Gets the quality tier, 1 (lowest) to 5 (frontier). NULL = unrated.
+   */
+  public function getQualityTier(): ?int;
+
+  /**
+   * Sets the quality tier (clamped to 1-5, NULL = unrated).
+   */
+  public function setQualityTier(?int $tier): self;
+
+  /**
+   * Gets the maximum context length in tokens (NULL = unknown).
+   */
+  public function getContextLength(): ?int;
+
+  /**
+   * Sets the maximum context length in tokens (NULL = unknown).
+   */
+  public function setContextLength(?int $length): self;
+
 }

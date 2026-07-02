@@ -49,11 +49,11 @@ class ModelCatalog {
       }
       $machine = $this->getMachineName($rawId);
       $entityId = $this->buildModelEntityId($serverId, $machine);
-      $detected = $backend->detectOperationTypes($modelEntry);
 
       $discovered[$entityId] = [
         'raw' => $rawId,
-        'detected' => $detected,
+        'detected' => $backend->detectOperationTypes($modelEntry),
+        'metadata' => $backend->detectModelMetadata($modelEntry),
       ];
     }
 
@@ -157,6 +157,7 @@ class ModelCatalog {
       $model->setRawModelId($raw);
       $model->setServerId($serverId);
       $model->setDetectedOperationTypes($detected);
+      $this->applyDetectedMetadata($model, $info['metadata'] ?? []);
 
       $server = $this->entityTypeManager->getStorage('universal_server')->load($serverId);
       $serverLabel = $server?->label() ?? '';
@@ -173,6 +174,27 @@ class ModelCatalog {
       if (!isset($seen[$oldId])) {
         $oldModel->delete();
       }
+    }
+  }
+
+  /**
+   * Applies backend-detected metadata to fields the user has not set.
+   *
+   * Re-discovery must never clobber manual cost/quality/context edits, so
+   * each value is only written while the entity field is still NULL.
+   */
+  protected function applyDetectedMetadata($model, array $metadata): void {
+    if ($model->getCostInput() === NULL && isset($metadata['cost_input'])) {
+      $model->setCostInput((float) $metadata['cost_input']);
+    }
+    if ($model->getCostOutput() === NULL && isset($metadata['cost_output'])) {
+      $model->setCostOutput((float) $metadata['cost_output']);
+    }
+    if ($model->getQualityTier() === NULL && isset($metadata['quality_tier'])) {
+      $model->setQualityTier((int) $metadata['quality_tier']);
+    }
+    if ($model->getContextLength() === NULL && isset($metadata['context_length'])) {
+      $model->setContextLength((int) $metadata['context_length']);
     }
   }
 

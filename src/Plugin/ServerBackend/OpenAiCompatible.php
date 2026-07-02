@@ -129,6 +129,22 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
   }
 
   /**
+   * {@inheritdoc}
+   *
+   * llama.cpp exposes the training context size in the model entry's "meta"
+   * block; other OpenAI-compatible servers usually don't, in which case the
+   * fields stay unset for the user (or a more specific backend) to fill.
+   */
+  public function detectModelMetadata(array $modelEntry): array {
+    $metadata = [];
+    $ctx = $modelEntry['meta']['n_ctx_train'] ?? NULL;
+    if (is_numeric($ctx) && $ctx > 0) {
+      $metadata['context_length'] = (int) $ctx;
+    }
+    return $metadata;
+  }
+
+  /**
    * Creates an OpenAI client for the given server.
    */
   protected function createClient(UniversalServerInterface $server): \OpenAI\Client {

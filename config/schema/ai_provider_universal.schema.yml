@@ -61,3 +61,19 @@ ai_provider_universal.model.*:
       sequence:
         type: string
         label: 'Operation Type'
+    cost_input:
+      type: float
+      label: 'Cost per million input tokens (USD)'
+      nullable: true
+    cost_output:
+      type: float
+      label: 'Cost per million output tokens (USD)'
+      nullable: true
+    quality_tier:
+      type: integer
+      label: 'Quality tier (1-5)'
+      nullable: true
+    context_length:
+      type: integer
+      label: 'Context length (tokens)'
+      nullable: true

@@ -165,9 +165,9 @@ class UniversalServerForm extends EntityForm {
 
     $element = [
       '#type'  => 'details',
-      '#title' => $this->t('Model capability overrides'),
+      '#title' => $this->t('Models: capabilities &amp; routing metadata'),
       '#description' => $this->t(
-        'Capabilities are auto-detected from server metadata and HuggingFace. Use these overrides for models whose type cannot be auto-detected. Leave all checkboxes unchecked to use auto-detection.'
+        'Capabilities are auto-detected from server metadata and HuggingFace; override them here when detection fails. Cost, quality tier and context length feed the smart router: it picks the cheapest model that satisfies a route.'
       ),
       '#open' => FALSE,
       // #tree must be TRUE so each model's checkbox values nest under the
@@ -200,11 +200,58 @@ class UniversalServerForm extends EntityForm {
       $key = $model->id();
 
       $element[$key] = [
+        '#type'  => 'details',
+        '#title' => $raw_id,
+        '#open'  => FALSE,
+      ];
+
+      $element[$key]['operation_types'] = [
         '#type'          => 'checkboxes',
-        '#title'         => $raw_id,
-        '#description'   => $this->t('Auto-detected: <em>@types</em>', ['@types' => $auto_label]),
+        '#title'         => $this->t('Operation types'),
+        '#description'   => $this->t('Auto-detected: <em>@types</em>. Leave unchecked to use auto-detection.', ['@types' => $auto_label]),
         '#options'       => $type_options,
         '#default_value' => $current_overrides,
+      ];
+
+      $element[$key]['cost_input'] = [
+        '#type'          => 'number',
+        '#title'         => $this->t('Cost per 1M input tokens (USD)'),
+        '#description'   => $this->t('Use 0 for local/self-hosted models. Leave empty if unknown.'),
+        '#default_value' => $model->getCostInput(),
+        '#min'           => 0,
+        '#step'          => 'any',
+      ];
+
+      $element[$key]['cost_output'] = [
+        '#type'          => 'number',
+        '#title'         => $this->t('Cost per 1M output tokens (USD)'),
+        '#default_value' => $model->getCostOutput(),
+        '#min'           => 0,
+        '#step'          => 'any',
+      ];
+
+      $element[$key]['quality_tier'] = [
+        '#type'          => 'select',
+        '#title'         => $this->t('Quality tier'),
+        '#description'   => $this->t('Relative capability, used by smart routing: prefer the cheapest model whose tier satisfies the route.'),
+        '#options'       => [
+          1 => $this->t('1 — Minimal (tiny/draft models)'),
+          2 => $this->t('2 — Basic (small local models)'),
+          3 => $this->t('3 — Solid (mid-size, most local chat)'),
+          4 => $this->t('4 — Strong (large open / good hosted)'),
+          5 => $this->t('5 — Frontier'),
+        ],
+        '#empty_option'  => $this->t('- Unrated -'),
+        '#default_value' => $model->getQualityTier(),
+      ];
+
+      $element[$key]['context_length'] = [
+        '#type'          => 'number',
+        '#title'         => $this->t('Context length (tokens)'),
+        '#description'   => $this->t('Auto-detected when the server exposes it (llama.cpp reports the training context). Leave empty if unknown.'),
+        '#default_value' => $model->getContextLength(),
+        '#min'           => 0,
+        '#step'          => 1,
       ];
     }
 
@@ -300,9 +347,24 @@ class UniversalServerForm extends EntityForm {
     /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
     foreach ($models as $model) {
       $key = $model->id();
-      $raw_values = $form_state->getValue(['overrides', $key], []);
-      $selected = array_values(array_filter($raw_values));
+      $values = $form_state->getValue(['overrides', $key], []);
+      if (!is_array($values) || $values === []) {
+        continue;
+      }
+
+      $selected = array_values(array_filter($values['operation_types'] ?? []));
       $model->setOperationTypes($selected);
+
+      $toNumber = static fn ($v) => ($v === '' || $v === NULL) ? NULL : (float) $v;
+      $model->setCostInput($toNumber($values['cost_input'] ?? NULL));
+      $model->setCostOutput($toNumber($values['cost_output'] ?? NULL));
+
+      $tier = $values['quality_tier'] ?? '';
+      $model->setQualityTier($tier === '' || $tier === NULL ? NULL : (int) $tier);
+
+      $ctx = $values['context_length'] ?? '';
+      $model->setContextLength($ctx === '' || $ctx === NULL ? NULL : (int) $ctx);
+
       $model->save();
     }
   }
