@@ -72,4 +72,17 @@ interface ServerBackendInterface {
    */
   public function detectModelMetadata(array $modelEntry): array;
 
+  /**
+   * Returns extra HTTP headers every request to this server should carry.
+   *
+   * @param \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server
+   *   The server entity.
+   *
+   * @return array<string, string>
+   *   Header name => value map, empty when the protocol needs none. Used
+   *   for service-specific headers such as OpenRouter's attribution
+   *   headers; authentication is handled separately via the Key module.
+   */
+  public function getHttpHeaders(UniversalServerInterface $server): array;
+
 }

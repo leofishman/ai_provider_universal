@@ -368,7 +368,16 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       }
       $timeout = $this->configuration['timeout'] ?? $timeout;
 
-      $this->setHttpClient($this->httpClientFactory->fromOptions(['timeout' => $timeout]));
+      $clientOptions = ['timeout' => $timeout];
+      if ($server) {
+        // Backend-specific default headers (e.g. OpenRouter attribution).
+        // Guzzle applies them only when a request doesn't set them itself.
+        $headers = $this->modelCatalog->getBackend($server)->getHttpHeaders($server);
+        if ($headers) {
+          $clientOptions['headers'] = $headers;
+        }
+      }
+      $this->setHttpClient($this->httpClientFactory->fromOptions($clientOptions));
       $this->client = $this->createClient();
     }
   }

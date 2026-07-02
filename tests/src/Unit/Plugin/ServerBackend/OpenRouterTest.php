@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\ai_provider_universal\Unit\Plugin\ServerBackend;
 
+use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
 use Drupal\ai_provider_universal\Plugin\ServerBackend\OpenRouter;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\State\StateInterface;
@@ -67,6 +68,15 @@ final class OpenRouterTest extends UnitTestCase {
 
     // Entries without pricing/context stay empty (fields unset, not zero).
     $this->assertSame([], $backend->detectModelMetadata(['id' => 'x']));
+  }
+
+  /**
+   * Tests that attribution headers are sent.
+   */
+  public function testGetHttpHeaders(): void {
+    $headers = $this->backend()->getHttpHeaders($this->createMock(UniversalServerInterface::class));
+    $this->assertArrayHasKey('HTTP-Referer', $headers);
+    $this->assertArrayHasKey('X-Title', $headers);
   }
 
 }

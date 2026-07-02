@@ -92,7 +92,7 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
    * vLLM's max_model_len, ...) that capability and metadata detection need.
    */
   public function listModels(UniversalServerInterface $server): array {
-    $options = ['headers' => ['Accept' => 'application/json']];
+    $options = ['headers' => ['Accept' => 'application/json'] + $this->getHttpHeaders($server)];
 
     $keyId = $server->getApiKey();
     if ($keyId && $this->keyRepository) {

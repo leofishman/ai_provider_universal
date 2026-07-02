@@ -30,6 +30,19 @@ class OpenRouter extends OpenAiCompatible {
 
   /**
    * {@inheritdoc}
+   *
+   * OpenRouter's optional attribution headers identify the calling app in
+   * its usage rankings (https://openrouter.ai/docs/app-attribution).
+   */
+  public function getHttpHeaders(UniversalServerInterface $server): array {
+    return [
+      'HTTP-Referer' => 'https://www.drupal.org/project/ai_provider_universal',
+      'X-Title' => 'Drupal AI Provider Universal',
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function getBaseUri(UniversalServerInterface $server): string {
     if (!$server->getHostName()) {
