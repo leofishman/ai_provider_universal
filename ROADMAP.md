@@ -20,6 +20,9 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       `max_model_len` now feed context detection. Verified live.
 - [x] Hackathon site: DDEV + Drupal CMS + pgvector service +
       ai_search/ai_vdb_provider_postgres + this module (volume-mounted).
+- [x] `openrouter` backend: default endpoint, capability detection from
+      `architecture.output_modalities`, pricing/context prefilled live from
+      the catalog (no hardcoded table). 340 models verified against the API.
 
 ## Hackathon week (Jul 2–6 prep, Jul 6+ event)
 
@@ -50,6 +53,14 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       `/api/show`, keep-alive handling.
 - [ ] **`anthropic` backend** (native, needs inference dispatch): Messages
       API mapping, discovery via GET /v1/models, static capabilities.
+- [ ] OpenRouter embeddings discovery: embedding models are not in
+      `/v1/models` but on a separate `/embeddings/models` catalog endpoint;
+      override `listModels()` in the `openrouter` backend to fetch both and
+      merge. Skipped for now — local nomic-embed and Fireworks cover
+      embeddings.
+- [ ] OpenRouter quality tiers: the catalog publishes no quality signal;
+      tiers stay manual per model. Evaluate deriving a default from price
+      band if manual entry becomes a burden with 300+ models.
 - [ ] Classifier-based complexity (tiny local model) as alternative to
       heuristics in RouteDecider.
 - [ ] Latency/throughput capture from llama.cpp `timings` into decisions.

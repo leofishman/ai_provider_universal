@@ -29,11 +29,20 @@ with two backends:
   Capability detection uses llama.cpp's per-model `status.args` (router
   mode), HuggingFace `pipeline_tag` lookup for `--hf-repo` models, and
   model-name heuristics.
+- `openrouter` — OpenRouter unified API (openrouter.ai): 300+ models from
+  OpenAI, Anthropic, Google, Meta and others behind one endpoint. Fixed
+  default endpoint, capability detection from the catalog's
+  `architecture.output_modalities`, and pricing + context length prefilled
+  from the live catalog for smart routing (no hardcoded price table).
+  OpenRouter's embedding models live on a separate catalog endpoint and
+  are not discovered yet — see ROADMAP.
 
 Other modules can contribute native backends (e.g. Anthropic or Gemini) by
 dropping a plugin in `Plugin/ServerBackend` that implements
 `ServerBackendInterface` — model discovery, capability detection and the
-multi-instance UI come for free.
+multi-instance UI come for free. See
+[docs/adding-a-backend.md](docs/adding-a-backend.md) for a contributor
+guide with a full walkthrough.
 
 ## Requirements
 
