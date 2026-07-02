@@ -1,0 +1,5 @@
+# AI assistant / kenkeep local files
+.ai/
+.claude/
+.kkignore
+AGENTS.md
