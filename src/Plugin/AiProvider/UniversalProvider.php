@@ -37,7 +37,7 @@ use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Plugin for OpenAI-compatible servers (llama.cpp, Ollama, vLLM, LiteLLM, …).
+ * Universal multi-instance AI provider plugin.
  *
  * This is a single non-derived plugin. Multi-server support is achieved via
  * universal_server config entities + universal_model config entities.

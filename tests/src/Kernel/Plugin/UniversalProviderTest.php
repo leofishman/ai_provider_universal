@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 /**
- * Tests the single (non-derived) llama.cpp provider plugin and model entities.
+ * Tests the single (non-derived) universal provider plugin and model entities.
  *
  * Model config entities are used instead of State + derivatives.
  *
@@ -50,7 +50,7 @@ final class UniversalProviderTest extends KernelTestBase {
     $this->assertArrayHasKey('universal', $definitions);
     $this->assertArrayNotHasKey('universal:local', $definitions);
     $this->assertArrayNotHasKey('universal:gpu', $definitions);
-    $this->assertSame('llama.cpp (OpenAI-compatible)', (string) $definitions['universal']['label']);
+    $this->assertSame('Universal', (string) $definitions['universal']['label']);
   }
 
   /**

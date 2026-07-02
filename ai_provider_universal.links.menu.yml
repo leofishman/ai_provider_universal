@@ -1,5 +1,5 @@
 ai_provider_universal.settings_menu:
-  title: 'llama.cpp Servers'
+  title: 'AI Servers'
   description: 'Manage OpenAI-compatible server instances.'
   route_name: entity.universal_server.collection
   parent: ai.admin_providers

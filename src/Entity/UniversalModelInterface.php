@@ -5,7 +5,7 @@ namespace Drupal\ai_provider_universal\Entity;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
 /**
- * Interface for llama.cpp model config entities.
+ * Interface for universal model config entities.
  *
  * Models are discovered from servers and stored as first-class config entities
  * (instead of State). This enables Views, export, per-model config, etc.

@@ -14,7 +14,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  */
 #[ConfigEntityType(
   id: 'universal_model',
-  label: new TranslatableMarkup('llama.cpp Model'),
+  label: new TranslatableMarkup('AI Model'),
   label_collection: new TranslatableMarkup('Models'),
   label_singular: new TranslatableMarkup('model'),
   label_plural: new TranslatableMarkup('models'),

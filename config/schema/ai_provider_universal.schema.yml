@@ -35,7 +35,7 @@ ai_provider_universal.server.*:
 
 ai_provider_universal.model.*:
   type: config_entity
-  label: 'llama.cpp Model'
+  label: 'AI Model'
   mapping:
     id:
       type: string

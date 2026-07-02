@@ -10,7 +10,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drush\Commands\DrushCommands;
 
 /**
- * Drush commands for the llama.cpp provider module.
+ * Drush commands for the universal AI provider module.
  */
 class UniversalCommands extends DrushCommands {
 
@@ -27,7 +27,7 @@ class UniversalCommands extends DrushCommands {
   }
 
   /**
-   * Discovers and persists models for one or all llama.cpp servers.
+   * Discovers and persists models for one or all configured servers.
    *
    * @param string|null $server_id
    *   Optional ID of the server to run discovery for. If omitted, runs for
@@ -57,7 +57,7 @@ class UniversalCommands extends DrushCommands {
       /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface[] $servers */
       $servers = $server_storage->loadMultiple();
       if (empty($servers)) {
-        $this->output()->writeln('<comment>' . $this->t('No configured llama.cpp servers found.') . '</comment>');
+        $this->output()->writeln('<comment>' . $this->t('No configured servers found.') . '</comment>');
         return;
       }
     }

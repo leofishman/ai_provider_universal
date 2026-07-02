@@ -75,7 +75,7 @@ final class UniversalCommandsTest extends KernelTestBase {
 
     $command->discoverModels();
 
-    $this->assertStringContainsString('No configured llama.cpp servers found.', $output->fetch());
+    $this->assertStringContainsString('No configured servers found.', $output->fetch());
   }
 
   /**
