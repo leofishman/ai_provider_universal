@@ -104,6 +104,13 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   protected UniversalServerInterface|null|false $serverEntity = FALSE;
 
   /**
+   * The service container, for optional submodule services (router,
+   * factcheck) that cannot be constructor-injected because they may not
+   * be installed.
+   */
+  protected ContainerInterface $serviceContainer;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
@@ -112,6 +119,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->httpClientFactory = $container->get('http_client_factory');
     $instance->modelCatalog = $container->get(ModelCatalog::class);
+    $instance->serviceContainer = $container;
     return $instance;
   }
 
@@ -429,11 +437,10 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     if (!str_starts_with($model_id, 'route__')) {
       return $model_id;
     }
-    $container = \Drupal::getContainer();
-    if (!$container->has('ai_provider_universal_router.decider')) {
+    if (!$this->serviceContainer->has('ai_provider_universal_router.decider')) {
       throw new AiSetupFailureException(sprintf('Model "%s" is a smart route, but the ai_provider_universal_router module is not enabled.', $model_id));
     }
-    return $container->get('ai_provider_universal_router.decider')
+    return $this->serviceContainer->get('ai_provider_universal_router.decider')
       ->resolve(substr($model_id, 7), $input, $operation_type);
   }
 
@@ -524,7 +531,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * bound cost at one escalation per request).
    */
   protected function maybeEscalate(string $route_id, array|string|ChatInput $input, string $model_id, ChatOutput $output, array $tags): ChatOutput {
-    $container = \Drupal::getContainer();
+    $container = $this->serviceContainer;
     if (!$container->has('ai_provider_universal_factcheck.checker')) {
       return $output;
     }

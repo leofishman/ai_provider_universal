@@ -2,6 +2,8 @@ services:
   Drupal\ai_provider_universal\Hook\AiProviderUniversalHooks:
     class: Drupal\ai_provider_universal\Hook\AiProviderUniversalHooks
     autowire: true
+    arguments:
+      $aiProviderManager: '@ai.provider'
 
   Drupal\ai_provider_universal\Backend\ServerBackendManager:
     class: Drupal\ai_provider_universal\Backend\ServerBackendManager

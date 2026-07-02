@@ -97,7 +97,7 @@ class UniversalRouteForm extends EntityForm {
       '#default_value' => $route->getComplexTier(),
     ];
 
-    if (\Drupal::moduleHandler()->moduleExists('ai_provider_universal_factcheck')) {
+    if ($this->moduleHandler->moduleExists('ai_provider_universal_factcheck')) {
       $form['factcheck'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Fact-check answers and escalate on failure'),

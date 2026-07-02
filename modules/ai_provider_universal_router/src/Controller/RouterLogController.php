@@ -4,6 +4,7 @@ namespace Drupal\ai_provider_universal_router\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -11,13 +12,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class RouterLogController extends ControllerBase {
 
-  public function __construct(protected Connection $database) {}
+  public function __construct(
+    protected Connection $database,
+    protected DateFormatterInterface $dateFormatter,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('database'));
+    return new static(
+      $container->get('database'),
+      $container->get('date.formatter'),
+    );
   }
 
   /**
@@ -48,7 +55,7 @@ class RouterLogController extends ControllerBase {
 
     foreach ($result as $record) {
       $rows[] = [
-        \Drupal::service('date.formatter')->format($record->timestamp, 'short'),
+        $this->dateFormatter->format($record->timestamp, 'short'),
         $record->route_id,
         $record->complexity,
         $record->est_tokens,

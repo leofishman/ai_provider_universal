@@ -2,19 +2,19 @@
 
 /**
  * @file
- * Hooks for the llama.cpp multi-instance provider module.
+ * Hooks for the universal AI provider module.
  */
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Hook\Attribute\LegacyHook;
-use Drupal\ai_provider_universal\Hook\AiProviderLlamaCppHooks;
+use Drupal\ai_provider_universal\Hook\AiProviderUniversalHooks;
 
 /**
  * Implements hook_entity_insert().
  */
 #[LegacyHook]
 function ai_provider_universal_entity_insert(EntityInterface $entity): void {
-  \Drupal::service(AiProviderLlamaCppHooks::class)->entityInsert($entity);
+  \Drupal::service(AiProviderUniversalHooks::class)->entityInsert($entity);
 }
 
 /**
@@ -22,7 +22,7 @@ function ai_provider_universal_entity_insert(EntityInterface $entity): void {
  */
 #[LegacyHook]
 function ai_provider_universal_entity_update(EntityInterface $entity): void {
-  \Drupal::service(AiProviderLlamaCppHooks::class)->entityUpdate($entity);
+  \Drupal::service(AiProviderUniversalHooks::class)->entityUpdate($entity);
 }
 
 /**
@@ -30,5 +30,5 @@ function ai_provider_universal_entity_update(EntityInterface $entity): void {
  */
 #[LegacyHook]
 function ai_provider_universal_entity_delete(EntityInterface $entity): void {
-  \Drupal::service(AiProviderLlamaCppHooks::class)->entityDelete($entity);
+  \Drupal::service(AiProviderUniversalHooks::class)->entityDelete($entity);
 }

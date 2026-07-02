@@ -2,13 +2,36 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Form;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Fact check settings: checker model, evidence index, claim budget.
  */
 class SettingsForm extends ConfigFormBase {
+
+  /**
+   * The entity type manager.
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * The module handler.
+   */
+  protected ModuleHandlerInterface $moduleHandler;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    $instance = parent::create($container);
+    $instance->entityTypeManager = $container->get('entity_type.manager');
+    $instance->moduleHandler = $container->get('module_handler');
+    return $instance;
+  }
 
   /**
    * {@inheritdoc}
@@ -29,11 +52,10 @@ class SettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('ai_provider_universal_factcheck.settings');
-    $entityTypeManager = \Drupal::entityTypeManager();
 
     $model_options = [];
     /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
-    foreach ($entityTypeManager->getStorage('universal_model')->loadMultiple() as $model) {
+    foreach ($this->entityTypeManager->getStorage('universal_model')->loadMultiple() as $model) {
       if (in_array('chat', $model->getEffectiveOperationTypes(), TRUE)) {
         $model_options[$model->id()] = $model->label();
       }
@@ -58,8 +80,8 @@ class SettingsForm extends ConfigFormBase {
     ];
 
     $index_options = [];
-    if (\Drupal::moduleHandler()->moduleExists('search_api')) {
-      foreach ($entityTypeManager->getStorage('search_api_index')->loadMultiple() as $index) {
+    if ($this->moduleHandler->moduleExists('search_api')) {
+      foreach ($this->entityTypeManager->getStorage('search_api_index')->loadMultiple() as $index) {
         $index_options[$index->id()] = $index->label();
       }
     }
