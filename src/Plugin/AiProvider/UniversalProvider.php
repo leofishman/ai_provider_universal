@@ -104,9 +104,10 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   protected UniversalServerInterface|null|false $serverEntity = FALSE;
 
   /**
-   * The service container, for optional submodule services (router,
-   * factcheck) that cannot be constructor-injected because they may not
-   * be installed.
+   * The service container.
+   *
+   * Used to look up optional submodule services (router, factcheck) that
+   * cannot be constructor-injected because they may not be installed.
    */
   protected ContainerInterface $serviceContainer;
 
