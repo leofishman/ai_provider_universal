@@ -6,4 +6,5 @@ package: AI Providers
 dependencies:
   - ai_provider_universal:ai_provider_universal
   - ai_provider_universal:ai_provider_universal_router
+  - drupal:node
 configure: ai_provider_universal_factcheck.settings

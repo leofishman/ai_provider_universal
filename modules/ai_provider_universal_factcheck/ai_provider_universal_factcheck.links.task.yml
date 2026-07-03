@@ -1,0 +1,5 @@
+ai_provider_universal_factcheck.content_scan:
+  route_name: ai_provider_universal_factcheck.content_scan
+  base_route: entity.node.canonical
+  title: 'Content scan'
+  weight: 60

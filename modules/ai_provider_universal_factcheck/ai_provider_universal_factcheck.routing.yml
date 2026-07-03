@@ -5,3 +5,15 @@ ai_provider_universal_factcheck.settings:
     _title: 'Fact check settings'
   requirements:
     _permission: 'administer ai providers'
+
+ai_provider_universal_factcheck.content_scan:
+  path: '/node/{node}/factcheck'
+  defaults:
+    _form: '\Drupal\ai_provider_universal_factcheck\Form\ContentScanForm'
+    _title: 'Content scan'
+  requirements:
+    _entity_access: 'node.update'
+  options:
+    parameters:
+      node:
+        type: entity:node

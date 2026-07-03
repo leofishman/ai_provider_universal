@@ -2,3 +2,5 @@ checker_model: ''
 extractor_model: ''
 evidence_index: ''
 max_claims: 5
+detector_model: ''
+plagiarism_key: ''

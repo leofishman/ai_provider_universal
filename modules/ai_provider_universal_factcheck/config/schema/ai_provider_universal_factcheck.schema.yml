@@ -14,3 +14,9 @@ ai_provider_universal_factcheck.settings:
     max_claims:
       type: integer
       label: 'Maximum claims to verify per answer'
+    detector_model:
+      type: string
+      label: 'AI-detection model (universal_model id, empty = checker model)'
+    plagiarism_key:
+      type: string
+      label: 'Key entity holding the Serper.dev API key (empty = plagiarism check disabled)'

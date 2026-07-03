@@ -21,3 +21,21 @@ services:
   logger.channel.ai_provider_universal_factcheck:
     parent: logger.channel_base
     arguments: ['ai_provider_universal_factcheck']
+
+  Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer:
+    class: Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer
+
+  Drupal\ai_provider_universal_factcheck\Service\AiDetector:
+    class: Drupal\ai_provider_universal_factcheck\Service\AiDetector
+    arguments:
+      - '@ai.provider'
+      - '@config.factory'
+      - '@logger.channel.ai_provider_universal_factcheck'
+
+  Drupal\ai_provider_universal_factcheck\Service\PlagiarismChecker:
+    class: Drupal\ai_provider_universal_factcheck\Service\PlagiarismChecker
+    arguments:
+      - '@http_client'
+      - '@config.factory'
+      - '@key.repository'
+      - '@logger.channel.ai_provider_universal_factcheck'

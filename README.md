@@ -154,6 +154,25 @@ server id, the metric crossed (`requests` or `tokens`), today's usage and
 the configured limit — subscribe to them to send mail/Slack notifications
 or trigger ECA workflows.
 
+### Content scan (fact check submodule)
+
+With `ai_provider_universal_factcheck` enabled, every node gets a
+**Content scan** tab (users who can edit the node) that runs up to four
+checks on demand and shows the results inline — nothing is stored:
+
+- **Fact check** — the node text is split into atomic claims and each is
+  judged SUPPORTED / UNSUPPORTED / CONTRADICTED (optionally grounded in an
+  AI Search evidence index). Needs a checker model in the fact check
+  settings.
+- **Readability** — Flesch reading ease, computed locally. No tokens.
+- **AI likelihood** — a configurable model estimates how likely the text is
+  AI-generated. This is a heuristic LLM judgement, not a trained detector:
+  treat it as a hint.
+- **Plagiarism** — the longest sentences are searched as exact phrases on
+  the web via [Serper.dev](https://serper.dev) (free tier available);
+  verbatim matches are listed with their URLs. Enabled by selecting a Key
+  entity holding the Serper API key in the fact check settings.
+
 ## Relation to ai_provider_llama_cpp
 
 This module is the evolution of

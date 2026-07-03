@@ -96,6 +96,31 @@ class SettingsForm extends ConfigFormBase {
       '#access' => (bool) $index_options,
     ];
 
+    $form['detector_model'] = [
+      '#type' => 'select',
+      '#title' => $this->t('AI-detection model'),
+      '#description' => $this->t('Model that estimates how likely a scanned text is AI-generated (content scan tab on nodes). Heuristic LLM judgement, not a trained detector. Leave empty to use the checker model.'),
+      '#options' => $model_options,
+      '#empty_option' => $this->t('- Same as checker -'),
+      '#default_value' => $config->get('detector_model'),
+    ];
+
+    $key_options = [];
+    if ($this->moduleHandler->moduleExists('key')) {
+      foreach ($this->entityTypeManager->getStorage('key')->loadMultiple() as $key) {
+        $key_options[$key->id()] = $key->label();
+      }
+    }
+    $form['plagiarism_key'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Plagiarism search API key'),
+      '#description' => $this->t('Key entity holding a <a href=":url">Serper.dev</a> API key. When set, the content scan searches the web for verbatim copies of the longest sentences. Leave empty to disable.', [':url' => 'https://serper.dev']),
+      '#options' => $key_options,
+      '#empty_option' => $this->t('- Disabled -'),
+      '#default_value' => $config->get('plagiarism_key'),
+      '#access' => (bool) $key_options,
+    ];
+
     $form['max_claims'] = [
       '#type' => 'number',
       '#title' => $this->t('Maximum claims per answer'),
@@ -128,6 +153,8 @@ class SettingsForm extends ConfigFormBase {
       ->set('extractor_model', $form_state->getValue('extractor_model') ?? '')
       ->set('evidence_index', $form_state->getValue('evidence_index') ?? '')
       ->set('max_claims', (int) $form_state->getValue('max_claims'))
+      ->set('detector_model', $form_state->getValue('detector_model') ?? '')
+      ->set('plagiarism_key', $form_state->getValue('plagiarism_key') ?? '')
       ->save();
     parent::submitForm($form, $form_state);
   }
