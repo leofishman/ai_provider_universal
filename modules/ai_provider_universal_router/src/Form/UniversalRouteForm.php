@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal_router\Form;
 
+use Drupal\ai_provider_universal\Entity\UniversalModelInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -49,6 +50,7 @@ class UniversalRouteForm extends EntityForm {
       '#disabled' => !$route->isNew(),
     ];
 
+    // AJAX: rebuild candidates when the operation type changes.
     $form['operation_type'] = [
       '#type' => 'select',
       '#title' => $this->t('Operation type'),
@@ -59,28 +61,20 @@ class UniversalRouteForm extends EntityForm {
         'rerank' => $this->t('Rerank'),
       ],
       '#default_value' => $route->getOperationType(),
+      '#ajax' => [
+        'callback' => '::updateCandidates',
+        'wrapper' => 'route-candidates-wrapper',
+      ],
     ];
 
-    $model_storage = $this->entityTypeManager->getStorage('universal_model');
-    $options = [];
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
-    foreach ($model_storage->loadMultiple() as $model) {
-      $cost = $model->getCostInput();
-      $tier = $model->getQualityTier();
-      $options[$model->id()] = $this->t('@label (tier @tier, $@cost/1M in)', [
-        '@label' => $model->label(),
-        '@tier' => $tier ?? '?',
-        '@cost' => $cost ?? '?',
-      ]);
-    }
+    // Use form_state value during AJAX, entity value on initial load.
+    $selectedOp = $form_state->getValue('operation_type') ?? $route->getOperationType();
 
-    $form['candidates'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Candidate models'),
-      '#description' => $this->t('Leave all unchecked to consider every model that supports the operation type. The router picks the cheapest candidate whose quality tier satisfies the prompt class.'),
-      '#options' => $options,
-      '#default_value' => $route->getCandidates(),
+    $form['candidates_wrapper'] = [
+      '#type' => 'container',
+      '#attributes' => ['id' => 'route-candidates-wrapper'],
     ];
+    $form['candidates_wrapper']['candidates'] = $this->buildCandidates($selectedOp, $route->getCandidates());
 
     $form['simple_tier'] = [
       '#type' => 'select',
@@ -119,6 +113,83 @@ class UniversalRouteForm extends EntityForm {
     }
 
     return $form;
+  }
+
+  /**
+   * Builds the candidate models checkboxes filtered by operation type.
+   *
+   * Each option label includes cost, quality tier, and effective operation
+   * types. When a model has manual overrides the detected types are shown
+   * for reference.
+   *
+   * @param string $operationType
+   *   The operation type to filter by.
+   * @param string[] $defaultCandidates
+   *   Currently selected candidate model ids (from the entity).
+   *
+   * @return array
+   *   A FAPI checkboxes element.
+   */
+  protected function buildCandidates(string $operationType, array $defaultCandidates): array {
+    $model_storage = $this->entityTypeManager->getStorage('universal_model');
+    $options = [];
+
+    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
+    foreach ($model_storage->loadMultiple() as $model) {
+      $effective = $model->getEffectiveOperationTypes();
+      if (!in_array($operationType, $effective, TRUE)) {
+        continue;
+      }
+
+      $options[$model->id()] = $this->buildModelLabel($model);
+    }
+
+    return [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Candidate models'),
+      '#description' => $options
+        ? $this->t('Only models supporting %type are shown. Leave all unchecked to consider every model that supports the operation type. The router picks the cheapest candidate whose quality tier satisfies the prompt class.', ['%type' => $operationType])
+        : $this->t('No models support the %type operation type. Run model discovery on a server or edit model capabilities.', ['%type' => $operationType]),
+      '#options' => $options,
+      '#default_value' => $defaultCandidates,
+      // Keep the value path flat so save() can read it as 'candidates'.
+      '#parents' => ['candidates'],
+    ];
+  }
+
+  /**
+   * Builds a descriptive label for a model checkbox option.
+   *
+   * Shows tier, cost, and operation type provenance (detected vs overridden).
+   */
+  protected function buildModelLabel(UniversalModelInterface $model): string {
+    $cost = $model->getCostInput();
+    $tier = $model->getQualityTier();
+
+    $overrides = $model->getOperationTypes();
+    $effective = $model->getEffectiveOperationTypes();
+    $typesLabel = implode(', ', $effective);
+
+    if ($overrides) {
+      $detected = $model->getDetectedOperationTypes() ?: [];
+      $typesLabel .= ' ⚙ ' . $this->t('(detected: @detected)', [
+        '@detected' => $detected ? implode(', ', $detected) : $this->t('none'),
+      ]);
+    }
+
+    return $this->t('@label (tier @tier, $@cost/1M in) — @types', [
+      '@label' => $model->label(),
+      '@tier' => $tier ?? '?',
+      '@cost' => $cost ?? '?',
+      '@types' => $typesLabel,
+    ]);
+  }
+
+  /**
+   * AJAX callback: returns the rebuilt candidates wrapper.
+   */
+  public static function updateCandidates(array &$form, FormStateInterface $form_state): array {
+    return $form['candidates_wrapper'];
   }
 
   /**
