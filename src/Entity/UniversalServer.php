@@ -89,7 +89,7 @@ class UniversalServer extends ConfigEntityBase implements UniversalServerInterfa
    *
    * @var string
    */
-  protected string $port = '8080';
+  protected string $port = '';
 
   /**
    * Optional Key entity ID for authenticated servers.

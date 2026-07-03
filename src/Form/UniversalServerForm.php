@@ -82,37 +82,72 @@ class UniversalServerForm extends EntityForm {
       '#open' => TRUE,
     ];
 
+    // Hosted backends carry a fixed default endpoint (OpenRouter, Hugging
+    // Face, ...): host/port stay hidden for them via #states and each shows
+    // its endpoint instead. The backend plugin is the source of truth — its
+    // getBaseUri() on a hostless server reveals the default.
+    $defaultUris = [];
+    foreach (array_keys($this->backendManager->getDefinitions()) as $backend_id) {
+      if ($uri = $this->getBackendDefaultUri($backend_id)) {
+        $defaultUris[$backend_id] = $uri;
+      }
+    }
+    // OR-list of #states value conditions for backends that need a host.
+    $needsHost = array_map(
+      static fn (string $id): array => ['value' => $id],
+      array_values(array_diff(array_keys($this->backendManager->getDefinitions()), array_keys($defaultUris))),
+    );
+
     $backendOptions = $this->backendManager->getOptions();
     $form['connection']['backend'] = [
       '#type' => 'select',
       '#title' => $this->t('Backend'),
-      '#description' => $this->t('The protocol this server speaks. OpenAI-compatible covers llama.cpp, Ollama, vLLM, LM Studio, LiteLLM, Fireworks, OpenAI and similar. Other modules can add native backends.'),
+      '#description' => $this->t('The protocol this server speaks. OpenAI-compatible covers llama.cpp, Ollama, vLLM, LM Studio and any similar local or remote server. Hosted services (OpenRouter, Hugging Face, Fireworks, Ollama Cloud, LiteLLM/amazee.ai) have dedicated backends with better model detection. Other modules can add native backends.'),
       '#options' => $backendOptions,
       '#default_value' => $server->getBackend(),
       '#required' => TRUE,
       '#access' => count($backendOptions) > 1,
     ];
 
+    foreach ($defaultUris as $backend_id => $uri) {
+      // A container (not 'item') so #states reliably hides the wrapper.
+      $form['connection']['endpoint_hint_' . $backend_id] = [
+        '#type' => 'container',
+        '#states' => [
+          'visible' => [':input[name="backend"]' => ['value' => $backend_id]],
+        ],
+        'text' => [
+          '#markup' => $this->t('Endpoint: %uri (API key required; host and port are not needed).', ['%uri' => $uri]),
+        ],
+      ];
+    }
+
     $form['connection']['host_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Host Name'),
-      '#description' => $this->t('The host name including protocol. Local examples: http://127.0.0.1 (llama.cpp, vLLM, LM Studio, LiteLLM), http://host.docker.internal (from DDEV/Docker). Remote examples: https://api.fireworks.ai/inference, https://api.openai.com. Backends with a default endpoint (e.g. Fireworks AI) allow leaving this empty.'),
+      '#description' => $this->t('The host name including protocol. Local examples: http://127.0.0.1 (llama.cpp, vLLM, LM Studio, LiteLLM), http://host.docker.internal (from DDEV/Docker). Remote example: https://api.openai.com.'),
       '#default_value' => $server->getHostName(),
       '#attributes' => ['placeholder' => 'http://127.0.0.1'],
+      '#states' => [
+        'visible' => [':input[name="backend"]' => $needsHost],
+      ],
     ];
 
     $form['connection']['port'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Port'),
-      '#description' => $this->t('Port number. Leave empty for default. Common defaults: llama.cpp 8080, Ollama 11434, vLLM 8000, LM Studio 1234, LiteLLM 4000. Remote APIs (Fireworks, OpenAI) usually need no port (HTTPS 443).'),
-      '#default_value' => $server->getPort() ?: '8080',
-      '#attributes' => ['placeholder' => '8080'],
+      '#description' => $this->t('Port number. Leave empty for default. Common defaults: Ollama 11434, llama.cpp 8080, vLLM 8000, LM Studio 1234, LiteLLM 4000. Remote HTTPS APIs usually need no port (443).'),
+      '#default_value' => $server->getPort(),
+      '#attributes' => ['placeholder' => '11434'],
+      '#states' => [
+        'visible' => [':input[name="backend"]' => $needsHost],
+      ],
     ];
 
     $form['connection']['api_key'] = [
       '#type' => 'key_select',
       '#title' => $this->t('API Key'),
-      '#description' => $this->t('Optional. Select a Key for authenticated servers (vLLM or LiteLLM with an api-key set, Fireworks, OpenAI). Leave empty for local servers without authentication (llama.cpp, Ollama, LM Studio).'),
+      '#description' => $this->t('Required for hosted services. Optional for local servers: leave empty when unauthenticated (llama.cpp, Ollama, LM Studio), set for vLLM or LiteLLM with an api-key configured.'),
       '#default_value' => $server->getApiKey(),
     ];
 
@@ -152,6 +187,28 @@ class UniversalServerForm extends EntityForm {
 
     return $form;
 
+  }
+
+  /**
+   * Returns a backend's default endpoint, '' when it needs an explicit host.
+   *
+   * The backend plugin is the source of truth: its getBaseUri() on a
+   * hostless server yields the fixed service endpoint (OpenRouter, Hugging
+   * Face, ...) or '' for backends that require a configured host.
+   */
+  protected function getBackendDefaultUri(string $backend_id): string {
+    try {
+      $backend = $this->backendManager->createInstance($backend_id);
+      /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface $blank */
+      $blank = $this->entityTypeManager->getStorage('universal_server')->create([
+        'host_name' => '',
+        'port' => '',
+      ]);
+      return $backend->getBaseUri($blank);
+    }
+    catch (\Throwable) {
+      return '';
+    }
   }
 
   /**
@@ -277,6 +334,14 @@ class UniversalServerForm extends EntityForm {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     parent::validateForm($form, $form_state);
 
+    // Host/port are hidden (#states) for backends with a fixed endpoint, but
+    // hidden fields still submit: drop stale values typed before a backend
+    // switch so they never reach the entity.
+    if ($this->getBackendDefaultUri((string) $form_state->getValue('backend'))) {
+      $form_state->setValue('host_name', '');
+      $form_state->setValue('port', '');
+    }
+
     // Connection test: ask the selected backend to list models, so the check
     // exercises the same protocol path used later for discovery.
     /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server */
@@ -285,7 +350,15 @@ class UniversalServerForm extends EntityForm {
       $backend = $this->backendManager->createInstance($server->getBackend());
       $backend->listModels($server);
     }
-    catch (\Throwable) {
+    catch (\Throwable $e) {
+      $this->logger('ai_provider_universal')->error(
+        'Connection test failed for server @id (backend @backend): @message',
+        [
+          '@id' => $server->id() ?? '(new)',
+          '@backend' => $server->getBackend(),
+          '@message' => $e->getMessage(),
+        ],
+      );
       $form_state->setErrorByName('host_name', $this->t('Could not connect to the server. Check the host, port, backend and API key.'));
     }
   }
@@ -303,6 +376,16 @@ class UniversalServerForm extends EntityForm {
     $server->set('model_filter', (string) $form_state->getValue('model_filter', ''));
 
     $status = $server->save();
+
+    $this->logger('ai_provider_universal')->notice(
+      'Server @id (@label, backend @backend) @action.',
+      [
+        '@id' => $server->id(),
+        '@label' => $server->label(),
+        '@backend' => $server->getBackend(),
+        '@action' => $status === SAVED_NEW ? 'created' : 'updated',
+      ],
+    );
 
     // Discover models (write path) so the edit form and AI settings can use
     // them. getConfiguredModels() is read-only; persisting model entities is an

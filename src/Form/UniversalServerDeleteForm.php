@@ -40,6 +40,11 @@ class UniversalServerDeleteForm extends EntityConfirmFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->entity->delete();
 
+    $this->logger('ai_provider_universal')->notice('Server @id (@label) deleted.', [
+      '@id' => $this->entity->id(),
+      '@label' => $this->entity->label(),
+    ]);
+
     $this->messenger()->addMessage($this->t('Server %label has been deleted.', [
       '%label' => $this->entity->label(),
     ]));

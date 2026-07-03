@@ -7,7 +7,7 @@ use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
- * LiteLLM proxy server backend (also covers amazee.ai).
+ * LiteLLM proxy server backend.
  *
  * A LiteLLM proxy speaks the OpenAI protocol for inference, so the generic
  * execution path applies untouched. What this backend adds is discovery via
@@ -15,15 +15,15 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * per model (chat, embedding, image_generation, ...) plus per-token costs
  * and context window — no name heuristics, no hardcoded price table.
  *
- * amazee.ai is a managed LiteLLM: point the server host at your private
- * litellm_api_url and use your amazee.ai key as the Key entity. If the key
- * is not allowed to read /model/info, discovery degrades gracefully to the
- * plain /v1/models catalog with name-based detection.
+ * If the key is not allowed to read /model/info, discovery degrades
+ * gracefully to the plain /v1/models catalog with name-based detection.
+ * Managed LiteLLM services (amazee.ai) get their own subclass so they
+ * appear as distinct providers in the UI.
  */
 #[ServerBackend(
   id: 'litellm',
-  label: new TranslatableMarkup('LiteLLM / amazee.ai'),
-  description: new TranslatableMarkup("LiteLLM proxy servers, including amazee.ai (set the host to your private litellm_api_url). Operation types, pricing and context length are read from LiteLLM's /model/info endpoint."),
+  label: new TranslatableMarkup('LiteLLM'),
+  description: new TranslatableMarkup("Self-hosted LiteLLM proxy servers. Operation types, pricing and context length are read from LiteLLM's /model/info endpoint. For amazee.ai use the dedicated amazee.ai backend."),
 )]
 class LiteLlm extends OpenAiCompatible {
 
