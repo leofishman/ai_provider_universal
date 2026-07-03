@@ -61,6 +61,20 @@ class SettingsForm extends ConfigFormBase {
       }
     }
 
+    $form['profile'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Verification profile'),
+      '#options' => [
+        'fast' => $this->t('Fast — lowest cost and latency'),
+        'balanced' => $this->t('Balanced — good verdicts at moderate cost (recommended)'),
+        'thorough' => $this->t('Thorough — most curated verdicts, cost and time no object'),
+      ],
+      '#default_value' => $config->get('profile') ?: 'balanced',
+    ];
+    $form['profile']['fast']['#description'] = $this->t('One batched checker call for all claims, 2 evidence passages per claim, no distrusted-site check, no discrepancy analysis. Verdicts cached 6 hours.');
+    $form['profile']['balanced']['#description'] = $this->t('Batched verdicts, 3 passages per claim, one answer-level distrusted-site check, discrepancy analysis on unsettled claims. Verdicts cached 1 hour.');
+    $form['profile']['thorough']['#description'] = $this->t('Individual checker call per claim, 5 passages, per-claim distrusted-site checks, discrepancy analysis. No caching — every scan is fresh.');
+
     $form['checker_model'] = [
       '#type' => 'select',
       '#title' => $this->t('Checker model'),
@@ -134,7 +148,7 @@ class SettingsForm extends ConfigFormBase {
     $form['max_claims'] = [
       '#type' => 'number',
       '#title' => $this->t('Maximum claims per answer'),
-      '#description' => $this->t('Each claim costs one checker call (plus one extraction call per answer). Keep low to stay token-efficient.'),
+      '#description' => $this->t('Upper bound on claims extracted per answer. In the thorough profile each claim costs one checker call; fast/balanced batch them into one.'),
       '#default_value' => $config->get('max_claims') ?: 5,
       '#min' => 1,
       '#max' => 20,
@@ -159,6 +173,7 @@ class SettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('ai_provider_universal_factcheck.settings')
+      ->set('profile', $form_state->getValue('profile'))
       ->set('checker_model', $form_state->getValue('checker_model'))
       ->set('extractor_model', $form_state->getValue('extractor_model') ?? '')
       ->set('evidence_index', $form_state->getValue('evidence_index') ?? '')

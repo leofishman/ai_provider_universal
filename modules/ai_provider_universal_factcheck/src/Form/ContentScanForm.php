@@ -134,6 +134,27 @@ class ContentScanForm extends FormBase {
   }
 
   /**
+   * One-line, Ground-News-style description of a claim's evidence coverage.
+   *
+   * "3 sources, 2 independent — ⚠ only left-leaning coverage": how broad
+   * the evidence base really is once wire-copy siblings are collapsed, and
+   * whether it comes from one side of the spectrum only.
+   */
+  protected function formatCoverage(array $coverage): string {
+    if (!$coverage) {
+      return '';
+    }
+    $text = (string) $this->t('@sources sources, @independent independent', [
+      '@sources' => $coverage['sources'],
+      '@independent' => $coverage['independent'],
+    ]);
+    if (!empty($coverage['blindspot'])) {
+      $text .= ' — ⚠ ' . $this->t('only @side-leaning coverage', ['@side' => $coverage['blindspot']]);
+    }
+    return $text;
+  }
+
+  /**
    * Renders the scan results.
    */
   protected function buildResults(array $results): array {
@@ -145,6 +166,8 @@ class ContentScanForm extends FormBase {
         !empty($c['tainted'])
           ? $this->t('@verdict — ⚠ echoed by distrusted sites', ['@verdict' => $c['verdict']])
           : $c['verdict'],
+        $this->formatCoverage($c['coverage'] ?? []),
+        $c['analysis'] ?? '',
       ], $fc['claims']);
       $build['factcheck'] = [
         '#type' => 'details',
@@ -152,7 +175,7 @@ class ContentScanForm extends FormBase {
         '#open' => TRUE,
         'table' => [
           '#type' => 'table',
-          '#header' => [$this->t('Claim'), $this->t('Verdict')],
+          '#header' => [$this->t('Claim'), $this->t('Verdict'), $this->t('Coverage'), $this->t('Discrepancy analysis')],
           '#rows' => $rows,
           '#empty' => $this->t('No factual claims found — nothing to verify.'),
         ],

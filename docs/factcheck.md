@@ -61,6 +61,22 @@ site** content type: a domain plus a reputation from −10 to 10. Only
   asserts are marked tainted and lower the score.
 - **No published entries**: web search runs unrestricted.
 
+Each entry also takes three **optional profile fields**:
+
+- **Editorial bias** (left … right): used to summarize the bias spread of
+  the sources behind each verified claim, Ground-News-style — the scan
+  shows a per-claim *Coverage* column ("3 sources, 2 independent") and
+  flags a **blindspot** when every leaning source falls on one side.
+- **Owner / parent organization**: domains sharing an owner count as
+  *one* independent source — a wire story republished by sibling outlets
+  is not independent confirmation (near-duplicate passages are also
+  collapsed automatically before verification).
+- **External assessments**: what media watchdogs say about the outlet,
+  one per item, **with the rater named and linked**. Watchdogs have
+  viewpoints too — recording *who* said it keeps the assessment auditable
+  instead of laundering it into the reputation number. These notes are
+  shown to the discrepancy-analysis model when sources disagree.
+
 Reputation is an **editorial decision** — the module ships no opinion
 about which sites to trust. The optional
 `recipes/factcheck_trusted_sites_seeds` recipe creates a few example
@@ -102,6 +118,7 @@ At **Configuration → AI → Providers → Universal → Fact check settings**
 
 | Setting | Purpose | Empty means |
 |---|---|---|
+| `profile` | cost/latency vs. depth trade-off (see below) | `balanced` |
 | `checker_model` | judges each claim | fact checking disabled |
 | `extractor_model` | splits text into claims | use the checker model |
 | `evidence_index` | Search API index for local evidence | model-only verification |
@@ -109,6 +126,23 @@ At **Configuration → AI → Providers → Universal → Fact check settings**
 | `detector_model` | AI-likelihood judge | use the checker model |
 | `plagiarism_key` | Key entity with the Serper.dev API key | plagiarism check disabled |
 | `tavily_key` | Key entity with the Tavily API key | no web evidence fallback |
+
+### Verification profiles
+
+One knob moves all the cost/quality levers together:
+
+| | `fast` | `balanced` (default) | `thorough` |
+|---|---|---|---|
+| Verdict calls | 1 batched for all claims | 1 batched | 1 per claim |
+| Evidence passages per claim | 2 | 3 | 5 |
+| Distrusted-site check | off | 1 per answer | 1 per claim |
+| Discrepancy analysis | off | unsettled claims | unsettled claims |
+| Verdict cache | 6 h | 1 h | none |
+
+Worst-case LLM calls for a 5-claim answer: ~2 (`fast`), ~4 + analyses
+(`balanced`), ~16 (`thorough`). Cached claims cost nothing on re-scan; any
+settings change invalidates the cache. MiniCheck checkers cannot batch and
+always use per-claim verdict calls.
 
 ## Extending
 

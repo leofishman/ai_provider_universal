@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 76d27e12-11e1-45cc-a8ce-280c3d0b3e09
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'PubMed (peer-reviewed biomedical literature)'
+  field_domain:
+    - value: pubmed.ncbi.nlm.nih.gov
+  field_reputation:
+    - value: 9

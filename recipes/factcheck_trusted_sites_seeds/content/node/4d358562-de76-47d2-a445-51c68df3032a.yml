@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 4d358562-de76-47d2-a445-51c68df3032a
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'Associated Press (wire service, public corrections policy)'
+  field_domain:
+    - value: apnews.com
+  field_reputation:
+    - value: 8

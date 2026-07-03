@@ -76,6 +76,14 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [ ] OpenRouter quality tiers: the catalog publishes no quality signal;
       tiers stay manual per model. Evaluate deriving a default from price
       band if manual entry becomes a burden with 300+ models.
+- [ ] **Verdict quorum (GenLayer-inspired, no blockchain)**: optional
+      multi-model consensus in FactChecker. Default stays one checker; on
+      CONTRADICTED/tainted verdicts, "appeal" by re-running the claim
+      across N checker models (each with its own evidence retrieval) and
+      taking majority vote. The 3-label verdict already gives semantic
+      equivalence for free; the router's model catalog supplies the
+      validator pool. Escalation ladder mirrors Optimistic Democracy's
+      finality window: 1 → 3 → 5 models.
 - [ ] Classifier-based complexity (tiny local model) as alternative to
       heuristics in RouteDecider.
 - [ ] Latency/throughput capture from llama.cpp `timings` into decisions.

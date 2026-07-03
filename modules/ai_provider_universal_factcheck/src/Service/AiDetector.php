@@ -56,17 +56,8 @@ PROMPT;
       return NULL;
     }
 
-    try {
-      $provider = $this->providerManager->createInstance('universal');
-      // ponytail: 6000 chars is plenty for a style judgement and caps tokens.
-      $prompt = sprintf(self::DETECT_PROMPT, mb_substr($text, 0, 6000));
-      $output = $provider->chat(new ChatInput([new ChatMessage('user', $prompt)]), $model, ['ai_provider_universal_factcheck']);
-      $raw = $output->getNormalized()->getText();
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('AI detection call failed: @message', ['@message' => $e->getMessage()]);
-      return NULL;
-    }
+    // ponytail: 6000 chars is plenty for a style judgement and caps tokens.
+    $raw = $this->ask(sprintf(self::DETECT_PROMPT, mb_substr($text, 0, 6000)), $model);
 
     if (!preg_match('/\{.*\}/s', $raw, $match)) {
       return NULL;
@@ -80,6 +71,21 @@ PROMPT;
       'score' => (int) max(0, min(100, (int) $data['score'])),
       'rationale' => is_string($data['rationale'] ?? NULL) ? $data['rationale'] : '',
     ];
+  }
+
+  /**
+   * Sends a single-message chat to the given model ('' on failure).
+   */
+  protected function ask(string $prompt, string $model): string {
+    try {
+      $provider = $this->providerManager->createInstance('universal');
+      $output = $provider->chat(new ChatInput([new ChatMessage('user', $prompt)]), $model, ['ai_provider_universal_factcheck']);
+      return trim($output->getNormalized()->getText());
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('AI detection call failed: @message', ['@message' => $e->getMessage()]);
+      return '';
+    }
   }
 
 }

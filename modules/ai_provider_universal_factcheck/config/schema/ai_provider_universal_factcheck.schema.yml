@@ -2,6 +2,9 @@ ai_provider_universal_factcheck.settings:
   type: config_object
   label: 'Fact check settings'
   mapping:
+    profile:
+      type: string
+      label: 'Verification profile: fast | balanced | thorough'
     checker_model:
       type: string
       label: 'Checker model (universal_model id)'

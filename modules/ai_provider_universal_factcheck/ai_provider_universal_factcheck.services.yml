@@ -21,6 +21,8 @@ services:
       - '@ai.provider'
       - '@config.factory'
       - '@Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever'
+      - '@Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository'
+      - '@cache.default'
       - '@logger.channel.ai_provider_universal_factcheck'
 
   # Stable alias consumed by the provider (no hard class dependency).

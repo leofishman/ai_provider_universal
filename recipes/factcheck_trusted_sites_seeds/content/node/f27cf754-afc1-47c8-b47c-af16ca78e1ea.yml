@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: f27cf754-afc1-47c8-b47c-af16ca78e1ea
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'Reuters (wire service, public corrections policy)'
+  field_domain:
+    - value: reuters.com
+  field_reputation:
+    - value: 8

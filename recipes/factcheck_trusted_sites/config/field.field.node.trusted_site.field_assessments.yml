@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_assessments
+    - node.type.trusted_site
+id: node.trusted_site.field_assessments
+field_name: field_assessments
+entity_type: node
+bundle: trusted_site
+label: 'External assessments'
+description: 'What media watchdogs say about this outlet, one per item, WITH the rater named and linked (e.g. "HonestReporting 2025: repeated context omission — https://..."). Watchdogs have viewpoints too: recording who said it keeps the assessment auditable instead of laundering it into the reputation number. Shown to the discrepancy-analysis model when sources disagree.'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: string_long

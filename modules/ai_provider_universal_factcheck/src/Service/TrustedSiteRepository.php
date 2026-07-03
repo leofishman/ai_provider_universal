@@ -12,11 +12,19 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * reputation from -10 to 10. Positive domains are preferred when searching
  * the web for evidence; negative ones are excluded. Sites without the
  * content type simply get no curation (empty lists = unrestricted search).
+ *
+ * Optional per-domain metadata (all empty when uncurated):
+ * - bias: editorial lean (left/lean_left/center/lean_right/right), used to
+ *   summarize the bias spread behind each claim's evidence.
+ * - owner: parent organization; domains sharing an owner count as one
+ *   independent source.
+ * - assessments: provenance-tagged watchdog notes about the outlet, fed to
+ *   the discrepancy-analysis prompt.
  */
 class TrustedSiteRepository {
 
   /**
-   * Per-request cache of the domain => reputation map.
+   * Per-request cache of the domain => profile map.
    */
   protected ?array $map = NULL;
 
@@ -50,7 +58,18 @@ class TrustedSiteRepository {
    * Reputation for a domain (0 for unknown/neutral).
    */
   public function reputation(string $domain): int {
-    return $this->reputationMap()[strtolower($domain)] ?? 0;
+    return $this->profile($domain)['reputation'];
+  }
+
+  /**
+   * Full curated profile for a domain (neutral defaults when uncurated).
+   *
+   * @return array{reputation: int, bias: string, owner: string, assessments: string[]}
+   *   The domain's profile.
+   */
+  public function profile(string $domain): array {
+    return $this->profileMap()[strtolower($domain)]
+      ?? ['reputation' => 0, 'bias' => '', 'owner' => '', 'assessments' => []];
   }
 
   /**
@@ -60,6 +79,16 @@ class TrustedSiteRepository {
    *   Domain to reputation map.
    */
   public function reputationMap(): array {
+    return array_map(static fn (array $p): int => $p['reputation'], $this->profileMap());
+  }
+
+  /**
+   * All curated domains mapped to their full profile.
+   *
+   * @return array<string, array{reputation: int, bias: string, owner: string, assessments: string[]}>
+   *   Domain to profile map.
+   */
+  public function profileMap(): array {
     if ($this->map !== NULL) {
       return $this->map;
     }
@@ -85,10 +114,25 @@ class TrustedSiteRepository {
       // Accept bare domains or full URLs; store normalized host.
       $raw = trim((string) $node->get('field_domain')->value);
       $domain = strtolower(parse_url(str_contains($raw, '//') ? $raw : "https://$raw", PHP_URL_HOST) ?: $raw);
-      $reputation = $node->hasField('field_reputation') ? (int) $node->get('field_reputation')->value : 0;
-      if ($domain !== '') {
-        $this->map[$domain] = $reputation;
+      if ($domain === '') {
+        continue;
       }
+      $value = static fn (string $field): string =>
+        $node->hasField($field) ? trim((string) $node->get($field)->value) : '';
+      $assessments = [];
+      if ($node->hasField('field_assessments')) {
+        foreach ($node->get('field_assessments')->getValue() as $item) {
+          if (trim((string) ($item['value'] ?? '')) !== '') {
+            $assessments[] = trim((string) $item['value']);
+          }
+        }
+      }
+      $this->map[$domain] = [
+        'reputation' => $node->hasField('field_reputation') ? (int) $node->get('field_reputation')->value : 0,
+        'bias' => $value('field_bias'),
+        'owner' => $value('field_owner'),
+        'assessments' => $assessments,
+      ];
     }
     return $this->map;
   }

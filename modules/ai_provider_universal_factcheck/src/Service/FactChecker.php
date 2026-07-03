@@ -5,6 +5,7 @@ namespace Drupal\ai_provider_universal_factcheck\Service;
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Psr\Log\LoggerInterface;
 
@@ -27,9 +28,49 @@ use Psr\Log\LoggerInterface;
  * driven through their fine-tuned interface instead of the generic prompt:
  * "Document: ...\nClaim: ..." answered with Yes/No. They cannot extract
  * claims and cannot judge without evidence, so they need a separate
- * extractor model and an evidence index.
+ * extractor model and an evidence index. MiniCheck also cannot batch, so it
+ * always runs the per-claim path regardless of profile.
+ *
+ * The verification profile setting trades cost/latency against depth:
+ * - fast: one batched verdict call for all claims, 2 evidence passages per
+ *   claim, no distrusted-echo check, no discrepancy analysis, verdicts
+ *   cached 6h.
+ * - balanced (default): batched verdicts, 3 passages, one answer-level
+ *   distrusted check, discrepancy analysis on unsettled claims, cached 1h.
+ * - thorough: per-claim verdict calls, 5 passages, per-claim distrusted
+ *   checks, discrepancy analysis, no caching.
  */
 class FactChecker {
+
+  /**
+   * What each verification profile enables.
+   *
+   * distrusted: 'off' | 'answer' (one check for all claims) | 'claim'
+   * (one Tavily search + one checker call per claim).
+   */
+  protected const PROFILES = [
+    'fast' => [
+      'batch_verify' => TRUE,
+      'evidence_limit' => 2,
+      'distrusted' => 'off',
+      'analysis' => FALSE,
+      'cache_ttl' => 21600,
+    ],
+    'balanced' => [
+      'batch_verify' => TRUE,
+      'evidence_limit' => 3,
+      'distrusted' => 'answer',
+      'analysis' => TRUE,
+      'cache_ttl' => 3600,
+    ],
+    'thorough' => [
+      'batch_verify' => FALSE,
+      'evidence_limit' => 5,
+      'distrusted' => 'claim',
+      'analysis' => TRUE,
+      'cache_ttl' => 0,
+    ],
+  ];
 
   protected const EXTRACT_PROMPT = <<<PROMPT
 Extract the atomic factual claims from the following answer. A factual claim
@@ -51,10 +92,53 @@ Respond with exactly one word:
 CLAIM: %s
 PROMPT;
 
+  protected const BATCH_VERIFY_PROMPT = <<<PROMPT
+You are a strict fact checker. Judge every numbered CLAIM below
+independently. For each claim pick exactly one verdict:
+- SUPPORTED: the claim is correct%s
+- CONTRADICTED: the claim conflicts with the evidence or is factually wrong
+- UNSUPPORTED: cannot be established either way
+
+Respond ONLY with a JSON array of objects like
+[{"id": 1, "verdict": "SUPPORTED"}], one object per claim, no prose.
+
+%s
+PROMPT;
+
+  protected const TAINT_PROMPT = <<<PROMPT
+The EVIDENCE below comes from low-reputation (distrusted) sites. For each
+numbered CLAIM, decide whether the evidence asserts the claim. Respond ONLY
+with a JSON array of the numbers of the asserted claims, e.g. [1,3].
+Respond [] when none are asserted.
+
+%s
+
+EVIDENCE:
+%s
+PROMPT;
+
+  protected const ANALYZE_PROMPT = <<<PROMPT
+The evidence below did not settle the CLAIM. Each source is annotated with
+its curated reputation (-10 to 10, higher is more trustworthy) and, when
+available, notes from media watchdogs about the outlet itself. For each
+source, summarize its position on the claim in one sentence. If the sources
+disagree with each other, state which side is better supported and why,
+weighing the strength of the arguments, the reputations and the watchdog
+notes. Maximum 4 short lines. If the evidence simply does not address the
+claim, respond only with the word NONE.
+
+CLAIM: %s
+
+EVIDENCE:
+%s
+PROMPT;
+
   public function __construct(
     protected AiProviderPluginManager $providerManager,
     protected ConfigFactoryInterface $configFactory,
     protected EvidenceRetriever $evidenceRetriever,
+    protected TrustedSiteRepository $trustedSites,
+    protected CacheBackendInterface $cache,
     protected LoggerInterface $logger,
   ) {}
 
@@ -73,38 +157,91 @@ PROMPT;
    * @param string $answer
    *   The generated answer to verify.
    *
-   * @return array{score: float, claims: array<int, array{claim: string, verdict: string, tainted: bool}>}
+   * @return array{score: float, claims: array<int, array{claim: string, verdict: string, tainted: bool, analysis: string, coverage: array}>}
    *   Support score in [0, 1] and the per-claim verdicts. 'tainted' means
    *   the claim is also asserted by distrusted sites, which lowers the
-   *   score.
+   *   score. 'analysis' is a short source-by-source discrepancy analysis,
+   *   produced only when multiple evidence sources failed to settle the
+   *   claim; empty otherwise. 'coverage' is the shape of the web evidence
+   *   (see coverage()); empty for local-index or model-only verification.
+   *   What runs (batching, distrusted checks, analysis, caching) is governed
+   *   by the 'profile' setting.
    */
   public function verify(string $question, string $answer): array {
+    $profile = $this->profileSettings();
     $claims = $this->extractClaims($answer);
     if (!$claims) {
       return ['score' => 1.0, 'claims' => []];
     }
 
-    $results = [];
-    $supported = 0;
-    $tainted = 0;
-    foreach ($claims as $claim) {
-      $verdict = $this->verifyClaim($claim);
-      $isTainted = $this->echoedByDistrusted($claim);
-      $results[] = ['claim' => $claim, 'verdict' => $verdict, 'tainted' => $isTainted];
-      if ($verdict === 'SUPPORTED') {
-        $supported++;
+    $miniCheck = str_contains(strtolower((string) $this->settings()->get('checker_model')), 'minicheck');
+    $ttl = (int) $profile['cache_ttl'];
+
+    // Per-claim records, cache first: unchanged claims cost nothing on a
+    // re-scan.
+    $records = [];
+    $pending = [];
+    foreach ($claims as $i => $claim) {
+      if ($ttl && ($hit = $this->cache->get($this->claimCid($claim)))) {
+        $records[$i] = $hit->data;
       }
-      if ($isTainted) {
-        $tainted++;
+      else {
+        $pending[$i] = $claim;
       }
     }
 
+    if ($pending) {
+      // Evidence once per claim, shared by verdict and analysis.
+      $evidence = array_map(
+        fn (string $claim): array => $this->evidenceRetriever->retrieve($claim, $profile['evidence_limit']),
+        $pending,
+      );
+
+      // One batched verdict call when the profile (and model) allow it;
+      // per-claim calls otherwise or for claims the batch failed to cover.
+      $verdicts = (!$miniCheck && $profile['batch_verify'])
+        ? $this->batchVerify($pending, $evidence)
+        : [];
+      foreach ($pending as $i => $claim) {
+        $verdicts[$i] ??= $this->verifyClaim($claim, $evidence[$i]);
+      }
+
+      $taintedKeys = match (TRUE) {
+        $profile['distrusted'] === 'off' => [],
+        $profile['distrusted'] === 'answer' && !$miniCheck => $this->taintedForAnswer($pending),
+        default => array_keys(array_filter($pending, fn (string $c): bool => $this->echoedByDistrusted($c))),
+      };
+
+      foreach ($pending as $i => $claim) {
+        // ponytail: analyze only non-SUPPORTED claims with >=2 sources — the
+        // case where trusted sources may be disagreeing. Run it on every
+        // multi-source claim if missed disagreements behind SUPPORTED
+        // verdicts ever matter (doubles checker calls).
+        $analysis = ($profile['analysis'] && $verdicts[$i] !== 'SUPPORTED' && count($evidence[$i]) >= 2)
+          ? $this->analyzeDiscrepancy($claim, $evidence[$i])
+          : '';
+        $records[$i] = [
+          'claim' => $claim,
+          'verdict' => $verdicts[$i],
+          'tainted' => in_array($i, $taintedKeys, TRUE),
+          'analysis' => $analysis,
+          'coverage' => self::coverage($evidence[$i], $this->trustedSites->profileMap()),
+        ];
+        if ($ttl) {
+          $this->cache->set($this->claimCid($claim), $records[$i], time() + $ttl);
+        }
+      }
+    }
+
+    ksort($records);
+    $supported = count(array_filter($records, static fn (array $r): bool => $r['verdict'] === 'SUPPORTED'));
+    $tainted = count(array_filter($records, static fn (array $r): bool => $r['tainted']));
+
     // ponytail: fixed half-point penalty per tainted claim; make it
     // configurable if curators ever need per-site weights.
-    $score = ($supported - 0.5 * $tainted) / count($claims);
     return [
-      'score' => max(0.0, $score),
-      'claims' => $results,
+      'score' => max(0.0, ($supported - 0.5 * $tainted) / count($claims)),
+      'claims' => array_values($records),
     ];
   }
 
@@ -136,10 +273,12 @@ PROMPT;
   }
 
   /**
-   * Verdict for a single claim: SUPPORTED / UNSUPPORTED / CONTRADICTED.
+   * Verdict for a single claim, judged on the given evidence passages.
+   *
+   * @return string
+   *   SUPPORTED / UNSUPPORTED / CONTRADICTED.
    */
-  protected function verifyClaim(string $claim): string {
-    $passages = $this->evidenceRetriever->retrieve($claim);
+  protected function verifyClaim(string $claim, array $passages): string {
     $checker = (string) $this->settings()->get('checker_model');
 
     // Specialized grounded-checking models (Bespoke-MiniCheck) only know
@@ -177,6 +316,199 @@ PROMPT;
       }
     }
     return 'UNSUPPORTED';
+  }
+
+  /**
+   * Judges all claims in one checker call.
+   *
+   * @param array<int, string> $claims
+   *   Claims keyed by their original index.
+   * @param array<int, string[]> $evidence
+   *   Evidence passages per claim, same keys.
+   *
+   * @return array<int, string>
+   *   Verdicts keyed like $claims; missing entries (model skipped a claim
+   *   or returned unparseable JSON) fall back to per-claim verification in
+   *   the caller.
+   */
+  protected function batchVerify(array $claims, array $evidence): array {
+    $keys = array_keys($claims);
+    $hasEvidence = (bool) array_filter($evidence);
+
+    $blocks = [];
+    foreach ($keys as $n => $i) {
+      $block = 'CLAIM ' . ($n + 1) . ': ' . $claims[$i];
+      if ($evidence[$i]) {
+        $block .= "\nEVIDENCE " . ($n + 1) . ":\n- " . implode("\n- ", array_map(
+          static fn (string $p): string => mb_substr($p, 0, 500),
+          $evidence[$i],
+        ));
+      }
+      $blocks[] = $block;
+    }
+
+    $prompt = sprintf(
+      self::BATCH_VERIFY_PROMPT,
+      $hasEvidence ? ' according to its evidence' : ' to the best of your knowledge',
+      implode("\n\n", $blocks),
+    );
+    $raw = $this->ask($prompt, (string) $this->settings()->get('checker_model'));
+
+    if (!preg_match('/\[.*\]/s', $raw, $match) || !is_array($items = json_decode($match[0], TRUE))) {
+      return [];
+    }
+    $verdicts = [];
+    foreach ($items as $item) {
+      $n = (int) ($item['id'] ?? 0) - 1;
+      $verdict = strtoupper(trim((string) ($item['verdict'] ?? '')));
+      if (isset($keys[$n]) && in_array($verdict, ['SUPPORTED', 'CONTRADICTED', 'UNSUPPORTED'], TRUE)) {
+        $verdicts[$keys[$n]] = $verdict;
+      }
+    }
+    return $verdicts;
+  }
+
+  /**
+   * Claims asserted by distrusted sites: one search + one call per answer.
+   *
+   * Cheaper sibling of echoedByDistrusted(): a single Tavily search over the
+   * concatenated claims and a single checker call naming the tainted ones.
+   *
+   * @param array<int, string> $claims
+   *   Claims keyed by their original index.
+   *
+   * @return int[]
+   *   Keys of the tainted claims.
+   */
+  protected function taintedForAnswer(array $claims): array {
+    // Tavily queries are short; the joined claims act as a topic query and
+    // the checker does the precise claim-by-claim matching.
+    $query = mb_substr(implode('. ', $claims), 0, 380);
+    $passages = $this->evidenceRetriever->retrieveDistrusted($query);
+    if (!$passages) {
+      return [];
+    }
+
+    $keys = array_keys($claims);
+    $list = [];
+    foreach ($keys as $n => $i) {
+      $list[] = 'CLAIM ' . ($n + 1) . ': ' . $claims[$i];
+    }
+    $evidenceBlock = '- ' . implode("\n- ", array_map(
+      static fn (string $p): string => mb_substr($p, 0, 500),
+      $passages,
+    ));
+    $raw = $this->ask(
+      sprintf(self::TAINT_PROMPT, implode("\n", $list), $evidenceBlock),
+      (string) $this->settings()->get('checker_model'),
+    );
+
+    if (!preg_match('/\[.*?\]/s', $raw, $match) || !is_array($numbers = json_decode($match[0], TRUE))) {
+      return [];
+    }
+    return array_values(array_filter(array_map(
+      static fn ($n) => $keys[(int) $n - 1] ?? NULL,
+      $numbers,
+    ), static fn ($k) => $k !== NULL));
+  }
+
+  /**
+   * Source-by-source analysis when multiple sources fail to settle a claim.
+   *
+   * Annotates each passage with its domain's curated reputation and asks the
+   * checker to summarize each source's argument and pick the better-supported
+   * side. Answers the "two well-scored sites disagree" case.
+   *
+   * @return string
+   *   Short analysis text; empty when the model finds no real disagreement
+   *   or the checker cannot do free-form analysis (MiniCheck).
+   */
+  protected function analyzeDiscrepancy(string $claim, array $passages): string {
+    $model = (string) ($this->settings()->get('extractor_model') ?: $this->settings()->get('checker_model'));
+    if (str_contains(strtolower($model), 'minicheck')) {
+      return '';
+    }
+
+    $lines = array_map(function (string $p): string {
+      $profile = ['reputation' => 0, 'assessments' => []];
+      if (preg_match('/^\[(\S+)\]/', $p, $match)) {
+        $host = strtolower((string) parse_url($match[1], PHP_URL_HOST));
+        if ($host !== '') {
+          $profile = $this->trustedSites->profile($host);
+        }
+      }
+      // Watchdog assessments are curated with their rater named, so the
+      // model sees "who says this about the outlet", not a bare verdict.
+      $notes = $profile['assessments']
+        ? '; watchdog notes: ' . mb_substr(implode(' | ', $profile['assessments']), 0, 300)
+        : '';
+      return sprintf('- (reputation %+d%s) %s', $profile['reputation'], $notes, mb_substr($p, 0, 500));
+    }, $passages);
+
+    $raw = trim($this->ask(sprintf(self::ANALYZE_PROMPT, $claim, implode("\n", $lines)), $model));
+    return strtoupper($raw) === 'NONE' ? '' : $raw;
+  }
+
+  /**
+   * Ground-News-style summary of the web evidence behind a claim.
+   *
+   * Describes the SHAPE of the coverage rather than adjudicating it: how
+   * many distinct web sources, how many are independent (unique owners —
+   * wire copy republished by sibling outlets is not independent
+   * confirmation), the spread of known editorial biases, and a blindspot
+   * flag when every leaning source falls on one side of the spectrum.
+   *
+   * Pure text logic (no state) so it is unit-testable in isolation.
+   *
+   * @param string[] $passages
+   *   Source-prefixed evidence passages.
+   * @param array<string, array{reputation: int, bias: string, owner: string, assessments: string[]}> $profiles
+   *   Curated domain profiles (TrustedSiteRepository::profileMap()).
+   *
+   * @return array{sources: int, independent: int, biases: array<string, int>, blindspot: string}|array{}
+   *   The summary; empty when no passage carries a source URL (local-index
+   *   and model-only evidence has no web coverage to describe).
+   */
+  public static function coverage(array $passages, array $profiles): array {
+    $domains = [];
+    foreach ($passages as $passage) {
+      if (preg_match('/^\[(\S+)\]/', $passage, $match)) {
+        $host = strtolower((string) parse_url($match[1], PHP_URL_HOST));
+        if ($host !== '') {
+          $domains[$host] = TRUE;
+        }
+      }
+    }
+    if (!$domains) {
+      return [];
+    }
+
+    $owners = [];
+    $biases = [];
+    $left = $right = 0;
+    foreach (array_keys($domains) as $domain) {
+      $profile = $profiles[$domain] ?? [];
+      // Unknown owner: the domain stands for itself.
+      $owners[strtolower((string) ($profile['owner'] ?? '')) ?: $domain] = TRUE;
+      if ($bias = (string) ($profile['bias'] ?? '')) {
+        $biases[$bias] = ($biases[$bias] ?? 0) + 1;
+        $left += (int) in_array($bias, ['left', 'lean_left'], TRUE);
+        $right += (int) in_array($bias, ['right', 'lean_right'], TRUE);
+      }
+    }
+
+    return [
+      'sources' => count($domains),
+      'independent' => count($owners),
+      'biases' => $biases,
+      // ponytail: blindspot = leaning sources on exactly one side; upgrade
+      // to proportion thresholds if center-heavy mixes need nuance.
+      'blindspot' => match (TRUE) {
+        $left > 0 && $right === 0 => 'left',
+        $right > 0 && $left === 0 => 'right',
+        default => '',
+      },
+    ];
   }
 
   /**
@@ -225,6 +557,24 @@ PROMPT;
       $this->logger->error('Fact check call failed: @message', ['@message' => $e->getMessage()]);
       return '';
     }
+  }
+
+  /**
+   * The active verification profile's knobs.
+   */
+  protected function profileSettings(): array {
+    $name = (string) ($this->settings()->get('profile') ?: 'balanced');
+    return self::PROFILES[$name] ?? self::PROFILES['balanced'];
+  }
+
+  /**
+   * Cache id for a claim's verdict record.
+   *
+   * Keyed on the full settings so any config change (models, profile,
+   * evidence index) naturally invalidates cached verdicts.
+   */
+  protected function claimCid(string $claim): string {
+    return 'ai_provider_universal_factcheck:claim:' . sha1(serialize($this->settings()->getRawData()) . $claim);
   }
 
   /**

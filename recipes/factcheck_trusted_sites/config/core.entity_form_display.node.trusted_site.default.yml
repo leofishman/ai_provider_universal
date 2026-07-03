@@ -2,9 +2,14 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.trusted_site.field_assessments
+    - field.field.node.trusted_site.field_bias
     - field.field.node.trusted_site.field_domain
+    - field.field.node.trusted_site.field_owner
     - field.field.node.trusted_site.field_reputation
     - node.type.trusted_site
+  module:
+    - options
 id: node.trusted_site.default
 targetEntityType: node
 bundle: trusted_site
@@ -32,6 +37,28 @@ content:
     region: content
     settings:
       placeholder: ''
+    third_party_settings: {}
+  field_bias:
+    type: options_select
+    weight: 3
+    region: content
+    settings: {}
+    third_party_settings: {}
+  field_owner:
+    type: string_textfield
+    weight: 4
+    region: content
+    settings:
+      size: 60
+      placeholder: 'Reuters'
+    third_party_settings: {}
+  field_assessments:
+    type: string_textarea
+    weight: 5
+    region: content
+    settings:
+      rows: 3
+      placeholder: 'HonestReporting 2025: ... — https://...'
     third_party_settings: {}
   status:
     type: boolean_checkbox

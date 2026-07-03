@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 87c24e19-d042-40b8-975e-ac406f0ed6fe
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'Nature (peer-reviewed journal)'
+  field_domain:
+    - value: nature.com
+  field_reputation:
+    - value: 9

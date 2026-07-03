@@ -32,6 +32,14 @@ class EvidenceRetriever {
 
   protected const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 
+  /**
+   * Jaccard similarity (on 4-word shingles) at or above which two passages
+   * are treated as the same source. Republished wire copy ("churnalism")
+   * scores near 1.0; independently written passages on the same topic stay
+   * well below. Tuned conservatively so only genuine echoes collapse.
+   */
+  protected const DUP_THRESHOLD = 0.7;
+
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected ConfigFactoryInterface $configFactory,
@@ -210,7 +218,70 @@ class EvidenceRetriever {
       $url = (string) ($result['url'] ?? '');
       $passages[] = ($url ? "[$url] " : '') . $content;
     }
-    return $passages;
+    // Collapse republished wire copy: N domains echoing one source is one
+    // piece of evidence, not N. Counting the echoes would falsely reassure
+    // the checker that many sources agree.
+    return self::dedupe($passages);
+  }
+
+  /**
+   * Drops near-duplicate passages, keeping the first occurrence of each.
+   *
+   * Pure text logic (no state) so it is unit-testable in isolation.
+   *
+   * @param string[] $passages
+   *   Source-prefixed passages.
+   *
+   * @return string[]
+   *   Passages with near-duplicates removed, order preserved.
+   */
+  public static function dedupe(array $passages): array {
+    $kept = [];
+    $keptShingles = [];
+    foreach ($passages as $passage) {
+      $shingles = self::shingles($passage);
+      foreach ($keptShingles as $existing) {
+        if (self::jaccard($shingles, $existing) >= self::DUP_THRESHOLD) {
+          // ponytail: keep-first (Tavily orders by relevance). Switch to
+          // keep-highest-reputation if curated echoes need to win the slot.
+          continue 2;
+        }
+      }
+      $kept[] = $passage;
+      $keptShingles[] = $shingles;
+    }
+    return $kept;
+  }
+
+  /**
+   * Set of normalized N-word shingles for a passage (URL prefix stripped).
+   *
+   * @return array<string, true>
+   *   Shingle set keyed for O(1) intersection; falls back to a bag of words
+   *   when the passage is shorter than one shingle.
+   */
+  protected static function shingles(string $passage, int $n = 4): array {
+    $text = strtolower(preg_replace('/^\[\S+\]\s*/', '', $passage));
+    $words = preg_split('/\W+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    if (count($words) < $n) {
+      return array_fill_keys($words, TRUE);
+    }
+    $set = [];
+    for ($i = 0; $i + $n <= count($words); $i++) {
+      $set[implode(' ', array_slice($words, $i, $n))] = TRUE;
+    }
+    return $set;
+  }
+
+  /**
+   * Jaccard similarity between two shingle sets.
+   */
+  protected static function jaccard(array $a, array $b): float {
+    if (!$a || !$b) {
+      return 0.0;
+    }
+    $intersection = count(array_intersect_key($a, $b));
+    return $intersection / count($a + $b);
   }
 
   /**

@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_bias
+    - node.type.trusted_site
+  module:
+    - options
+id: node.trusted_site.field_bias
+field_name: field_bias
+entity_type: node
+bundle: trusted_site
+label: 'Editorial bias'
+description: 'Political lean of the outlet, per external bias raters (AllSides, Ad Fontes, MBFC). Leave empty when unknown. Used to show the bias spread of the sources behind each verified claim and to flag one-sided ("blindspot") coverage.'
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: list_string
