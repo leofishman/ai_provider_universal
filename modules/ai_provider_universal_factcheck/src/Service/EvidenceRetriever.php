@@ -33,10 +33,12 @@ class EvidenceRetriever {
   protected const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 
   /**
-   * Jaccard similarity (on 4-word shingles) at or above which two passages
-   * are treated as the same source. Republished wire copy ("churnalism")
-   * scores near 1.0; independently written passages on the same topic stay
-   * well below. Tuned conservatively so only genuine echoes collapse.
+   * Jaccard similarity threshold (on 4-word shingles) for a duplicate.
+   *
+   * At or above this score two passages are treated as the same source.
+   * Republished wire copy ("churnalism") scores near 1.0; independently
+   * written passages on the same topic stay well below. Tuned conservatively
+   * so only genuine echoes collapse.
    */
   protected const DUP_THRESHOLD = 0.7;
 

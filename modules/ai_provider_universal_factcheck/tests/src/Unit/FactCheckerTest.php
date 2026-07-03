@@ -30,6 +30,9 @@ class FactCheckerTest extends UnitTestCase {
    */
   protected array $cacheStore = [];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->prompts = [];
@@ -43,6 +46,12 @@ class FactCheckerTest extends UnitTestCase {
    *   Module settings ('checker_model', 'profile', ...).
    * @param array $responses
    *   Model responses returned in order; '' once exhausted.
+   * @param \Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever|null $evidence
+   *   Mocked evidence retriever; a bare mock with no expectations when
+   *   omitted.
+   * @param \Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository|null $sites
+   *   Mocked trusted-site repository; a bare mock with no expectations when
+   *   omitted.
    */
   protected function buildChecker(array $settings, array $responses, ?EvidenceRetriever $evidence = NULL, ?TrustedSiteRepository $sites = NULL): FactChecker {
     $settings += ['checker_model' => 'llama', 'max_claims' => 5];
@@ -82,6 +91,9 @@ class FactCheckerTest extends UnitTestCase {
        */
       public FactCheckerTest $test;
 
+      /**
+       * Records the prompt and returns the next scripted response.
+       */
       protected function ask(string $prompt, string $model): string {
         $this->test->recordPrompt($prompt);
         return array_shift($this->responses) ?? '';
@@ -321,7 +333,7 @@ class FactCheckerTest extends UnitTestCase {
     $coverage = FactChecker::coverage($passages, $profiles);
 
     $this->assertSame(3, $coverage['sources']);
-    // a + b share an owner; c stands alone.
+    // A + b share an owner; c stands alone.
     $this->assertSame(2, $coverage['independent']);
     $this->assertSame(['lean_left' => 1, 'left' => 1], $coverage['biases']);
     $this->assertSame('left', $coverage['blindspot']);

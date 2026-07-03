@@ -29,6 +29,9 @@ class TrustedSiteRepositoryTest extends KernelTestBase {
    */
   protected static $modules = ['system', 'user', 'node', 'field', 'text'];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');

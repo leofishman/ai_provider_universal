@@ -46,6 +46,10 @@ class EvidenceRetrieverTest extends UnitTestCase {
    *   Guzzle responses/exceptions, in order.
    * @param string $tavilyKey
    *   The configured key id; '' disables web evidence.
+   * @param array $include
+   *   Curated include-domains returned by the mocked trusted-site repository.
+   * @param array $exclude
+   *   Curated exclude-domains returned by the mocked trusted-site repository.
    */
   protected function buildRetriever(array $responses, string $tavilyKey = 'tavily', array $include = [], array $exclude = []): EvidenceRetriever {
     $this->history = [];

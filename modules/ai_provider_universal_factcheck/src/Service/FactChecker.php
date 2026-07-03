@@ -45,7 +45,7 @@ class FactChecker {
   /**
    * What each verification profile enables.
    *
-   * distrusted: 'off' | 'answer' (one check for all claims) | 'claim'
+   * Distrusted: 'off' | 'answer' (one check for all claims) | 'claim'
    * (one Tavily search + one checker call per claim).
    */
   protected const PROFILES = [

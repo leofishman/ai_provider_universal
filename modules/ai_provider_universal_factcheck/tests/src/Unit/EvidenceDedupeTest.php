@@ -27,7 +27,7 @@ class EvidenceDedupeTest extends UnitTestCase {
       "[https://b.example/story] $wire It was widely shared.",
       // An independently written passage on the same topic.
       '[https://c.example/analysis] Analysts questioned whether the March '
-      . 'rollout is realistic given staffing shortages reported last quarter.',
+        . 'rollout is realistic given staffing shortages reported last quarter.',
     ];
 
     $result = EvidenceRetriever::dedupe($passages);

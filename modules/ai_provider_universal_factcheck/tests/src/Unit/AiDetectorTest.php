@@ -6,8 +6,6 @@ namespace Drupal\Tests\ai_provider_universal_factcheck\Unit;
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\ai\AiProviderPluginManager;
-use Drupal\ai\OperationType\Chat\ChatMessage;
-use Drupal\ai\OperationType\Chat\ChatOutput;
 use Drupal\ai_provider_universal_factcheck\Service\AiDetector;
 use Psr\Log\LoggerInterface;
 
@@ -33,6 +31,9 @@ class AiDetectorTest extends UnitTestCase {
        */
       public string $response = '';
 
+      /**
+       * Returns the scripted response instead of calling a real provider.
+       */
       protected function ask(string $prompt, string $model): string {
         return $this->response;
       }
