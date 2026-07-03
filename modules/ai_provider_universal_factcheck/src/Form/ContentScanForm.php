@@ -140,7 +140,12 @@ class ContentScanForm extends FormBase {
     $build = ['#type' => 'container'];
 
     if ($fc = $results['factcheck']) {
-      $rows = array_map(static fn (array $c) => [$c['claim'], $c['verdict']], $fc['claims']);
+      $rows = array_map(fn (array $c) => [
+        $c['claim'],
+        !empty($c['tainted'])
+          ? $this->t('@verdict — ⚠ echoed by distrusted sites', ['@verdict' => $c['verdict']])
+          : $c['verdict'],
+      ], $fc['claims']);
       $build['factcheck'] = [
         '#type' => 'details',
         '#title' => $this->t('Fact check — support score @score%', ['@score' => (int) round($fc['score'] * 100)]),

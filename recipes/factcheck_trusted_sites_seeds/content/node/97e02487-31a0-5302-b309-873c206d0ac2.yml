@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 97e02487-31a0-5302-b309-873c206d0ac2
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'Example distrusted site (edit me)'
+  field_domain:
+    - value: fakenews.example
+  field_reputation:
+    - value: -8

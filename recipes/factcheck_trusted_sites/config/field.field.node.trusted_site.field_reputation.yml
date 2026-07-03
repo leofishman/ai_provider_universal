@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_reputation
+    - node.type.trusted_site
+id: node.trusted_site.field_reputation
+field_name: field_reputation
+entity_type: node
+bundle: trusted_site
+label: Reputation
+description: 'From -10 (never trust, excluded from searches) to 10 (highly trusted, preferred source). 0 = neutral.'
+required: true
+translatable: false
+default_value:
+  - value: 5
+default_value_callback: ''
+settings:
+  min: -10
+  max: 10
+  prefix: ''
+  suffix: ''
+field_type: integer

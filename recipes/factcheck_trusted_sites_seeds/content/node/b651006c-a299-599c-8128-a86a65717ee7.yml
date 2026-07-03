@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: b651006c-a299-599c-8128-a86a65717ee7
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'Wikipedia'
+  field_domain:
+    - value: wikipedia.org
+  field_reputation:
+    - value: 6

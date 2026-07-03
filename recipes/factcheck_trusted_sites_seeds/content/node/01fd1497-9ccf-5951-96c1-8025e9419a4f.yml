@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 01fd1497-9ccf-5951-96c1-8025e9419a4f
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'United Nations'
+  field_domain:
+    - value: un.org
+  field_reputation:
+    - value: 8

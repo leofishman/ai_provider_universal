@@ -1,0 +1,8 @@
+name: 'Fact check: trusted sites'
+description: 'Content type for curating web sources with a reputation score (-10 to 10). The fact check web-evidence search prefers positive domains and excludes negative ones.'
+type: 'Content type'
+install:
+  - node
+  - field
+config:
+  strict: false

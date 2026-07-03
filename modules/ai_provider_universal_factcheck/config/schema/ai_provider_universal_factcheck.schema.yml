@@ -20,3 +20,6 @@ ai_provider_universal_factcheck.settings:
     plagiarism_key:
       type: string
       label: 'Key entity holding the Serper.dev API key (empty = plagiarism check disabled)'
+    tavily_key:
+      type: string
+      label: 'Key entity holding the Tavily API key (empty = no web evidence fallback)'

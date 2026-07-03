@@ -111,6 +111,16 @@ class SettingsForm extends ConfigFormBase {
         $key_options[$key->id()] = $key->label();
       }
     }
+    $form['tavily_key'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Web evidence API key (Tavily)'),
+      '#description' => $this->t('Key entity holding a <a href=":url">Tavily</a> API key. When the evidence index has nothing for a claim, the web is searched — restricted by your <em>Trusted site</em> nodes: positive-reputation domains are preferred, negative ones excluded. Leave empty to keep verification local-only.', [':url' => 'https://tavily.com']),
+      '#options' => $key_options,
+      '#empty_option' => $this->t('- Disabled -'),
+      '#default_value' => $config->get('tavily_key'),
+      '#access' => (bool) $key_options,
+    ];
+
     $form['plagiarism_key'] = [
       '#type' => 'select',
       '#title' => $this->t('Plagiarism search API key'),
@@ -155,6 +165,7 @@ class SettingsForm extends ConfigFormBase {
       ->set('max_claims', (int) $form_state->getValue('max_claims'))
       ->set('detector_model', $form_state->getValue('detector_model') ?? '')
       ->set('plagiarism_key', $form_state->getValue('plagiarism_key') ?? '')
+      ->set('tavily_key', $form_state->getValue('tavily_key') ?? '')
       ->save();
     parent::submitForm($form, $form_state);
   }

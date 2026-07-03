@@ -1,0 +1,15 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 5bbbf2bc-39c9-5223-a91d-38427d40fb7f
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'World Health Organization'
+  field_domain:
+    - value: who.int
+  field_reputation:
+    - value: 9

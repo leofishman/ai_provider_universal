@@ -18,7 +18,10 @@ use Psr\Log\LoggerInterface;
  *    and ask the checker model for a verdict:
  *    SUPPORTED / UNSUPPORTED / CONTRADICTED.
  * 3. score = supported / total (claims with no verdict count as unsupported;
- *    an answer with no factual claims scores 1.0).
+ *    an answer with no factual claims scores 1.0). Claims echoed by
+ *    distrusted (negative-reputation) sites are marked tainted and each
+ *    subtracts an extra half point: misinformation sites asserting a claim
+ *    is evidence against it.
  *
  * Checker models whose id contains "minicheck" (Bespoke-MiniCheck) are
  * driven through their fine-tuned interface instead of the generic prompt:
@@ -70,8 +73,10 @@ PROMPT;
    * @param string $answer
    *   The generated answer to verify.
    *
-   * @return array{score: float, claims: array<int, array{claim: string, verdict: string}>}
-   *   Support score in [0, 1] and the per-claim verdicts.
+   * @return array{score: float, claims: array<int, array{claim: string, verdict: string, tainted: bool}>}
+   *   Support score in [0, 1] and the per-claim verdicts. 'tainted' means
+   *   the claim is also asserted by distrusted sites, which lowers the
+   *   score.
    */
   public function verify(string $question, string $answer): array {
     $claims = $this->extractClaims($answer);
@@ -81,16 +86,24 @@ PROMPT;
 
     $results = [];
     $supported = 0;
+    $tainted = 0;
     foreach ($claims as $claim) {
       $verdict = $this->verifyClaim($claim);
-      $results[] = ['claim' => $claim, 'verdict' => $verdict];
+      $isTainted = $this->echoedByDistrusted($claim);
+      $results[] = ['claim' => $claim, 'verdict' => $verdict, 'tainted' => $isTainted];
       if ($verdict === 'SUPPORTED') {
         $supported++;
       }
+      if ($isTainted) {
+        $tainted++;
+      }
     }
 
+    // ponytail: fixed half-point penalty per tainted claim; make it
+    // configurable if curators ever need per-site weights.
+    $score = ($supported - 0.5 * $tainted) / count($claims);
     return [
-      'score' => $supported / count($claims),
+      'score' => max(0.0, $score),
       'claims' => $results,
     ];
   }
@@ -164,6 +177,35 @@ PROMPT;
       }
     }
     return 'UNSUPPORTED';
+  }
+
+  /**
+   * Whether distrusted (negative-reputation) sites assert the claim.
+   *
+   * Uses the same grounded-support question as verification, but against
+   * evidence fetched exclusively from negative-reputation domains. Costs
+   * one Tavily search and one checker call per claim, and only runs when
+   * distrusted domains and a Tavily key are configured.
+   */
+  protected function echoedByDistrusted(string $claim): bool {
+    $passages = $this->evidenceRetriever->retrieveDistrusted($claim);
+    if (!$passages) {
+      return FALSE;
+    }
+    $checker = (string) $this->settings()->get('checker_model');
+
+    if (str_contains(strtolower($checker), 'minicheck')) {
+      $document = implode("\n", array_map(static fn ($p) => mb_substr($p, 0, 1000), $passages));
+      $raw = $this->ask("Document: {$document}\nClaim: {$claim}", $checker);
+      return str_starts_with(strtolower(trim($raw)), 'yes');
+    }
+
+    $evidenceBlock = "\n\nEVIDENCE:\n- " . implode("\n- ", array_map(
+      static fn ($p) => mb_substr($p, 0, 500),
+      $passages,
+    ));
+    $raw = strtoupper($this->ask(sprintf(self::VERIFY_PROMPT, $evidenceBlock, ' according to the evidence', $claim), $checker));
+    return (bool) preg_match('/\bSUPPORTED\b/', $raw);
   }
 
   /**
