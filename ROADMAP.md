@@ -37,6 +37,13 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       escalate to the best candidate on failure.
 - [x] Configure ai_search index on the hackathon site (nomic-embed local →
       pgvector), index demo content, wire factcheck to it.
+- [x] Per-server usage limits with alert threshold (%) + grace (%) and
+      UsageThresholdEvent (router submodule enforces; provider records).
+- [x] Content scan tab on nodes (factcheck submodule): fact check,
+      readability (Flesch), AI-likelihood, plagiarism via Serper.dev.
+- [x] Web evidence cascade: local index → Tavily, curated by the
+      trusted_site content type (factcheck_trusted_sites recipe) with
+      per-domain reputation (positive = preferred, negative = excluded).
 - [ ] Add ollama + vLLM (Qwen 0.5B, shieldgemma) servers to the hackathon
       site; set tiers/costs; demo route across the full local fleet +
       Fireworks (account access expected 2026-07-07).

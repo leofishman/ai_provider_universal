@@ -122,56 +122,36 @@ Unauthorized`) is logged to the `ai_provider_universal` channel: see
 
 ### Usage limits
 
-Each **server** can carry a **daily request limit** and a **daily token
-limit** (input + output, all its models combined) — that is where the
+Each **server** can carry daily request/token limits — that is where the
 account/budget actually lives (OpenRouter credits, amazee.ai budget, a
-LiteLLM master key). Set them on the server form under "Usage limits".
+LiteLLM master key). Usage is tracked per model per day; enforcement lives
+in the Smart Router submodule: over-limit servers are skipped by routes
+(failover to another provider) and reject direct calls until the day rolls
+over. An optional **alert threshold** (default 80%) and **limit grace**
+dispatch `UsageThresholdEvent`s you can subscribe to for mail/Slack/ECA.
 
-Usage is tracked per model per day (site timezone) in the
-`ai_provider_universal_usage` table; the per-model breakdown is shown in
-the model overrides section of the server form.
+Full details — enforcement model, thresholds, event reference:
+[docs/usage-limits.md](docs/usage-limits.md).
 
-Enforcement lives in the **Smart Router submodule**
-(`ai_provider_universal_router`): when a server exhausts a limit, routes
-skip all its models and fail over to another provider, and direct calls to
-its models fail with a quota error until the day rolls over. Without the
-submodule, usage is still recorded but never blocks.
+### Fact check & content scan (fact check submodule)
 
-Two optional thresholds refine the hard limit (same form section):
+With `ai_provider_universal_factcheck` enabled, answers from smart routes
+can be verified claim by claim (and escalated to a better model when
+verification fails), and every node gets a **Content scan** tab running
+four on-demand checks: fact check, readability, AI likelihood and
+plagiarism.
 
-- **Alert threshold (%)** — default 80. When usage crosses this percentage
-  of a limit, a warning is logged and a
-  `UsageThresholdEvent::ALERT` event is dispatched (once per server and
-  day). Leave empty to disable alerts.
-- **Limit grace (%)** — default off. Lets usage exceed the limit by up to
-  this percentage before blocking (e.g. 10 blocks at 110%). Empty or 0
-  blocks exactly at the limit. Exhaustion logs a warning and dispatches
-  `UsageThresholdEvent::EXHAUSTED` (once per server and day).
+Evidence comes from a cascade — your own AI Search index first, then the
+web via [Tavily](https://tavily.com) — curated by an optional **Trusted
+site** content type with per-domain reputation (−10 to 10): positive
+domains are preferred sources; claims echoed by negative-reputation
+domains are marked tainted and lower the score. Two bundled recipes set it
+up: `factcheck_trusted_sites` (the content type) and, optionally,
+`factcheck_trusted_sites_seeds` (example entries, created unpublished —
+reputation is your editorial call).
 
-Both events
-(`Drupal\ai_provider_universal_router\Event\UsageThresholdEvent`) carry the
-server id, the metric crossed (`requests` or `tokens`), today's usage and
-the configured limit — subscribe to them to send mail/Slack notifications
-or trigger ECA workflows.
-
-### Content scan (fact check submodule)
-
-With `ai_provider_universal_factcheck` enabled, every node gets a
-**Content scan** tab (users who can edit the node) that runs up to four
-checks on demand and shows the results inline — nothing is stored:
-
-- **Fact check** — the node text is split into atomic claims and each is
-  judged SUPPORTED / UNSUPPORTED / CONTRADICTED (optionally grounded in an
-  AI Search evidence index). Needs a checker model in the fact check
-  settings.
-- **Readability** — Flesch reading ease, computed locally. No tokens.
-- **AI likelihood** — a configurable model estimates how likely the text is
-  AI-generated. This is a heuristic LLM judgement, not a trained detector:
-  treat it as a hint.
-- **Plagiarism** — the longest sentences are searched as exact phrases on
-  the web via [Serper.dev](https://serper.dev) (free tier available);
-  verbatim matches are listed with their URLs. Enabled by selecting a Key
-  entity holding the Serper API key in the fact check settings.
+Full details — pipeline, scoring, recipes, settings reference, extension
+points: [docs/factcheck.md](docs/factcheck.md).
 
 ## Relation to ai_provider_llama_cpp
 
