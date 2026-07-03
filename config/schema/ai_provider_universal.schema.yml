@@ -32,6 +32,14 @@ ai_provider_universal.server.*:
     model_filter:
       type: string
       label: 'Model Filter'
+    daily_request_limit:
+      type: integer
+      label: 'Maximum requests per day across all models (empty = unlimited)'
+      nullable: true
+    daily_token_limit:
+      type: integer
+      label: 'Maximum tokens (input + output) per day across all models (empty = unlimited)'
+      nullable: true
 
 ai_provider_universal.model.*:
   type: config_entity

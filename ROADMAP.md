@@ -47,6 +47,9 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 
 ## Post-hackathon
 
+- [ ] **Time-of-day pricing** (DeepSeek already bills off-peak hours
+      cheaper): optional per-model/server cost schedule by hour range; the
+      smart router uses the price in effect when comparing candidates.
 - [ ] **Inference dispatch through backends**: move chat/embeddings
       execution behind ServerBackendInterface so non-OpenAI backends work
       end to end ("earn the universal name").

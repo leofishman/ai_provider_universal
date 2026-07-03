@@ -97,6 +97,9 @@
     "mixtral",
     "palabra",
     "pgvector",
-    "varchar"
+    "varchar",
+    "hostless",
+    "kkignore",
+    "Novita"
   ]
 }

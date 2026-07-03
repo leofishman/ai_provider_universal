@@ -5,6 +5,7 @@ namespace Drupal\ai_provider_universal\Plugin\AiProvider;
 use OpenAI\Client;
 use Drupal\ai\Attribute\AiProvider;
 use Drupal\ai\Base\OpenAiBasedProviderClientBase;
+use Drupal\ai\Exception\AiQuotaException;
 use Drupal\ai\Exception\AiRequestErrorException;
 use Drupal\ai\Exception\AiSetupFailureException;
 use Drupal\ai\OperationType\Chat\ChatInput;
@@ -29,6 +30,7 @@ use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
 use Drupal\ai_provider_universal\Models\Moderation\LlamaGuard3;
 use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
+use Drupal\ai_provider_universal\Service\UsageTracker;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -517,9 +519,28 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       $this->configuration['reasoning_effort'] = $effort;
     }
 
+    // Usage limits are enforced per server by the router submodule; without
+    // it counters are still recorded but nothing blocks.
+    if ($model instanceof UniversalModelInterface
+      && $this->serviceContainer->has('ai_provider_universal_router.limits')) {
+      $server = $this->entityTypeManager->getStorage('universal_server')->load($model->getServerId());
+      if ($server instanceof UniversalServerInterface
+        && $this->serviceContainer->get('ai_provider_universal_router.limits')->isServerOverLimit($server)) {
+        $this->loggerFactory->get('ai_provider_universal')->warning(
+          'Server @server rejected a chat request to @model: daily usage limit reached.',
+          ['@server' => $server->id(), '@model' => $model_id],
+        );
+        $this->clearActiveServer();
+        throw new AiQuotaException(sprintf('Server "%s" has reached its daily usage limit.', $server->id()));
+      }
+    }
+
     try {
       $resolved = $this->getModel($model_id);
-      return parent::chat($input, $resolved, $tags);
+      $output = parent::chat($input, $resolved, $tags);
+      $usage = $output->getTokenUsage();
+      $this->serviceContainer->get(UsageTracker::class)->record($model_id, $usage->input, $usage->output);
+      return $output;
     }
     finally {
       if ($had_reasoning) {

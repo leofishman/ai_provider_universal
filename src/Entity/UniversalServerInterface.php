@@ -54,4 +54,24 @@ interface UniversalServerInterface extends ConfigEntityInterface {
    */
   public function getModelFilter(): string;
 
+  /**
+   * Gets the maximum requests per day across all models (NULL = unlimited).
+   */
+  public function getDailyRequestLimit(): ?int;
+
+  /**
+   * Sets the maximum requests per day (NULL = unlimited).
+   */
+  public function setDailyRequestLimit(?int $limit): self;
+
+  /**
+   * Gets the maximum tokens (input + output) per day (NULL = unlimited).
+   */
+  public function getDailyTokenLimit(): ?int;
+
+  /**
+   * Sets the maximum tokens per day (NULL = unlimited).
+   */
+  public function setDailyTokenLimit(?int $limit): self;
+
 }

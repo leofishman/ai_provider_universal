@@ -5,6 +5,12 @@ services:
       - '@entity_type.manager'
       - '@database'
       - '@logger.channel.ai_provider_universal_router'
+      - '@Drupal\ai_provider_universal_router\Service\UsageLimitEnforcer'
+
+  Drupal\ai_provider_universal_router\Service\UsageLimitEnforcer:
+    class: Drupal\ai_provider_universal_router\Service\UsageLimitEnforcer
+    arguments:
+      - '@Drupal\ai_provider_universal\Service\UsageTracker'
 
   logger.channel.ai_provider_universal_router:
     parent: logger.channel_base
@@ -14,3 +20,7 @@ services:
   # this submodule's classes).
   ai_provider_universal_router.decider:
     alias: Drupal\ai_provider_universal_router\Service\RouteDecider
+
+  # Stable alias consumed by the provider for usage limit enforcement.
+  ai_provider_universal_router.limits:
+    alias: Drupal\ai_provider_universal_router\Service\UsageLimitEnforcer

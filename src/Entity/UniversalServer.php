@@ -46,6 +46,8 @@ use Drupal\ai_provider_universal\UniversalServerListBuilder;
     'timeout',
     'operation_types',
     'model_filter',
+    'daily_request_limit',
+    'daily_token_limit',
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/add',
@@ -118,6 +120,52 @@ class UniversalServer extends ConfigEntityBase implements UniversalServerInterfa
    * @var string
    */
   protected string $model_filter = '';
+
+  /**
+   * Maximum requests per day across all models. NULL = unlimited.
+   *
+   * Enforced by the router submodule; without it the value is informational.
+   *
+   * @var int|null
+   */
+  protected ?int $daily_request_limit = NULL;
+
+  /**
+   * Maximum tokens (input + output) per day across all models. NULL = none.
+   *
+   * @var int|null
+   */
+  protected ?int $daily_token_limit = NULL;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDailyRequestLimit(): ?int {
+    return $this->daily_request_limit;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setDailyRequestLimit(?int $limit): self {
+    $this->daily_request_limit = $limit;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDailyTokenLimit(): ?int {
+    return $this->daily_token_limit;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setDailyTokenLimit(?int $limit): self {
+    $this->daily_token_limit = $limit;
+    return $this;
+  }
 
   /**
    * {@inheritdoc}

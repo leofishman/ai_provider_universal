@@ -44,6 +44,7 @@ class RouteDecider {
     protected EntityTypeManagerInterface $entityTypeManager,
     protected Connection $database,
     protected LoggerInterface $logger,
+    protected UsageLimitEnforcer $limitEnforcer,
   ) {}
 
   /**
@@ -159,8 +160,18 @@ class RouteDecider {
     $ids = $route->getCandidates();
     $models = $ids ? $storage->loadMultiple($ids) : $storage->loadMultiple();
 
+    // Models whose server exhausted a daily usage limit drop out of the
+    // candidate pool, so routing fails over to another provider.
+    $servers = $this->entityTypeManager->getStorage('universal_server')
+      ->loadMultiple(array_unique(array_map(
+        static fn (UniversalModelInterface $m) => $m->getServerId(),
+        $models,
+      )));
+
     return array_filter($models, fn (UniversalModelInterface $m) =>
-      in_array($operationType, $m->getEffectiveOperationTypes(), TRUE));
+      in_array($operationType, $m->getEffectiveOperationTypes(), TRUE)
+      && (!isset($servers[$m->getServerId()])
+        || !$this->limitEnforcer->isServerOverLimit($servers[$m->getServerId()])));
   }
 
   /**

@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the universal AI provider: usage counters table.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function ai_provider_universal_schema(): array {
+  $schema['ai_provider_universal_usage'] = [
+    'description' => 'Per-model daily usage counters, for usage limits.',
+    'fields' => [
+      'model_id' => ['type' => 'varchar_ascii', 'length' => 255, 'not null' => TRUE],
+      'day' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Day as YYYYMMDD in site timezone.',
+      ],
+      'requests' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'input_tokens' => ['type' => 'int', 'size' => 'big', 'not null' => TRUE, 'default' => 0],
+      'output_tokens' => ['type' => 'int', 'size' => 'big', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['model_id', 'day'],
+  ];
+  return $schema;
+}
+
+/**
+ * Adds the per-model usage counters table.
+ */
+function ai_provider_universal_update_10101(): void {
+  $schema = ai_provider_universal_schema();
+  \Drupal::database()->schema()->createTable('ai_provider_universal_usage', $schema['ai_provider_universal_usage']);
+}

@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\ai_provider_universal\Backend\ServerBackendManager;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
+use Drupal\ai_provider_universal\Service\UsageTracker;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -32,6 +33,7 @@ class UniversalServerForm extends EntityForm {
   public function __construct(
     protected ModelCatalog $modelCatalog,
     protected ServerBackendManager $backendManager,
+    protected UsageTracker $usageTracker,
     EntityTypeManagerInterface $entity_type_manager,
   ) {
     // Assign to the (untyped) property inherited from EntityForm instead of
@@ -46,6 +48,7 @@ class UniversalServerForm extends EntityForm {
     return new static(
       $container->get(ModelCatalog::class),
       $container->get(ServerBackendManager::class),
+      $container->get(UsageTracker::class),
       $container->get('entity_type.manager'),
     );
   }
@@ -158,6 +161,39 @@ class UniversalServerForm extends EntityForm {
       '#default_value' => $server->getTimeout() ?: 600,
       '#min' => 5,
       '#max' => 3600,
+    ];
+
+    $usage = $server->isNew() ? NULL : $this->usageTracker->getTodayForServer((string) $server->id());
+    $form['limits'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Usage limits'),
+      '#description' => $usage === NULL
+        ? $this->t('Daily limits for this server (all its models combined). Enforced by the Smart Router submodule: over-limit servers are skipped by routes and reject direct calls until the day rolls over.')
+        : $this->t('Daily limits for this server (all its models combined). Enforced by the Smart Router submodule: over-limit servers are skipped by routes and reject direct calls until the day rolls over. <strong>Usage today: @requests requests, @tokens tokens.</strong>', [
+          '@requests' => $usage['requests'],
+          '@tokens' => $usage['input_tokens'] + $usage['output_tokens'],
+        ]),
+      '#open' => $server->getDailyRequestLimit() !== NULL || $server->getDailyTokenLimit() !== NULL,
+    ];
+
+    $form['limits']['daily_request_limit'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Daily request limit'),
+      '#description' => $this->t('Maximum requests per day. Leave empty for unlimited.'),
+      '#default_value' => $server->getDailyRequestLimit(),
+      '#min' => 1,
+      '#step' => 1,
+      '#parents' => ['daily_request_limit'],
+    ];
+
+    $form['limits']['daily_token_limit'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Daily token limit'),
+      '#description' => $this->t('Maximum tokens (input + output) per day. Leave empty for unlimited.'),
+      '#default_value' => $server->getDailyTokenLimit(),
+      '#min' => 1,
+      '#step' => 1,
+      '#parents' => ['daily_token_limit'],
     ];
 
     $form['filtering'] = [
@@ -315,6 +351,14 @@ class UniversalServerForm extends EntityForm {
         '#default_value' => $model->getReasoning(),
       ];
 
+      $usage = $this->usageTracker->getToday($key);
+      $element[$key]['usage_today'] = [
+        '#markup' => $this->t('<p>Usage today: @requests requests, @tokens tokens.</p>', [
+          '@requests' => $usage['requests'],
+          '@tokens' => $usage['input_tokens'] + $usage['output_tokens'],
+        ]),
+      ];
+
       $element[$key]['context_length'] = [
         '#type'          => 'number',
         '#title'         => $this->t('Context length (tokens)'),
@@ -332,6 +376,13 @@ class UniversalServerForm extends EntityForm {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
+    // Number elements submit '' when empty, but buildEntity() copies values
+    // verbatim onto typed ?int entity properties: normalize first.
+    foreach (['daily_request_limit', 'daily_token_limit'] as $key) {
+      $value = $form_state->getValue($key);
+      $form_state->setValue($key, ($value === '' || $value === NULL) ? NULL : (int) $value);
+    }
+
     parent::validateForm($form, $form_state);
 
     // Host/port are hidden (#states) for backends with a fixed endpoint, but
@@ -374,6 +425,10 @@ class UniversalServerForm extends EntityForm {
     // auto-map arbitrary form values onto the entity, so without this the
     // filter would never be saved and discovery below would run unfiltered.
     $server->set('model_filter', (string) $form_state->getValue('model_filter', ''));
+
+    $toInt = static fn ($v) => ($v === '' || $v === NULL) ? NULL : (int) $v;
+    $server->setDailyRequestLimit($toInt($form_state->getValue('daily_request_limit')));
+    $server->setDailyTokenLimit($toInt($form_state->getValue('daily_token_limit')));
 
     $status = $server->save();
 

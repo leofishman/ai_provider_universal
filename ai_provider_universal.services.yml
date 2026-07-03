@@ -12,6 +12,13 @@ services:
   plugin.manager.ai_provider_universal.server_backend:
     alias: Drupal\ai_provider_universal\Backend\ServerBackendManager
 
+  Drupal\ai_provider_universal\Service\UsageTracker:
+    class: Drupal\ai_provider_universal\Service\UsageTracker
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@entity_type.manager'
+
   Drupal\ai_provider_universal\Service\ModelCatalog:
     class: Drupal\ai_provider_universal\Service\ModelCatalog
     autowire: true

@@ -103,6 +103,40 @@ embedding models. Upstream issues are being filed against the AI module.
 Discovery can be re-run any time with `drush aip:discover-models
 [server_id]` (alias `aipdm`) or by re-saving the server.
 
+### Authentication / API keys
+
+Servers authenticate through the [Key](https://www.drupal.org/project/key)
+module: create a Key entity holding the token and select it on the server.
+It is sent as an `Authorization: Bearer` header on every request.
+
+- Hosted services (OpenRouter, Hugging Face, Ollama Cloud, Fireworks,
+  amazee.ai) always require a key.
+- A LiteLLM proxy started with a `master_key` requires a key for
+  *everything*, including listing models — the connection test on the
+  server form will fail with 401 until a valid key is selected.
+- Plain local servers (llama.cpp, Ollama, LM Studio) usually need none.
+
+If the connection test fails, the exact server response (e.g. `401
+Unauthorized`) is logged to the `ai_provider_universal` channel: see
+**Reports → Recent log messages**.
+
+### Usage limits
+
+Each **server** can carry a **daily request limit** and a **daily token
+limit** (input + output, all its models combined) — that is where the
+account/budget actually lives (OpenRouter credits, amazee.ai budget, a
+LiteLLM master key). Set them on the server form under "Usage limits".
+
+Usage is tracked per model per day (site timezone) in the
+`ai_provider_universal_usage` table; the per-model breakdown is shown in
+the model overrides section of the server form.
+
+Enforcement lives in the **Smart Router submodule**
+(`ai_provider_universal_router`): when a server exhausts a limit, routes
+skip all its models and fail over to another provider, and direct calls to
+its models fail with a quota error until the day rolls over. Without the
+submodule, usage is still recorded but never blocks.
+
 ## Relation to ai_provider_llama_cpp
 
 This module is the evolution of
