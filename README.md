@@ -43,6 +43,11 @@ with two backends:
   OpenRouter's embedding models live on a separate catalog endpoint and
   are not discovered yet — see ROADMAP.
 
+Two more hosted backends are bundled: `huggingface` (Hugging Face Inference
+Providers) and `ollama_cloud` (Ollama Cloud). Full catalog — default
+endpoints, capability detection sources, pricing/context prefill — and the
+server configuration reference: [docs/servers-and-models.md](docs/servers-and-models.md).
+
 Other modules can contribute native backends (e.g. Anthropic or Gemini) by
 dropping a plugin in `Plugin/ServerBackend` that implements
 `ServerBackendInterface` — model discovery, capability detection and the
@@ -119,6 +124,21 @@ It is sent as an `Authorization: Bearer` header on every request.
 If the connection test fails, the exact server response (e.g. `401
 Unauthorized`) is logged to the `ai_provider_universal` channel: see
 **Reports → Recent log messages**.
+
+### Smart routing (router submodule)
+
+With `ai_provider_universal_router` enabled, a **Smart Route** is a virtual
+model — pick "Auto: \<label\>" as the provider for an operation type and
+each request is routed to the cheapest candidate model whose quality tier
+satisfies the prompt: short/simple prompts get a low tier threshold,
+long or reasoning-flavored prompts (code fences, "step by step", "prove",
+"refactor", ...) get a higher one. Candidates on a server that has hit its
+daily usage limit drop out automatically, so routing doubles as failover.
+A savings dashboard at **Smart Routes → Routing decisions** shows recent
+decisions and estimated spend vs. always using the priciest candidate.
+
+Full details — decision algorithm, route configuration, fact-check
+escalation, dashboard reference: [docs/smart-routing.md](docs/smart-routing.md).
 
 ### Usage limits
 
