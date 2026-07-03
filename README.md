@@ -137,6 +137,23 @@ skip all its models and fail over to another provider, and direct calls to
 its models fail with a quota error until the day rolls over. Without the
 submodule, usage is still recorded but never blocks.
 
+Two optional thresholds refine the hard limit (same form section):
+
+- **Alert threshold (%)** — default 80. When usage crosses this percentage
+  of a limit, a warning is logged and a
+  `UsageThresholdEvent::ALERT` event is dispatched (once per server and
+  day). Leave empty to disable alerts.
+- **Limit grace (%)** — default off. Lets usage exceed the limit by up to
+  this percentage before blocking (e.g. 10 blocks at 110%). Empty or 0
+  blocks exactly at the limit. Exhaustion logs a warning and dispatches
+  `UsageThresholdEvent::EXHAUSTED` (once per server and day).
+
+Both events
+(`Drupal\ai_provider_universal_router\Event\UsageThresholdEvent`) carry the
+server id, the metric crossed (`requests` or `tokens`), today's usage and
+the configured limit — subscribe to them to send mail/Slack notifications
+or trigger ECA workflows.
+
 ## Relation to ai_provider_llama_cpp
 
 This module is the evolution of

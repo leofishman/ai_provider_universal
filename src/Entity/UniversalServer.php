@@ -48,6 +48,8 @@ use Drupal\ai_provider_universal\UniversalServerListBuilder;
     'model_filter',
     'daily_request_limit',
     'daily_token_limit',
+    'alert_threshold',
+    'limit_grace',
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/add',
@@ -136,6 +138,50 @@ class UniversalServer extends ConfigEntityBase implements UniversalServerInterfa
    * @var int|null
    */
   protected ?int $daily_token_limit = NULL;
+
+  /**
+   * Usage percentage that triggers an alert event/log. NULL = no alert.
+   *
+   * @var int|null
+   */
+  protected ?int $alert_threshold = 80;
+
+  /**
+   * Percentage the server may exceed its limits before blocking. 0/NULL = none.
+   *
+   * @var int|null
+   */
+  protected ?int $limit_grace = NULL;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAlertThreshold(): ?int {
+    return $this->alert_threshold;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setAlertThreshold(?int $percent): self {
+    $this->alert_threshold = $percent;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLimitGrace(): ?int {
+    return $this->limit_grace;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setLimitGrace(?int $percent): self {
+    $this->limit_grace = $percent;
+    return $this;
+  }
 
   /**
    * {@inheritdoc}

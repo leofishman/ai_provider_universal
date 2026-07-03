@@ -40,6 +40,14 @@ ai_provider_universal.server.*:
       type: integer
       label: 'Maximum tokens (input + output) per day across all models (empty = unlimited)'
       nullable: true
+    alert_threshold:
+      type: integer
+      label: 'Usage percentage that triggers an alert event/log (empty = no alert)'
+      nullable: true
+    limit_grace:
+      type: integer
+      label: 'Percentage the server may exceed its limits before blocking (empty/0 = none)'
+      nullable: true
 
 ai_provider_universal.model.*:
   type: config_entity

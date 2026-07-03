@@ -74,4 +74,24 @@ interface UniversalServerInterface extends ConfigEntityInterface {
    */
   public function setDailyTokenLimit(?int $limit): self;
 
+  /**
+   * Gets the usage % that triggers an alert (NULL = no alert).
+   */
+  public function getAlertThreshold(): ?int;
+
+  /**
+   * Sets the alert threshold percentage (NULL = no alert).
+   */
+  public function setAlertThreshold(?int $percent): self;
+
+  /**
+   * Gets the % the server may exceed its limits before blocking.
+   */
+  public function getLimitGrace(): ?int;
+
+  /**
+   * Sets the grace percentage (0/NULL = block exactly at the limit).
+   */
+  public function setLimitGrace(?int $percent): self;
+
 }

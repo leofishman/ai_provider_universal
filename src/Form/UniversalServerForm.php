@@ -196,6 +196,28 @@ class UniversalServerForm extends EntityForm {
       '#parents' => ['daily_token_limit'],
     ];
 
+    $form['limits']['alert_threshold'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Alert threshold (%)'),
+      '#description' => $this->t('Log a warning and dispatch an event when usage reaches this percentage of a limit. Leave empty to disable alerts.'),
+      '#default_value' => $server->getAlertThreshold(),
+      '#min' => 1,
+      '#max' => 100,
+      '#step' => 1,
+      '#parents' => ['alert_threshold'],
+    ];
+
+    $form['limits']['limit_grace'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Limit grace (%)'),
+      '#description' => $this->t('Allow usage to exceed the limits by up to this percentage before blocking. Leave empty or 0 to block exactly at the limit.'),
+      '#default_value' => $server->getLimitGrace(),
+      '#min' => 0,
+      '#max' => 100,
+      '#step' => 1,
+      '#parents' => ['limit_grace'],
+    ];
+
     $form['filtering'] = [
       '#type' => 'details',
       '#title' => $this->t('Model Filtering'),
@@ -378,7 +400,7 @@ class UniversalServerForm extends EntityForm {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     // Number elements submit '' when empty, but buildEntity() copies values
     // verbatim onto typed ?int entity properties: normalize first.
-    foreach (['daily_request_limit', 'daily_token_limit'] as $key) {
+    foreach (['daily_request_limit', 'daily_token_limit', 'alert_threshold', 'limit_grace'] as $key) {
       $value = $form_state->getValue($key);
       $form_state->setValue($key, ($value === '' || $value === NULL) ? NULL : (int) $value);
     }
@@ -429,6 +451,8 @@ class UniversalServerForm extends EntityForm {
     $toInt = static fn ($v) => ($v === '' || $v === NULL) ? NULL : (int) $v;
     $server->setDailyRequestLimit($toInt($form_state->getValue('daily_request_limit')));
     $server->setDailyTokenLimit($toInt($form_state->getValue('daily_token_limit')));
+    $server->setAlertThreshold($toInt($form_state->getValue('alert_threshold')));
+    $server->setLimitGrace($toInt($form_state->getValue('limit_grace')));
 
     $status = $server->save();
 
