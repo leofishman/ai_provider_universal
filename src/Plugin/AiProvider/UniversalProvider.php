@@ -618,6 +618,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function rerank(ReRankInput $input, string $model_id, array $tags = []): ReRankOutput {
+    $model_id = $this->resolveRoutedModel($model_id, $input->getQuery(), 'rerank');
     $this->setActiveServerForModel($model_id);
     $this->loadClient();
     $raw_model_id = $this->getModel($model_id);
@@ -669,12 +670,13 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function moderation(string|ModerationInput $input, ?string $model_id = NULL, array $tags = []): ModerationOutput {
+    $prompt = $input instanceof ModerationInput ? $input->getPrompt() : $input;
     if ($model_id) {
+      $model_id = $this->resolveRoutedModel($model_id, $prompt, 'moderation');
       $this->setActiveServerForModel($model_id);
     }
     $this->loadClient();
 
-    $prompt = $input instanceof ModerationInput ? $input->getPrompt() : $input;
     $raw_model_id = $this->getModel($model_id ?? '');
 
     $parser_class = $this->getModerationParser($raw_model_id);
