@@ -21,13 +21,14 @@ class EvidenceDedupeTest extends UnitTestCase {
   public function testDedupeCollapsesEchoesButKeepsIndependentSources(): void {
     $wire = 'The health ministry confirmed on Tuesday that the new screening '
       . 'program will begin in March across all regional hospitals and clinics.';
+    $independent = 'Analysts questioned whether the March rollout is realistic '
+      . 'given staffing shortages reported last quarter.';
     $passages = [
       "[https://a.example/news] $wire",
       // Same wire copy republished with a trivial trailing edit.
       "[https://b.example/story] $wire It was widely shared.",
       // An independently written passage on the same topic.
-      '[https://c.example/analysis] Analysts questioned whether the March '
-        . 'rollout is realistic given staffing shortages reported last quarter.',
+      "[https://c.example/analysis] $independent",
     ];
 
     $result = EvidenceRetriever::dedupe($passages);
