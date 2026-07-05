@@ -96,7 +96,7 @@ After enabling the module, grant `run content scan` to your editor roles — the
 
 ## Content scan tab
 
-Every node gets a **Content scan** local task (visible to users who can edit the node). *Run scan* executes up to four checks on the rendered node and shows the results inline — nothing is stored:
+Every node gets a **Content scan** local task (visible to users who can edit the node). *Run scan* collects the node's text fields (body, summary, …— the title is passed to the extractor as context only, so it never shows up as a claim of its own) and runs up to four checks through Drupal's Batch API: each check is its own step with a progress bar, so slow model calls never hit a PHP timeout. Results render inline (with the scanned text in a collapsible section) and each scan is also stored as an `aip_factcheck_result` row for the results view:
 
 | Check | Engine | Cost | Needs |
 |---|---|---|---|
@@ -132,12 +132,9 @@ In **Fact check settings**:
 
 - If `extractor_model` is empty → the module automatically uses the `checker_model`.
 - If `detector_model` is empty → the module automatically uses the `checker_model`.
+- Selecting **"- Disabled -"** as the AI-detection model turns the AI-likelihood check off entirely (the section disappears from scans).
 
-This fallback is implemented in:
-- `AiDetector.php` (the service that runs the AI-likelihood check)
-- The settings form and schema comments
-
-You only need to set `detector_model` if you want a **different** (usually cheaper/faster) model just for the "how AI-like is this text?" heuristic.
+You only need to set `detector_model` if you want a **different** (usually cheaper/faster) model just for the "how AI-like is this text?" heuristic — or to disable the check.
 
 ## Settings reference
 
@@ -150,7 +147,7 @@ At **Configuration → AI → Providers → Universal → Fact check settings** 
 | `extractor_model` | splits text into claims | use the checker model |
 | `evidence_index` | Search API index for local evidence | model-only verification |
 | `max_claims` | claim budget per answer | 5 |
-| `detector_model` | AI-likelihood judge (also called AI-detection model) | use the checker model |
+| `detector_model` | AI-likelihood judge (also called AI-detection model); `none` disables the check | use the checker model |
 | `plagiarism_key` | Key entity with the Serper.dev API key | plagiarism check disabled |
 | `tavily_key` | Key entity with the Tavily API key | no web evidence fallback |
 
@@ -170,36 +167,25 @@ Worst-case LLM calls for a 5-claim answer: ~2 (`fast`), ~4 + analyses (`balanced
 
 ## Smart routing + factcheck
 
-### Usar una Smart Route como Checker model (para factcheck)
+### Using a Smart Route as the checker model
 
-Las rutas inteligentes ("Auto: ...") **ahora aparecen** directamente en los dropdowns de "Checker model", "Extractor" y "AI-detection model" dentro de **Fact check settings**.
+Smart Routes ("Auto: …") appear directly in the "Checker model", "Extractor" and "AI-detection model" dropdowns in **Fact check settings**.
 
-El submódulo router invalida automáticamente el caché de definiciones del proveedor de AI (`clearCachedDefinitions()`) cuando se crea, actualiza o borra una ruta. Esto sigue el mismo patrón que el módulo ya usa para servidores (ver `src/Hook/AiProviderUniversalHooks.php`).
+The router submodule invalidates the AI provider definition cache (`clearCachedDefinitions()`) whenever a route is created, updated or deleted — the same pattern the module already uses for servers (see `src/Hook/AiProviderUniversalHooks.php`). No `drush cr` is needed after creating a route: the new "Auto: …" option shows up immediately in the AI settings dropdowns and in Fact check settings.
 
-¿Por qué no solo cache tags pasivos?
-- El caché de "qué modelos soporta este proveedor" lo maneja internamente el plugin manager de `ai.provider`.
-- No está (fácilmente) tagueado con `config:ai_universal_route_list` de forma que un cambio en rutas lo invalide solo.
-- Reaccionar al evento de guardado (hook) es la forma establecida, ligera y consistente en este módulo.
+To use one:
 
-Resultado práctico: los usuarios **no necesitan** hacer `drush cr` después de crear una ruta. La nueva "Auto: ..." aparece inmediatamente en los dropdowns de AI settings y ahora también en los de Factcheck settings.
+1. Create or edit a Smart Route (Operation type = Chat).
+2. In Fact check settings, select "Auto: YourRouteName" in the relevant field.
 
-Simplemente:
+### Smart Routes with factcheck + escalation
 
-1. Crea/editar la Smart Route (Operation type = Chat).
-2. En Fact check settings selecciona "Auto: NombreDeTuRuta" en el campo que corresponda.
+- Create a normal Chat Smart Route.
+- On that route, enable **"Fact-check answers and escalate on failure"** and set the minimum support score (e.g. 0.7).
+- In **AI settings** → Chat, select that route as the provider.
+- In Fact check settings, set a checker model (another cheap smart route or a specific model).
 
-Listo.
-
-### Usar Smart Routes con factcheck + escalada
-
-- Crea una Smart Route normal para Chat.
-- En la edición de esa ruta, marca la opción **"Fact-check answers and escalate on failure"** y pon el Minimum support score (ej. 0.7).
-- En **AI settings** → Chat, selecciona esa ruta como Provider.
-- En Fact check settings, pon un checker_model (puede ser otra ruta smart barata o un modelo específico).
-
-Cuando uses chat con esa ruta, automáticamente verificará y escalará si el score es bajo.
-
-Ver docs/smart-routing.md para más detalles de cómo crear las rutas.
+Chat answers through that route are then verified automatically and escalate to a stronger candidate when the score falls short. See [docs/smart-routing.md](smart-routing.md) for route creation details.
 
 ## Extending
 
