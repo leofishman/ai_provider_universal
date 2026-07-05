@@ -335,6 +335,8 @@ class ContentScanForm extends FormBase {
     }
 
     if ($fc = $results['factcheck']) {
+      $excerpt = $this->t('Scanned excerpt: @excerpt', ['@excerpt' => mb_substr($results['_scanned'] ?? '', 0, 200) . '…']);
+      $emptyText = $this->t('No factual claims found — nothing to verify.') . '<br><small>' . $excerpt . '</small>';
       $rows = array_map(function (array $c) {
         $verdict = $c['verdict'];
         $icon = match ($verdict) {
@@ -374,10 +376,7 @@ class ContentScanForm extends FormBase {
           '#type' => 'table',
           '#header' => [$this->t('Claim'), $this->t('Verdict'), $this->t('Coverage'), $this->t('Discrepancy analysis')],
           '#rows' => $rows,
-          '#empty' => [
-            '#markup' => $this->t('No factual claims found — nothing to verify.') . '<br><small>' .
-              $this->t('Scanned excerpt: @excerpt', ['@excerpt' => mb_substr($results['_scanned'] ?? '', 0, 200) . '…']) . '</small>',
-          ],
+          '#empty' => ['#markup' => $emptyText],
         ],
       ];
     }
