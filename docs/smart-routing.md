@@ -1,19 +1,10 @@
 # Smart routing (`ai_provider_universal_router`)
 
-A **smart route** is a virtual model that picks a real model per request:
-cheapest candidate that is capable enough for the prompt. Enable the
-submodule and manage routes at **Configuration → AI → Providers → Universal
-→ Smart Routes** (`/admin/config/ai/providers/universal/routes`).
+A **smart route** is a virtual model that picks a real model per request: cheapest candidate that is capable enough for the prompt. Enable the submodule and manage routes at **Configuration → AI → Providers → Universal → Smart Routes** (`/admin/config/ai/providers/universal/routes`).
 
 ## What a route is
 
-A route (`universal_route` config entity,
-`modules/ai_provider_universal_router/src/Entity/UniversalRoute.php`)
-appears in every AI settings model dropdown as `Auto: <label>`, grouped
-under a **"Smart Routing"** optgroup, with the internal model id
-`route__<route id>`. Selecting it as the provider for an operation type
-means every request to that operation type is decided per-request instead
-of pinned to one model.
+A route (`universal_route` config entity, `modules/ai_provider_universal_router/src/Entity/UniversalRoute.php`) appears in every AI settings model dropdown as `Auto: <label>`, grouped under a **"Smart Routing"** optgroup, with the internal model id `route__<route id>`. Selecting it as the provider for an operation type means every request to that operation type is decided per-request instead of pinned to one model.
 
 | Field | Meaning | Default |
 |---|---|---|
@@ -24,21 +15,13 @@ of pinned to one model.
 | Fact-check answers and escalate on failure | Chat-only, requires the factcheck submodule. See [Fact-check escalation](#fact-check-escalation) below. | off |
 | Minimum support score | Fraction of claims that must be SUPPORTED before accepting the answer. | 0.7 |
 
-The candidate checkbox list is filtered to the selected operation type and
-rebuilds via AJAX when you change it; each option shows the model's tier,
-input cost, and effective operation types (with `⚙ (detected: ...)` when
-you've overridden them — see
-[docs/servers-and-models.md](servers-and-models.md#model-capability-overrides)).
+The candidate checkbox list is filtered to the selected operation type and rebuilds via AJAX when you change it; each option shows the model's tier, input cost, and effective operation types (with `⚙ (detected: ...)` when you've overridden them — see [docs/servers-and-models.md](servers-and-models.md#model-capability-overrides)).
 
 ## How `RouteDecider` picks a model
 
-All decision logic lives in
-`modules/ai_provider_universal_router/src/Service/RouteDecider.php`, called
-by the provider (`UniversalProvider::chat/embeddings/rerank/moderation`)
-whenever the resolved model id starts with `route__`.
+All decision logic lives in `modules/ai_provider_universal_router/src/Service/RouteDecider.php`, called by the provider (`UniversalProvider::chat/embeddings/rerank/moderation`) whenever the resolved model id starts with `route__`.
 
-1. **Classify the prompt** (`classify()`): complex if the estimated token
-   count exceeds **1500**, or the text matches reasoning/code cues —
+1. **Classify the prompt** (`classify()`): complex if the estimated token count exceeds **1500**, or the text matches reasoning/code cues —
    ```` ``` ````, "step by step", "prove", "derive", "theorem", "refactor",
    "architect" (case-insensitive). Otherwise simple. Token count is a rough
    `strlen / 4` estimate (`estimateTokens()`), not an exact tokenizer.

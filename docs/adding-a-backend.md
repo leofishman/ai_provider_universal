@@ -1,36 +1,18 @@
 # Adding a server backend
 
-A **ServerBackend plugin** owns everything protocol-specific about one kind
-of AI server: how to build the base URI, how to list its models, and how to
-detect each model's capabilities and routing metadata. Everything else —
-the multi-server UI, model config entities, discovery sync, per-model
-overrides, smart routing — is generic and comes for free.
+A **ServerBackend plugin** owns everything protocol-specific about one kind of AI server: how to build the base URI, how to list its models, and how to detect each model's capabilities and routing metadata. Everything else — the multi-server UI, model config entities, discovery sync, per-model overrides, smart routing — is generic and comes for free.
 
-Backends can live in this module or in any other module: the plugin
-discovery picks up any class in `src/Plugin/ServerBackend/` with the
-`#[ServerBackend]` attribute.
+Backends can live in this module or in any other module: the plugin discovery picks up any class in `src/Plugin/ServerBackend/` with the `#[ServerBackend]` attribute.
 
 ## Two kinds of backends
 
-1. **OpenAI-compatible service** (Fireworks, OpenRouter, Groq, Together,
-   Mistral, ...): extend `OpenAiCompatible` and override only what differs.
-   Chat, embeddings and streaming already work end to end, because the
-   provider executes requests over the OpenAI protocol. This is the common
-   case — usually under 100 lines. Use `Fireworks` or `OpenRouter` as a
-   template.
+1. **OpenAI-compatible service** (Fireworks, OpenRouter, Groq, Together, Mistral, ...): extend `OpenAiCompatible` and override only what differs. Chat, embeddings and streaming already work end to end, because the provider executes requests over the OpenAI protocol. This is the common case — usually under 100 lines. Use `Fireworks` or `OpenRouter` as a template.
 
-2. **Native protocol** (Anthropic, Gemini, ...): extend
-   `ServerBackendPluginBase` and implement `ServerBackendInterface` from
-   scratch. **Current limitation:** the provider dispatches inference over
-   the OpenAI protocol only, so a native backend today gets discovery and
-   the UI, but not chat execution. Moving inference dispatch behind the
-   backend interface is on the ROADMAP ("Inference dispatch through
-   backends"); until then, stick to case 1 or help with that item first.
+2. **Native protocol** (Anthropic, Gemini, ...): extend `ServerBackendPluginBase` and implement `ServerBackendInterface` from scratch. **Current limitation:** the provider dispatches inference over the OpenAI protocol only, so a native backend today gets discovery and the UI, but not chat execution. Moving inference dispatch behind the backend interface is on the ROADMAP ("Inference dispatch through backends"); until then, stick to case 1 or help with that item first.
 
 ## The interface
 
-`src/Backend/ServerBackendInterface.php` — five methods (the base class
-provides no-op defaults for the last two):
+`src/Backend/ServerBackendInterface.php` — five methods (the base class provides no-op defaults for the last two):
 
 | Method | Contract |
 |---|---|
@@ -42,8 +24,7 @@ provides no-op defaults for the last two):
 
 ## Walkthrough: the OpenRouter backend
 
-`src/Plugin/ServerBackend/OpenRouter.php` is the smallest real example.
-The essential shape:
+`src/Plugin/ServerBackend/OpenRouter.php` is the smallest real example. The essential shape:
 
 ```php
 #[ServerBackend(
@@ -81,30 +62,16 @@ class MyService extends OpenAiCompatible {
 
 Notes:
 
-- **Authentication** is inherited: the server entity references a Key
-  entity and `OpenAiCompatible::listModels()` sends it as a Bearer token.
-  Only override if your service uses a different auth scheme.
-- **Streaming, whitelisting/model filters, the admin UI** are not backend
-  concerns — do not reimplement them.
-- If models live on more than one catalog endpoint, override
-  `listModels()`, fetch all of them and merge (each entry still needs
-  `id`).
-- Dependency injection: `OpenAiCompatible` already injects
-  `http_client_factory`, `state` and `key.repository`. Add a constructor +
-  `create()` override only if you need more services.
+- **Authentication** is inherited: the server entity references a Key entity and `OpenAiCompatible::listModels()` sends it as a Bearer token. Only override if your service uses a different auth scheme.
+- **Streaming, whitelisting/model filters, the admin UI** are not backend concerns — do not reimplement them.
+- If models live on more than one catalog endpoint, override `listModels()`, fetch all of them and merge (each entry still needs `id`).
+- Dependency injection: `OpenAiCompatible` already injects `http_client_factory`, `state` and `key.repository`. Add a constructor + `create()` override only if you need more services.
 
 ## Checklist before opening an MR
 
-- [ ] Plugin class in `src/Plugin/ServerBackend/`, `#[ServerBackend]`
-      attribute with translatable label/description.
-- [ ] `detectModelMetadata()` costs are USD per 1M tokens (convert if the
-      API reports per-token prices).
-- [ ] Unit test for the two detect methods (see
-      `tests/src/Unit/Plugin/ServerBackend/OpenRouterTest.php` — the detect
-      methods are pure, so mocked services suffice).
-- [ ] Verified against the live API at least once: create a server with
-      the new backend and run `drush aip:discover-models <server_id>`.
-- [ ] `phpstan` (module's `phpstan.neon`), `phpcs
-      --standard=Drupal,DrupalPractice` and `cspell` pass (add product
-      names to `.cspell.json`).
+- [ ] Plugin class in `src/Plugin/ServerBackend/`, `#[ServerBackend]` attribute with translatable label/description.
+- [ ] `detectModelMetadata()` costs are USD per 1M tokens (convert if the API reports per-token prices).
+- [ ] Unit test for the two detect methods (see `tests/src/Unit/Plugin/ServerBackend/OpenRouterTest.php` — the detect methods are pure, so mocked services suffice).
+- [ ] Verified against the live API at least once: create a server with the new backend and run `drush aip:discover-models <server_id>`.
+- [ ] `phpstan` (module's `phpstan.neon`), `phpcs --standard=Drupal,DrupalPractice` and `cspell` pass (add product names to `.cspell.json`).
 - [ ] README backend list and ROADMAP updated.
