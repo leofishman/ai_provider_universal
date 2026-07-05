@@ -21,6 +21,35 @@ For each claim, evidence is retrieved in order:
 
 Web searches honor the **trusted sites** curation below. If a curated-only search finds nothing, it retries once unrestricted (still excluding negative domains).
 
+## The evidence index in detail
+
+Any **Search API index** works as the evidence index — the module has no hard dependency on `ai_search`. What matters is how passages are extracted from each result, in fallback order:
+
+1. **`content` extra data** — what ai_search attaches to a result: the matched vector *chunk*. Requested explicitly with the `search_api_ai_get_chunks_result` query option. Best quality: the checker sees exactly the passage that matched.
+2. **Excerpt** — what classic backends (database, Solr) return when the *Highlight* processor is enabled on the index.
+3. **Entity label** — last resort when the backend returns neither; enough to confirm a topic exists, too thin to verify a claim.
+
+So a plain database index works, but works much better with the Highlight processor enabled; a vector index works best out of the box.
+
+How the query is built (`EvidenceRetriever::retrieveLocal()`):
+
+- `$index->query()->keys($claim)->range(0, $limit)` — the claim text is the query, `$limit` comes from the verification profile (2/3/5 passages).
+- `search_api_bypass_access` is set: verification is a server-side judgement against *published, indexed* content, and runs in cron/anonymous contexts where entity access would silently return nothing. Consequence: **only index content you would show to the checker** — don't index private fields into the evidence index.
+- Everything is best-effort: any exception degrades to the web fallback rather than failing verification.
+
+Setting up a good index:
+
+- **Recommended**: an [AI Search](https://project.pages.drupalcode.org/ai/modules/ai_search/) index (vector DB + embedding model from this provider) over your published content. Nearest-neighbor retrieval means claims phrased differently from your content still find it.
+- Index the **rendered output or body text**, not just titles — the checker needs passages, not headlines.
+- **Exclude the `trusted_site` content type** (and any other curation/config-like content) so curation entries never surface as "evidence".
+- With a vector index, remember step 1 of the cascade almost never comes back empty (nearest neighbors always exist), so the Tavily fallback effectively only fires when no index is configured. If you want web evidence to compete with weak local matches, that's a customization — see below.
+
+Extending retrieval:
+
+- **Different backend or scoring**: decorate or replace the `EvidenceRetriever` service (`Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever`) via a service provider or `hook_service_alter`. The contract is small: `retrieve(string $claim, int $limit): string[]` (plain-text passages) and `retrieveDistrusted(string $claim, int $limit): string[]` (counter-evidence from negative-reputation domains). Everything downstream — checker, scoring, escalation — only sees arrays of strings.
+- **Multiple indexes / federated evidence**: a decorator can merge passages from several indexes (or an external RAG service) before returning; keep the strongest passages first, the checker reads them in order.
+- **Minimum-relevance threshold**: a decorator can drop low-score vector matches so the cascade actually falls through to web evidence instead of feeding the checker weak neighbors.
+
 ## Trusted sites: reputation-curated sources
 
 Apply the `recipes/factcheck_trusted_sites` recipe to get a **Trusted site** content type: a domain plus a reputation from −10 to 10. Only **published** entries are used.
@@ -91,5 +120,5 @@ Worst-case LLM calls for a 5-claim answer: ~2 (`fast`), ~4 + analyses (`balanced
 ## Extending
 
 - **Consume it**: inject the `ai_provider_universal_factcheck.checker` service alias and call `verify($question, $text)` — returns `['score' => float, 'claims' => [{claim, verdict, tainted}]]`. Natural fits: a presave gate, a cron QueueWorker over new content, a Views bulk action.
-- **Replace a piece**: all services are plain DI services; decorate or swap `EvidenceRetriever` (e.g. a different search backend) via a service provider without touching the rest.
+- **Replace a piece**: all services are plain DI services; decorate or swap `EvidenceRetriever` (e.g. a different search backend, multiple indexes, a relevance threshold) via a service provider without touching the rest — see [The evidence index in detail](#the-evidence-index-in-detail).
 - The 0.5 tainted penalty is fixed for now; per-site weighting by reputation value is a planned refinement.
