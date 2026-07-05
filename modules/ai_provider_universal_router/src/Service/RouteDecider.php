@@ -21,11 +21,6 @@ use Psr\Log\LoggerInterface;
 class RouteDecider {
 
   /**
-   * Prompt token count above which a prompt is always considered complex.
-   */
-  protected const COMPLEX_TOKEN_THRESHOLD = 1500;
-
-  /**
    * Quality tier assumed for models the user has not rated.
    */
   protected const DEFAULT_TIER = 3;
@@ -35,16 +30,12 @@ class RouteDecider {
    */
   protected const ASSUMED_OUTPUT_TOKENS = 512;
 
-  /**
-   * Reasoning-style cues that mark a prompt as complex.
-   */
-  protected const COMPLEX_PATTERNS = '/```|\bstep[- ]by[- ]step\b|\bprove\b|\bderive\b|\btheorem\b|\brefactor\b|\barchitect/i';
-
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected Connection $database,
     protected LoggerInterface $logger,
     protected UsageLimitEnforcer $limitEnforcer,
+    protected ComplexityClassifier $classifier,
   ) {}
 
   /**
@@ -190,13 +181,7 @@ class RouteDecider {
    * Classifies a prompt as 'simple' or 'complex'.
    */
   public function classify(string $text, int $estTokens): string {
-    if ($estTokens > self::COMPLEX_TOKEN_THRESHOLD) {
-      return 'complex';
-    }
-    if (preg_match(self::COMPLEX_PATTERNS, $text)) {
-      return 'complex';
-    }
-    return 'simple';
+    return $this->classifier->classify($text, $estTokens);
   }
 
   /**

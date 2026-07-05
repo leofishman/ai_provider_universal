@@ -21,10 +21,22 @@ The candidate checkbox list is filtered to the selected operation type and rebui
 
 All decision logic lives in `modules/ai_provider_universal_router/src/Service/RouteDecider.php`, called by the provider (`UniversalProvider::chat/embeddings/rerank/moderation`) whenever the resolved model id starts with `route__`.
 
-1. **Classify the prompt** (`classify()`): complex if the estimated token count exceeds **1500**, or the text matches reasoning/code cues —
+1. **Classify the prompt** (`ComplexityClassifier`): complex if the estimated token count exceeds **1500**, or the text matches reasoning/code cues —
    ```` ``` ````, "step by step", "prove", "derive", "theorem", "refactor",
    "architect" (case-insensitive). Otherwise simple. Token count is a rough
    `strlen / 4` estimate (`estimateTokens()`), not an exact tokenizer.
+
+   Optionally a **local model** can adjudicate the prompts the heuristics
+   consider simple: set `classifier_model` in
+   `ai_provider_universal_router.settings` to a model entity id
+   (`drush config:set ai_provider_universal_router.settings
+   classifier_model my_server__my_model -y`; empty = heuristics only).
+   The cheap signals still run first — length/cue hits return `complex`
+   without a call — and any classifier failure falls back to the
+   heuristics, so classification can never break routing. Routes
+   (`route__*`) are refused as classifier to avoid recursion. Point this
+   at a small local model (e.g. a fine-tuned Gemma served by Ollama) for
+   a learned router at zero cost.
 2. **Pick the required tier**: the route's simple or complex tier,
    depending on step 1.
 3. **Load candidates** (`candidateModels()`): the route's explicit list, or
@@ -148,9 +160,8 @@ All are supported out of the box via the `openai_compatible`, `fireworks`, `lite
 
 ## Known limitations
 
-- Complexity classification is a fixed heuristic (token threshold + regex
-  cues), not a learned or configurable classifier. A classifier-based
-  alternative is on the roadmap.
+- The optional classifier model runs one extra local call per routed
+  request for prompts that look simple; the heuristics alone are free.
 - Token estimates are `chars / 4`, not a real tokenizer — good enough for
   relative cost comparison, not for exact context-fit guarantees near a
   model's limit.

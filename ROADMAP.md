@@ -110,9 +110,13 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       equivalence for free; the router's model catalog supplies the
       validator pool. Escalation ladder mirrors Optimistic Democracy's
       finality window: 1 → 3 → 5 models.
-- [ ] Classifier-based complexity (tiny local model) as alternative to
-      heuristics in RouteDecider. Related: use a real tokenizer (not the
-      chars/4 estimate) when classifying prompts.
+- [x] Classifier-based complexity: ComplexityClassifier service — heuristics
+      flag complex fast, an optional model (`classifier_model` in
+      ai_provider_universal_router.settings) adjudicates the rest; any
+      failure falls back to heuristics. Hackathon plan: LoRA fine-tune a
+      tiny Gemma as the classifier on AMD cloud GPU.
+- [ ] Use a real tokenizer (not the chars/4 estimate) when classifying
+      prompts.
 - [ ] Latency/throughput capture from llama.cpp `timings` into decisions.
 - [x] drupal.org project creation; alpha release in flight (see hackathon
       section). Migration notes from ai_provider_llama_cpp still pending

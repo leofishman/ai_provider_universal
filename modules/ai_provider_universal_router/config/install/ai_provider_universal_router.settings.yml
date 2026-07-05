@@ -1,0 +1,2 @@
+# Model entity id used to classify prompt complexity ('' = heuristics).
+classifier_model: ''
