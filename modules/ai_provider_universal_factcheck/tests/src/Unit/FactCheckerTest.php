@@ -136,6 +136,25 @@ class FactCheckerTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::extractClaims
+   */
+  public function testExtractClaimsFallbacks(): void {
+    // JSON array of objects: the 'claim' key is used.
+    $checker1 = $this->buildChecker(
+      ['max_claims' => 3],
+      ['[{"claim": "Claim A"}, {"claim": "Claim B"}]'],
+    );
+    $this->assertSame(['Claim A', 'Claim B'], $checker1->extractClaims('text'));
+
+    // Fallback: bullet list or numbered list.
+    $checker2 = $this->buildChecker(
+      ['max_claims' => 3],
+      ["- Bullet claim 1\n* Star claim 2\n3. Numbered claim 3"],
+    );
+    $this->assertSame(['Bullet claim 1', 'Star claim 2', 'Numbered claim 3'], $checker2->extractClaims('text'));
+  }
+
+  /**
    * Balanced profile: one batched verdict call, one answer-level taint call.
    *
    * @covers ::verify

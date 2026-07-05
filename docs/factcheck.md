@@ -115,6 +115,7 @@ For fact-checking the key is **specialization + low per-claim cost**, because yo
 |-----------------|--------------------------------------------|---------------------------------------------|----------------------------|
 | **Checker**     | `bespoke-minicheck` (or any MiniCheck)    | Tiny specialized NLI model. Extremely cheap, excellent at SUPPORTED/NO for claims. | — (local is best here)    |
 | **Extractor**   | Qwen2.5-14B / Gemma-2-27B / Llama-3.1-8B  | Good JSON/structured output at low cost. Use 7-14B quantized for speed. | Groq Llama-3.1-70B (very fast) |
+| **AI-detection** (detector) | Same as checker or any cheap 7B model | Heuristic only — no need for a strong model. | Use checker as fallback |
 | **Evidence embedding** | nomic-embed-text, bge-large-en-v1.5     | Strong retrieval quality vs size. Use in your AI Search index. | —                         |
 | **General fallback** | Qwen2.5-32B or Gemma-2-27B               | Solid reasoning when MiniCheck is not enough or for extractor. | Fireworks or Together Qwen-72B |
 
@@ -124,6 +125,19 @@ For fact-checking the key is **specialization + low per-claim cost**, because yo
 - Always prefer quantized GGUF/Q4_K_M or vLLM for local inference.
 
 If you only have large frontier models, use a small local checker + a strong API model only for escalation.
+
+### Fallbacks for extractor and detector
+
+In **Fact check settings**:
+
+- If `extractor_model` is empty → the module automatically uses the `checker_model`.
+- If `detector_model` is empty → the module automatically uses the `checker_model`.
+
+This fallback is implemented in:
+- `AiDetector.php` (the service that runs the AI-likelihood check)
+- The settings form and schema comments
+
+You only need to set `detector_model` if you want a **different** (usually cheaper/faster) model just for the "how AI-like is this text?" heuristic.
 
 ## Settings reference
 
@@ -136,7 +150,7 @@ At **Configuration → AI → Providers → Universal → Fact check settings** 
 | `extractor_model` | splits text into claims | use the checker model |
 | `evidence_index` | Search API index for local evidence | model-only verification |
 | `max_claims` | claim budget per answer | 5 |
-| `detector_model` | AI-likelihood judge | use the checker model |
+| `detector_model` | AI-likelihood judge (also called AI-detection model) | use the checker model |
 | `plagiarism_key` | Key entity with the Serper.dev API key | plagiarism check disabled |
 | `tavily_key` | Key entity with the Tavily API key | no web evidence fallback |
 
@@ -156,16 +170,36 @@ Worst-case LLM calls for a 5-claim answer: ~2 (`fast`), ~4 + analyses (`balanced
 
 ## Smart routing + factcheck
 
-For the best cost/benefit, configure your **Fact check** settings to use a **Smart Route** as the *Checker model* (see [docs/smart-routing.md](smart-routing.md)).
+### Usar una Smart Route como Checker model (para factcheck)
 
-Recommended setup:
-- Create a dedicated smart route called "Auto: Factcheck" with:
-  - Low-tier candidates (MiniCheck + 7-14B) for simple claims.
-  - Higher-tier (27B+) only for complex claims or escalation.
-- In Factcheck settings → **Checker model** select that route.
-- Enable "Fact-check answers and escalate on failure" on your main chat routes. This way cheap models handle most traffic and only escalate when verification fails.
+Las rutas inteligentes ("Auto: ...") **ahora aparecen** directamente en los dropdowns de "Checker model", "Extractor" y "AI-detection model" dentro de **Fact check settings**.
 
-This combination usually gives the best price/performance: 70-90% of factchecks run on tiny specialized models, while complex reasoning still gets a strong model.
+El submódulo router invalida automáticamente el caché de definiciones del proveedor de AI (`clearCachedDefinitions()`) cuando se crea, actualiza o borra una ruta. Esto sigue el mismo patrón que el módulo ya usa para servidores (ver `src/Hook/AiProviderUniversalHooks.php`).
+
+¿Por qué no solo cache tags pasivos?
+- El caché de "qué modelos soporta este proveedor" lo maneja internamente el plugin manager de `ai.provider`.
+- No está (fácilmente) tagueado con `config:ai_universal_route_list` de forma que un cambio en rutas lo invalide solo.
+- Reaccionar al evento de guardado (hook) es la forma establecida, ligera y consistente en este módulo.
+
+Resultado práctico: los usuarios **no necesitan** hacer `drush cr` después de crear una ruta. La nueva "Auto: ..." aparece inmediatamente en los dropdowns de AI settings y ahora también en los de Factcheck settings.
+
+Simplemente:
+
+1. Crea/editar la Smart Route (Operation type = Chat).
+2. En Fact check settings selecciona "Auto: NombreDeTuRuta" en el campo que corresponda.
+
+Listo.
+
+### Usar Smart Routes con factcheck + escalada
+
+- Crea una Smart Route normal para Chat.
+- En la edición de esa ruta, marca la opción **"Fact-check answers and escalate on failure"** y pon el Minimum support score (ej. 0.7).
+- En **AI settings** → Chat, selecciona esa ruta como Provider.
+- En Fact check settings, pon un checker_model (puede ser otra ruta smart barata o un modelo específico).
+
+Cuando uses chat con esa ruta, automáticamente verificará y escalará si el score es bajo.
+
+Ver docs/smart-routing.md para más detalles de cómo crear las rutas.
 
 ## Extending
 

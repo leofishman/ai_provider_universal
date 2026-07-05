@@ -2,11 +2,13 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Form;
 
+use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
 use Drupal\ai_provider_universal_factcheck\Service\AiDetector;
 use Drupal\ai_provider_universal_factcheck\Service\FactChecker;
@@ -18,8 +20,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Per-node content scan: fact check, readability, AI likelihood, plagiarism.
  *
- * Results are computed on demand and shown on the page only — no storage.
- * Each section renders only when its service is configured.
+ * The scan runs through the Batch API (one step per check) so slow model
+ * calls get a progress bar and their own request time budget instead of one
+ * long synchronous submit. Results land in the private tempstore and render
+ * when the batch redirects back here.
  */
 class ContentScanForm extends FormBase {
 
@@ -59,6 +63,11 @@ class ContentScanForm extends FormBase {
   protected AccountProxyInterface $currentUser;
 
   /**
+   * The private tempstore factory.
+   */
+  protected PrivateTempStoreFactory $tempStoreFactory;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -70,6 +79,7 @@ class ContentScanForm extends FormBase {
     $instance->renderer = $container->get('renderer');
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->currentUser = $container->get('current_user');
+    $instance->tempStoreFactory = $container->get('tempstore.private');
     return $instance;
   }
 
@@ -109,7 +119,9 @@ class ContentScanForm extends FormBase {
       '#value' => $this->t('Run scan'),
     ];
 
-    if ($results = $form_state->get('results')) {
+    // Results from the last batch run for this node, if any.
+    $results = $this->tempStoreFactory->get('ai_provider_universal_factcheck')->get('scan_' . $node->id());
+    if ($results) {
       $form['results'] = $this->buildResults($results);
     }
     return $form;
@@ -121,43 +133,157 @@ class ContentScanForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     /** @var \Drupal\node\NodeInterface $node */
     $node = $form_state->get('node');
-    $view = $this->entityTypeManager->getViewBuilder('node')->view($node);
-    $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) $this->renderer->renderInIsolation($view))));
+
+    // Collect clean text from body-like fields only. The title goes in as
+    // context for the extractor, not as scannable text — otherwise it shows
+    // up as a bogus "claim" of its own.
+    $parts = [];
+    foreach ($node->getFields() as $field) {
+      $type = $field->getFieldDefinition()->getType();
+      if (in_array($type, ['text', 'text_long', 'text_with_summary', 'string_long'], TRUE)) {
+        foreach ($field as $item) {
+          if (!empty($item->value)) {
+            $parts[] = strip_tags((string) $item->value);
+          }
+          if (!empty($item->summary)) {
+            $parts[] = strip_tags((string) $item->summary);
+          }
+        }
+      }
+    }
+    $text = trim(preg_replace('/\s+/', ' ', implode('. ', array_filter($parts))));
     if (mb_strlen($text) < 10) {
       $this->messenger()->addWarning($this->t('The rendered content is empty — nothing to scan.'));
       return;
     }
 
-    $results = $this->runChecks((string) $node->label(), $text);
-    $this->saveResult($results, ['subject' => (string) $node->label(), 'node' => $node->id()]);
-    $form_state->set('results', $results);
-    $form_state->setRebuild();
+    $this->startScanBatch((string) $node->label(), $text, [
+      'subject' => (string) $node->label(),
+      'node' => $node->id(),
+    ], 'scan_' . $node->id());
   }
 
   /**
-   * Runs all configured checks on a plain-text passage.
-   */
-  protected function runChecks(string $question, string $text): array {
-    return [
-      'factcheck' => $this->factChecker->isConfigured()
-        ? $this->factChecker->verify($question, $text)
-        : NULL,
-      'readability' => $this->readabilityScorer->score($text),
-      'ai' => $this->aiDetector->detect($text),
-      'plagiarism' => $this->plagiarismChecker->check($text),
-    ];
-  }
-
-  /**
-   * Persists a scan outcome as an aip_factcheck_result row (best effort).
+   * Builds and queues the scan batch: one operation per configured check.
    *
-   * The rows feed the shipped "Fact check results" view; failing to write
-   * one must never fail the scan itself.
+   * @param string $subject
+   *   Label for the scan (node title, URL, …); also the fact-check context.
+   * @param string $text
+   *   The plain text to scan.
+   * @param array $meta
+   *   Extra fields for the persisted aip_factcheck_result row.
+   * @param string $storeKey
+   *   Private tempstore key the results are stored under for display.
    */
-  protected function saveResult(array $results, array $context): void {
-    try {
-      $this->entityTypeManager->getStorage('aip_factcheck_result')->create($context + [
+  protected function startScanBatch(string $subject, string $text, array $meta, string $storeKey): void {
+    $builder = (new BatchBuilder())
+      ->setTitle($this->t('Scanning %title', ['%title' => $subject]))
+      ->setInitMessage($this->t('Starting content scan…'))
+      ->setProgressMessage($this->t('Ran @current of @total checks.'))
+      ->setErrorMessage($this->t('The content scan failed.'))
+      ->setFinishCallback([static::class, 'batchFinished']);
+
+    if ($this->factChecker->isConfigured()) {
+      $builder->addOperation([static::class, 'batchExtractClaims'], [$subject, $text]);
+      $builder->addOperation([static::class, 'batchVerifyClaims'], []);
+    }
+    $builder->addOperation([static::class, 'batchReadability'], [$text]);
+    if ($this->aiDetector->isConfigured()) {
+      $builder->addOperation([static::class, 'batchAiDetect'], [$text]);
+    }
+    if ($this->plagiarismChecker->isConfigured()) {
+      $builder->addOperation([static::class, 'batchPlagiarism'], [$text]);
+    }
+
+    // Carry scan metadata to the finished callback via the results bucket.
+    $builder->addOperation([static::class, 'batchMeta'], [
+      $meta + [
         'uid' => $this->currentUser->id(),
+        'scanned' => $text,
+        'store_key' => $storeKey,
+      ],
+    ]);
+
+    batch_set($builder->toArray());
+  }
+
+  /**
+   * Batch op: extract factual claims from the scanned text.
+   */
+  public static function batchExtractClaims(string $question, string $text, array &$context): void {
+    /** @var \Drupal\ai_provider_universal_factcheck\Service\FactChecker $checker */
+    $checker = \Drupal::service(FactChecker::class);
+    $context['results']['claims'] = $checker->extractClaims($text, $question);
+    $context['message'] = t('Extracted @count factual claims.', ['@count' => count($context['results']['claims'])]);
+  }
+
+  /**
+   * Batch op: verify the previously extracted claims.
+   */
+  public static function batchVerifyClaims(array &$context): void {
+    /** @var \Drupal\ai_provider_universal_factcheck\Service\FactChecker $checker */
+    $checker = \Drupal::service(FactChecker::class);
+    $context['results']['factcheck'] = $checker->verifyClaims($context['results']['claims'] ?? []);
+    $context['message'] = t('Verified claims against the evidence.');
+  }
+
+  /**
+   * Batch op: readability score (local, fast).
+   */
+  public static function batchReadability(string $text, array &$context): void {
+    $context['results']['readability'] = \Drupal::service(ReadabilityScorer::class)->score($text);
+  }
+
+  /**
+   * Batch op: AI-likelihood heuristic.
+   */
+  public static function batchAiDetect(string $text, array &$context): void {
+    $context['results']['ai'] = \Drupal::service(AiDetector::class)->detect($text);
+    $context['message'] = t('Estimated AI likelihood.');
+  }
+
+  /**
+   * Batch op: verbatim plagiarism search.
+   */
+  public static function batchPlagiarism(string $text, array &$context): void {
+    $context['results']['plagiarism'] = \Drupal::service(PlagiarismChecker::class)->check($text);
+    $context['message'] = t('Searched the web for verbatim copies.');
+  }
+
+  /**
+   * Batch op: stash scan metadata for the finished callback.
+   */
+  public static function batchMeta(array $meta, array &$context): void {
+    $context['results']['meta'] = $meta;
+  }
+
+  /**
+   * Batch finished: store results for display and persist the result row.
+   */
+  public static function batchFinished(bool $success, array $batchResults, array $operations): void {
+    if (!$success) {
+      \Drupal::messenger()->addError(t('The content scan failed. Check the site log for details.'));
+      return;
+    }
+    $meta = $batchResults['meta'] ?? [];
+    $results = [
+      'factcheck' => $batchResults['factcheck'] ?? NULL,
+      'readability' => $batchResults['readability'] ?? NULL,
+      'ai' => $batchResults['ai'] ?? NULL,
+      'plagiarism' => $batchResults['plagiarism'] ?? NULL,
+      '_scanned' => $meta['scanned'] ?? '',
+    ];
+
+    \Drupal::service('tempstore.private')
+      ->get('ai_provider_universal_factcheck')
+      ->set($meta['store_key'] ?? 'scan_0', $results);
+
+    // Persist an aip_factcheck_result row (best effort): the rows feed the
+    // shipped "Fact check results" view; failing to write one must never
+    // fail the scan itself.
+    try {
+      $fields = array_diff_key($meta, array_flip(['scanned', 'store_key']));
+      \Drupal::entityTypeManager()->getStorage('aip_factcheck_result')->create($fields + [
         'score' => $results['factcheck']['score'] ?? NULL,
         'ai_score' => $results['ai']['score'] ?? NULL,
         'readability' => $results['readability']['score'] ?? NULL,
@@ -166,7 +292,7 @@ class ContentScanForm extends FormBase {
       ])->save();
     }
     catch (\Throwable $e) {
-      $this->logger('ai_provider_universal_factcheck')->warning('Could not store the scan result: @message', ['@message' => $e->getMessage()]);
+      \Drupal::logger('ai_provider_universal_factcheck')->warning('Could not store the scan result: @message', ['@message' => $e->getMessage()]);
     }
   }
 
@@ -197,15 +323,47 @@ class ContentScanForm extends FormBase {
   protected function buildResults(array $results): array {
     $build = ['#type' => 'container'];
 
+    // What was actually scanned, so reviewers keep the content in view while
+    // reading the verdicts.
+    if (!empty($results['_scanned'])) {
+      $build['scanned'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Scanned text (@count characters)', ['@count' => mb_strlen($results['_scanned'])]),
+        '#open' => FALSE,
+        'text' => ['#plain_text' => $results['_scanned']],
+      ];
+    }
+
     if ($fc = $results['factcheck']) {
-      $rows = array_map(fn (array $c) => [
-        $c['claim'],
-        !empty($c['tainted'])
-          ? $this->t('@verdict — ⚠ echoed by distrusted sites', ['@verdict' => $c['verdict']])
-          : $c['verdict'],
-        $this->formatCoverage($c['coverage'] ?? []),
-        $c['analysis'] ?? '',
-      ], $fc['claims']);
+      $rows = array_map(function (array $c) {
+        $verdict = $c['verdict'];
+        $icon = match ($verdict) {
+          'SUPPORTED' => '✅',
+          'CONTRADICTED' => '❌',
+          default => '⚠️',
+        };
+        $verdictText = $icon . ' ' . $verdict;
+        if (!empty($c['tainted'])) {
+          $verdictText = (string) $this->t('@verdict — ⚠ echoed by distrusted sites', ['@verdict' => $verdictText]);
+        }
+        // Long discrepancy analyses collapse behind a summary so the table
+        // stays readable.
+        $analysis = trim((string) ($c['analysis'] ?? ''));
+        $analysisCell = mb_strlen($analysis) > 160
+          ? ['data' => [
+            '#type' => 'details',
+            '#title' => $this->t('Analysis'),
+            '#open' => FALSE,
+            'text' => ['#plain_text' => $analysis],
+          ]]
+          : $analysis;
+        return [
+          ['data' => ['#markup' => '<strong>' . htmlspecialchars($c['claim']) . '</strong>']],
+          $verdictText,
+          $this->formatCoverage($c['coverage'] ?? []),
+          $analysisCell,
+        ];
+      }, $fc['claims']);
       $build['factcheck'] = [
         '#type' => 'details',
         '#title' => $this->t('Fact check — support score @score%', ['@score' => (int) round($fc['score'] * 100)]),
@@ -214,7 +372,10 @@ class ContentScanForm extends FormBase {
           '#type' => 'table',
           '#header' => [$this->t('Claim'), $this->t('Verdict'), $this->t('Coverage'), $this->t('Discrepancy analysis')],
           '#rows' => $rows,
-          '#empty' => $this->t('No factual claims found — nothing to verify.'),
+          '#empty' => [
+            '#markup' => $this->t('No factual claims found — nothing to verify.') . '<br><small>' .
+              $this->t('Scanned excerpt: @excerpt', ['@excerpt' => mb_substr($results['_scanned'] ?? '', 0, 200) . '…']) . '</small>',
+          ],
         ],
       ];
     }

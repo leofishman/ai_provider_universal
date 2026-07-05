@@ -73,12 +73,15 @@ class FactChecker {
   ];
 
   protected const EXTRACT_PROMPT = <<<PROMPT
-Extract the atomic factual claims from the following answer. A factual claim
-is a single, verifiable statement about the world. Ignore opinions, hedges
-and instructions. Respond ONLY with a JSON array of strings, at most %d
-items, no prose.
+Extract up to %d atomic factual claims from the text below.
 
-ANSWER:
+Rules:
+- A factual claim is a single, verifiable statement about the world (can be true or false).
+- Extract claims in the **original language** of the text (do not translate).
+- Ignore opinions, questions, hedges ("probably", "I think"), instructions, and meta text.
+- Output **ONLY** a valid JSON array of strings. No explanations, no markdown, no code fences, no extra text.
+
+TEXT:
 %s
 PROMPT;
 
@@ -168,8 +171,23 @@ PROMPT;
    *   by the 'profile' setting.
    */
   public function verify(string $question, string $answer): array {
+    return $this->verifyClaims($this->extractClaims($answer, $question));
+  }
+
+  /**
+   * Verifies already-extracted claims. Same contract as verify().
+   *
+   * Split out so callers (e.g. the content scan batch) can run extraction
+   * and verification as separate steps.
+   *
+   * @param string[] $claims
+   *   The claims to verify.
+   *
+   * @return array{score: float, claims: array}
+   *   See verify().
+   */
+  public function verifyClaims(array $claims): array {
     $profile = $this->profileSettings();
-    $claims = $this->extractClaims($answer);
     if (!$claims) {
       return ['score' => 1.0, 'claims' => []];
     }
@@ -248,27 +266,76 @@ PROMPT;
   /**
    * Extracts atomic factual claims from an answer.
    *
+   * @param string $answer
+   *   The text to extract from.
+   * @param string $context
+   *   Optional original question or title for disambiguation.
    * @return string[]
    *   The claims; empty when extraction fails (treated as "nothing to
    *   verify" — the answer passes rather than hard-failing inference).
    */
-  public function extractClaims(string $answer): array {
+  public function extractClaims(string $answer, string $context = ''): array {
     $max = (int) ($this->settings()->get('max_claims') ?: 5);
     $extractor = (string) ($this->settings()->get('extractor_model') ?: $this->settings()->get('checker_model'));
-    $raw = $this->ask(sprintf(self::EXTRACT_PROMPT, $max, $answer), $extractor);
 
-    // Models often wrap JSON in fences or prose; grab the first array.
-    if (!preg_match('/\[.*\]/s', $raw, $match)) {
-      return [];
+    $promptText = $answer;
+    if ($context) {
+      $promptText = "Context / question: {$context}\n\nText to analyze:\n{$answer}";
     }
-    $claims = json_decode($match[0], TRUE);
-    if (!is_array($claims)) {
-      return [];
+    $raw = $this->ask(sprintf(self::EXTRACT_PROMPT, $max, $promptText), $extractor);
+
+    $claims = [];
+
+    // 1. Best: strict JSON array anywhere in the response (handles ```json fences too).
+    // Models sometimes return [{"claim": "..."}] instead of plain strings.
+    if (preg_match('/\[.*\]/s', $raw, $match)) {
+      $decoded = json_decode($match[0], TRUE);
+      if (is_array($decoded)) {
+        $claims = array_map(
+          static fn ($c) => is_array($c) ? ($c['claim'] ?? '') : $c,
+          $decoded,
+        );
+        // Drop non-string junk now so the fallbacks below still get a shot
+        // when the decoded array held nothing usable.
+        $claims = array_filter($claims, static fn ($c) => is_string($c) && trim($c) !== '');
+      }
     }
+
+    // 2. Bullet / numbered list fallback.
+    if (empty($claims)) {
+      $lines = explode("\n", $raw);
+      foreach ($lines as $line) {
+        $line = trim($line);
+        if (preg_match('/^(?:[-*]|\d+\.)\s+(.+)$/', $line, $lineMatch)) {
+          $claims[] = trim($lineMatch[1]);
+        }
+      }
+    }
+
+    // 3. Last resort heuristic: split into sentences and keep those that look
+    // like declarative statements (helps when the model ignores the JSON rule).
+    if (empty($claims)) {
+      $sentences = preg_split('/(?<=[.!?…])\s+/u', $answer);
+      foreach ($sentences as $s) {
+        $s = trim($s);
+        if (mb_strlen($s) > 15 && !preg_match('/^(who|what|when|where|why|how|es|son|está|será|¿|\?)/i', $s)) {
+          // Very rough filter: skip obvious questions / very short.
+          $claims[] = $s;
+        }
+      }
+    }
+
     $claims = array_values(array_filter(array_map(
-      static fn ($c) => is_string($c) ? trim($c) : '',
+      static fn ($c) => is_string($c) ? trim($c, " \t\n\r\0\x0B\"'") : '',
       $claims,
     )));
+
+    if (empty($claims) && $raw) {
+      $this->logger->info('Factcheck extractor returned no claims. Raw response (first 300): @raw', [
+        '@raw' => mb_substr($raw, 0, 300),
+      ]);
+    }
+
     return array_slice($claims, 0, $max);
   }
 

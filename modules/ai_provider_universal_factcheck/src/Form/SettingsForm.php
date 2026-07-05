@@ -61,6 +61,18 @@ class SettingsForm extends ConfigFormBase {
       }
     }
 
+    // Include Smart Routes (virtual "Auto: ..." models) so they can be used
+    // as checker/extractor/detector. They appear in the main AI settings.
+    if ($this->moduleHandler->moduleExists('ai_provider_universal_router')) {
+      $route_storage = $this->entityTypeManager->getStorage('ai_universal_route');
+      foreach ($route_storage->loadMultiple() as $route) {
+        if ($route->getOperationType() === 'chat') {
+          $rid = 'route__' . $route->id();
+          $model_options[$rid] = $this->t('Auto: @label', ['@label' => $route->label()]);
+        }
+      }
+    }
+
     $form['profile'] = [
       '#type' => 'radios',
       '#title' => $this->t('Verification profile'),
@@ -115,7 +127,7 @@ class SettingsForm extends ConfigFormBase {
       '#type' => 'select',
       '#title' => $this->t('AI-detection model'),
       '#description' => $this->t('Model that estimates how likely a scanned text is AI-generated (content scan tab on nodes). Heuristic LLM judgement, not a trained detector. Leave empty to use the checker model.'),
-      '#options' => $model_options,
+      '#options' => ['none' => $this->t('- Disabled -')] + $model_options,
       '#empty_option' => $this->t('- Same as checker -'),
       '#default_value' => $config->get('detector_model'),
     ];

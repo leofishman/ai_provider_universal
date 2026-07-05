@@ -57,7 +57,8 @@ class StandaloneFactCheckForm extends ContentScanForm {
       '#value' => $this->t('Run scan'),
     ];
 
-    if ($results = $form_state->get('results')) {
+    $results = $this->tempStoreFactory->get('ai_provider_universal_factcheck')->get('scan_standalone');
+    if ($results) {
       $form['results'] = $this->buildResults($results);
     }
     return $form;
@@ -94,10 +95,10 @@ class StandaloneFactCheckForm extends ContentScanForm {
       return;
     }
 
-    $results = $this->runChecks((string) $subject, $text);
-    $this->saveResult($results, ['subject' => (string) $subject, 'url' => $url ?: NULL]);
-    $form_state->set('results', $results);
-    $form_state->setRebuild();
+    $this->startScanBatch((string) $subject, $text, [
+      'subject' => (string) $subject,
+      'url' => $url ?: NULL,
+    ], 'scan_standalone');
   }
 
   /**

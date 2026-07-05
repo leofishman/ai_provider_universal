@@ -444,7 +444,13 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     // virtual model ("route__<id>"); it resolves to a real model per request.
     $routes = $this->getRouteModelOptions($operation_type);
     if ($routes) {
-      $grouped = [(string) $this->t('Smart Routing') => $routes] + $grouped;
+      $smart_key = (string) $this->t('Smart Routing');
+      // Force Smart Routing to be the first optgroup in the select.
+      $new_grouped = [$smart_key => $routes];
+      foreach ($grouped as $key => $value) {
+        $new_grouped[$key] = $value;
+      }
+      $grouped = $new_grouped;
     }
 
     return $grouped;

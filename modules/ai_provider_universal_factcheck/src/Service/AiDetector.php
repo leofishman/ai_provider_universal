@@ -39,7 +39,11 @@ PROMPT;
    */
   public function isConfigured(): bool {
     $settings = $this->configFactory->get('ai_provider_universal_factcheck.settings');
-    return (bool) ($settings->get('detector_model') ?: $settings->get('checker_model'));
+    $detector = (string) $settings->get('detector_model');
+    if ($detector === 'none') {
+      return FALSE;
+    }
+    return (bool) ($detector ?: $settings->get('checker_model'));
   }
 
   /**
@@ -51,7 +55,11 @@ PROMPT;
    */
   public function detect(string $text): ?array {
     $settings = $this->configFactory->get('ai_provider_universal_factcheck.settings');
-    $model = (string) ($settings->get('detector_model') ?: $settings->get('checker_model'));
+    $detector = (string) $settings->get('detector_model');
+    if ($detector === 'none') {
+      return NULL;
+    }
+    $model = $detector ?: (string) $settings->get('checker_model');
     if (!$model) {
       return NULL;
     }
