@@ -5,7 +5,9 @@ A universal, multi-instance AI provider for the [Drupal AI module](https://www.d
 Unlike single-endpoint providers, this module models your AI infrastructure as **config entities**:
 
 - **Servers** (`ai_universal_server`) — each server is an independent endpoint with its own backend, host, port, API key, timeout, model filter and daily usage limits. Run as many as you want: a local llama.cpp box, an Ollama instance, a vLLM moderation server and a remote Fireworks/OpenAI account can all coexist under one provider.
-- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-image) are **detected dynamically** per model, and each model carries routing metadata (cost per 1M tokens, quality tier, context length, reasoning effort) — all overridable per model in the UI.
+- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-image) are **detected dynamically** per model, and each model carries routing metadata (cost per 1M tokens, quality tier, context length, reasoning effort) — all overridable per model in the UI. Quality tiers for known model families (and optionally costs) are prefilled from a site-overridable YAML (`definitions/model_defaults.yml`).
+
+New to the terminology? See the [glossary](docs/glossary.md).
 
 ## Backends
 
@@ -85,7 +87,9 @@ Full details — decision algorithm, route configuration, fact-check escalation,
 
 Each **server** can carry daily request/token limits — that is where the account/budget actually lives (OpenRouter credits, amazee.ai budget, a LiteLLM master key). Usage is tracked per model per day; the day rolls over at midnight in the site's default timezone. Enforcement lives in the Smart Router submodule: over-limit servers are skipped by routes (failover to another provider) and reject direct calls until the day rolls over. A limit of `0` deliberately blocks the server for the rest of the day. An optional **alert threshold** (default 80%) and **limit grace** dispatch `UsageThresholdEvent`s you can subscribe to for mail/Slack/ECA.
 
-Full details — enforcement model, thresholds, event reference: [docs/usage-limits.md](docs/usage-limits.md).
+For rules beyond daily limits (business hours, per-role quotas), subscribe to the **pre-call gate**: `ModelPreCallEvent` fires before every inference call and lets any module block the call or swap the model.
+
+Full details — enforcement model, thresholds, event reference, pre-call gate: [docs/usage-limits.md](docs/usage-limits.md).
 
 ### Fact check & content scan (fact check submodule)
 

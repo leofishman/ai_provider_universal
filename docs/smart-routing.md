@@ -37,7 +37,9 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    length can fit the estimated prompt tokens **+ 512 assumed output
    tokens** (models with no known context length are never excluded on this
    basis), and (b) its quality tier (default 3 when unrated) is at least
-   the required tier from step 2.
+   the required tier from step 2. Discovery prefills tiers for known model
+   families from `definitions/model_defaults.yml` (see
+   [servers-and-models](servers-and-models.md)), so few models stay unrated.
 5. **No eligible candidate?** Rather than fail the request, the route
    degrades to the best available: sort *all* candidates by tier
    (descending) then cost (ascending), log a warning, and use the top one.
@@ -50,7 +52,9 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
 Cost estimation (`costOf()`): `(cost_input × estimated_input_tokens +
 cost_output × 512 assumed_output_tokens) / 1,000,000`. A model with unset
 cost fields counts as free, which is intentional — it makes local/self-hosted
-models win ties against unrated remote ones unless you set explicit costs.
+models win ties against unrated remote ones unless you set explicit costs
+(manually, or via the `costs:` map in your `model_defaults.yml` override —
+see [servers-and-models](servers-and-models.md)).
 
 ### Escalation (`resolveBest()`)
 

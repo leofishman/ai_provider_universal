@@ -10,6 +10,7 @@
 | **Model filter** | Comma-separated globs on the server (`llama3*, !*old*`) restricting which discovered models are kept. |
 | **Routing metadata** | Per-model fields smart routing reads: cost per 1M input/output tokens (USD), quality tier, context length, reasoning effort. |
 | **Quality tier** | Subjective 1–5 capability rating (1 Minimal → 5 Frontier). Prefilled for known model families at discovery; unrated models count as tier 3 in routing. |
+| **Model defaults** | `definitions/model_defaults.yml`: tier guesses by family/parameter count and optional site-maintained costs, applied when the backend detects nothing. Site entries live in an override file declared in settings.php. |
 | **Smart route** (`ai_universal_route`) | Router submodule config entity: a virtual model (`route__<id>`, shown as "Auto: label") that resolves each request to the cheapest candidate whose tier satisfies the prompt's complexity. |
 | **Candidate** | A model listed on a route as eligible for selection. |
 | **Simple/complex tier** | The route's two thresholds: short/simple prompts must meet the simple tier, long or reasoning-flavored prompts the complex tier. |

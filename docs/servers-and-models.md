@@ -12,12 +12,12 @@ Fields on the server form:
 | Backend | Protocol plugin — see the catalog below. Hidden when only one backend is installed. |
 | Host name | `http://host` or `https://host`. Hidden for backends with a fixed endpoint (OpenRouter, Hugging Face, Fireworks, Ollama Cloud), which show their endpoint as a hint instead. |
 | Port | Optional; common local defaults are documented inline (Ollama 11434, llama.cpp 8080, vLLM 8000, LM Studio 1234, LiteLLM 4000). |
-| API Key | A [Key](https://www.drupal.org/project/key) entity, sent as `Authorization: Bearer`. Required for hosted services; optional for unauthenticated local servers. |
+| API Key | A [Key](https://www.drupal.org/project/key) entity, sent as `Authorization: Bearer`. Required for hosted services; optional for unauthenticated local servers. The "create a new key" link opens in a new tab; the **Refresh keys** button re-populates the select without losing your form input. |
 | Timeout | Request timeout in seconds (default 600). |
 | Model filter pattern | See [Model filtering](#model-filtering) below. |
 | Usage limits | Daily request/token caps — see [docs/usage-limits.md](usage-limits.md). |
 
-Saving a server **tests the connection** (the backend's `listModels()` is called during validation; failure blocks the save with the exact protocol error logged to the `ai_provider_universal` channel) and then **runs model discovery**, persisting the result as `ai_universal_model` entities.
+The **Test connection & list models** button previews the server's model catalog (and any connection error) without saving anything. Saving a server **tests the connection** (the backend's `listModels()` is called during validation; failure blocks the save with the exact protocol error logged to the `ai_provider_universal` channel) and then **runs model discovery**, persisting the result as `ai_universal_model` entities.
 
 ## Backend catalog
 
