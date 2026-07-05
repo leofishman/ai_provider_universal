@@ -1,0 +1,178 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - ai_provider_universal_router
+id: ai_router_decisions
+label: 'AI routing decisions'
+module: views
+description: 'One row per smart routing decision: chosen model, complexity, token estimate and cost vs worst case.'
+tag: ''
+base_table: ai_universal_router_log
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'AI routing decisions'
+      fields:
+        timestamp:
+          id: timestamp
+          table: ai_universal_router_log
+          field: timestamp
+          plugin_id: date
+          label: When
+          date_format: short
+          custom_date_format: ''
+          timezone: ''
+        route_id:
+          id: route_id
+          table: ai_universal_router_log
+          field: route_id
+          plugin_id: standard
+          label: Route
+        operation_type:
+          id: operation_type
+          table: ai_universal_router_log
+          field: operation_type
+          plugin_id: standard
+          label: Operation
+        complexity:
+          id: complexity
+          table: ai_universal_router_log
+          field: complexity
+          plugin_id: standard
+          label: Complexity
+        chosen_model:
+          id: chosen_model
+          table: ai_universal_router_log
+          field: chosen_model
+          plugin_id: standard
+          label: 'Chosen model'
+        est_tokens:
+          id: est_tokens
+          table: ai_universal_router_log
+          field: est_tokens
+          plugin_id: numeric
+          label: 'Est. tokens'
+          set_precision: false
+          precision: 0
+          separator: ''
+        candidates:
+          id: candidates
+          table: ai_universal_router_log
+          field: candidates
+          plugin_id: numeric
+          label: Candidates
+          set_precision: false
+          precision: 0
+          separator: ''
+        est_cost:
+          id: est_cost
+          table: ai_universal_router_log
+          field: est_cost
+          plugin_id: numeric
+          label: 'Est. cost ($)'
+          set_precision: true
+          precision: 6
+          separator: ''
+        est_cost_worst:
+          id: est_cost_worst
+          table: ai_universal_router_log
+          field: est_cost_worst
+          plugin_id: numeric
+          label: 'Worst case ($)'
+          set_precision: true
+          precision: 6
+          separator: ''
+      pager:
+        type: full
+        options:
+          items_per_page: 50
+      sorts:
+        timestamp:
+          id: timestamp
+          table: ai_universal_router_log
+          field: timestamp
+          plugin_id: date
+          order: DESC
+      filters:
+        route_id:
+          id: route_id
+          table: ai_universal_router_log
+          field: route_id
+          plugin_id: string
+          operator: contains
+          value: ''
+          exposed: true
+          expose:
+            operator_id: route_id_op
+            label: Route
+            identifier: route
+        complexity:
+          id: complexity
+          table: ai_universal_router_log
+          field: complexity
+          plugin_id: string
+          operator: contains
+          value: ''
+          exposed: true
+          expose:
+            operator_id: complexity_op
+            label: Complexity
+            identifier: complexity
+      access:
+        type: perm
+        options:
+          perm: 'administer ai providers'
+      cache:
+        type: none
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      exposed_form:
+        type: basic
+        options: {  }
+      style:
+        type: table
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: true
+          columns: {  }
+          default: timestamp
+          info: {  }
+          override: true
+          sticky: false
+          summary: ''
+          empty_table: true
+      row:
+        type: fields
+        options: {  }
+      empty:
+        area:
+          id: area
+          table: views
+          field: area
+          plugin_id: text
+          empty: true
+          content:
+            value: 'No routing decisions logged yet. Send a request through a Smart Route ("Auto: ..." model) to populate this log.'
+            format: plain_text
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: admin/reports/ai-router-decisions
+      menu:
+        type: normal
+        title: 'AI routing decisions'
+        description: 'Smart routing decision log with cost savings.'
+        parent: system.admin_reports

@@ -28,7 +28,7 @@ Other modules can contribute native backends (e.g. Anthropic or Gemini) by dropp
 
 ## Requirements
 
-- Drupal 10.2+ / 11 / 12
+- Drupal 11.1+ / 12
 - [AI](https://www.drupal.org/project/ai) ^1.2
 - [Key](https://www.drupal.org/project/key)
 

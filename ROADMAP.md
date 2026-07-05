@@ -44,13 +44,39 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [x] Web evidence cascade: local index → Tavily, curated by the
       trusted_site content type (factcheck_trusted_sites recipe) with
       per-domain reputation (positive = preferred, negative = excluded).
-- [ ] Add ollama + vLLM (Qwen 0.5B, shieldgemma) servers to the hackathon
-      site; set tiers/costs; demo route across the full local fleet +
-      Fireworks (account access expected 2026-07-07).
+- [x] Add ollama + vLLM (Qwen 0.5B, shieldgemma) servers to the hackathon
+      site; set tiers/costs; demo route across the full local fleet.
+- [x] `grok` backend (xAI): fixed endpoint, grok-2 family metadata.
+- [x] Smart Routes usable as factcheck checker/extractor/detector models;
+      router invalidates the provider definition cache on route save/delete
+      (no `drush cr` after creating a route).
+- [x] Content scan through the Batch API: one step per check with a
+      progress bar; results via private tempstore; scanned text shown with
+      the results; verdict icons; long analyses collapsed.
+- [x] Claim-extraction hardening: object-array JSON and bullet-list
+      fallbacks (language-neutral), title passed as extractor context only,
+      extraction failure fails open (score 1.0) by design.
+- [x] AI-detection check can be disabled ("- Disabled -" detector option);
+      plagiarism already off without a Serper key.
+- [x] Spanish interface translation for all three modules (.po files +
+      interface translation keys).
+- [x] First-release prep: 1.0.0-alpha1 release notes draft
+      (`RELEASE_NOTES_1.0.0-alpha1.md`) and project page draft
+      (`PROJECT_PAGE.html`), breaking-vs-dev explanation, provider
+      segmentation guidance.
+- [ ] Publish 1.0.0-alpha1: push, tag, drupal.org release node + updated
+      project page (drafts ready; Leo reviews and pushes).
+- [ ] **Docker deliverable**: pre-configured demo site image
+      (`docker compose up` for judges — sanitize API keys out of the DB
+      dump) + from-scratch path documented (DDEV + recipes + discovery).
+- [ ] Demo hardening: pre-warm the verdict cache on the demo node, remote
+      fallback server with credits in the demo route (failover as a demo
+      feature), lower local-server timeouts (600s → ~60s).
 - [ ] Verify Fireworks pricing table against fireworks.ai/pricing once
-      credits arrive; live test the `fireworks` backend.
-- [ ] Demo polish: savings dashboard numbers, recipe packaging
-      ("Drupal AI Router" recipe on Drupal CMS), README/screencast.
+      credits arrive (2026-07-07); live test the `fireworks` backend; live
+      test OpenRouter.
+- [ ] Demo polish: savings dashboard numbers, demo script/screencast,
+      recipe packaging ("Drupal AI Router" recipe on Drupal CMS).
 
 ## Post-hackathon
 
@@ -88,8 +114,9 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       heuristics in RouteDecider. Related: use a real tokenizer (not the
       chars/4 estimate) when classifying prompts.
 - [ ] Latency/throughput capture from llama.cpp `timings` into decisions.
-- [ ] drupal.org project creation + 1.0 alpha release; migration notes from
-      ai_provider_llama_cpp (manual, 2 known installs).
+- [x] drupal.org project creation; alpha release in flight (see hackathon
+      section). Migration notes from ai_provider_llama_cpp still pending
+      (manual, 2 known installs).
 
 ## UX & platform improvements
 
@@ -153,4 +180,4 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       and link them from the README.
 - [ ] Hourly limits in README/usage-limits/servers-and-models once the
       feature lands (see UX & platform improvements).
-- [ ] smart-routing: savings dashboard — move to Views?
+- [x] smart-routing: savings dashboard moved to Views (ai_router_log view with Page + JSON/REST export displays)

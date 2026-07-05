@@ -1,0 +1,184 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - ai_provider_universal_router
+    - views
+id: ai_router_log
+label: 'AI Router Log'
+module: views
+description: 'Displays smart routing decisions from ai_provider_universal_router. Shows which model was chosen (local or via remote/Fireworks), complexity classification, estimated tokens and cost savings. Useful for debugging, dashboards and demonstrating token-efficient hybrid routing.'
+tag: 'AI'
+base_table: ai_universal_router_log
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Master
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'AI Router Log'
+      fields:
+        timestamp:
+          id: timestamp
+          table: ai_universal_router_log
+          field: timestamp
+          plugin_id: date
+          label: 'Timestamp'
+          type: timestamp
+          settings:
+            date_format: short
+            custom_date_format: ''
+            timezone: ''
+        route_id:
+          id: route_id
+          table: ai_universal_router_log
+          field: route_id
+          plugin_id: standard
+          label: 'Route'
+        operation_type:
+          id: operation_type
+          table: ai_universal_router_log
+          field: operation_type
+          plugin_id: standard
+          label: 'Operation'
+        complexity:
+          id: complexity
+          table: ai_universal_router_log
+          field: complexity
+          plugin_id: standard
+          label: 'Complexity'
+        chosen_model:
+          id: chosen_model
+          table: ai_universal_router_log
+          field: chosen_model
+          plugin_id: standard
+          label: 'Chosen model'
+        est_tokens:
+          id: est_tokens
+          table: ai_universal_router_log
+          field: est_tokens
+          plugin_id: numeric
+          label: 'Est. tokens'
+        est_cost:
+          id: est_cost
+          table: ai_universal_router_log
+          field: est_cost
+          plugin_id: numeric
+          label: 'Est. cost (chosen)'
+          type: number_decimal
+          settings:
+            thousand_separator: ''
+            decimal_separator: .
+            scale: 6
+            prefix_suffix: true
+        est_cost_worst:
+          id: est_cost_worst
+          table: ai_universal_router_log
+          field: est_cost_worst
+          plugin_id: numeric
+          label: 'Est. cost (worst)'
+          type: number_decimal
+          settings:
+            thousand_separator: ''
+            decimal_separator: .
+            scale: 6
+            prefix_suffix: true
+      pager:
+        type: mini
+        options:
+          items_per_page: 25
+      exposed_form:
+        type: basic
+      access:
+        type: perm
+        options:
+          perm: 'administer ai providers'
+      cache:
+        type: tag
+      empty: {  }
+      sorts:
+        timestamp:
+          id: timestamp
+          table: ai_universal_router_log
+          field: timestamp
+          order: DESC
+          plugin_id: date
+      filters:
+        complexity:
+          id: complexity
+          table: ai_universal_router_log
+          field: complexity
+          plugin_id: string
+          operator: '='
+          value: ''
+          expose:
+            label: 'Complexity'
+            operator: ''
+      style:
+        type: table
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: true
+          columns:
+            timestamp: timestamp
+            complexity: complexity
+            chosen_model: chosen_model
+            est_tokens: est_tokens
+            est_cost: est_cost
+            est_cost_worst: est_cost_worst
+          info:
+            timestamp:
+              sortable: true
+              default_sort_order: desc
+            complexity:
+              sortable: true
+            chosen_model:
+              sortable: true
+            est_tokens:
+              sortable: true
+            est_cost:
+              sortable: true
+            est_cost_worst:
+              sortable: true
+      row:
+        type: fields
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: admin/config/ai/providers/universal/router-log
+      menu:
+        type: tab
+        title: 'Routing log (Views)'
+        description: 'View routing decisions with filters and exports.'
+        weight: 10
+      display_description: 'Human readable page version of the log.'
+  rest_export_1:
+    id: rest_export_1
+    display_title: 'JSON export'
+    display_plugin: rest_export
+    position: 2
+    display_options:
+      display_extenders: {  }
+      path: admin/config/ai/providers/universal/router-log.json
+      style:
+        type: serializer
+        options:
+          formats:
+            - json
+      row:
+        type: data_field
+        options:
+          field_options: {  }
+      display_description: 'Clean JSON endpoint. Great for automation, debugging scripts or LLM evaluation of routing behavior.'
+      pager:
+        type: some
+        options:
+          items_per_page: 100
+          offset: 0

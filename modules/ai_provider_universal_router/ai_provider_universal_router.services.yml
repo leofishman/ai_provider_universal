@@ -1,4 +1,10 @@
 services:
+  Drupal\ai_provider_universal_router\Hook\AiProviderUniversalRouterHooks:
+    class: Drupal\ai_provider_universal_router\Hook\AiProviderUniversalRouterHooks
+    autowire: true
+    arguments:
+      $aiProviderManager: '@ai.provider'
+
   Drupal\ai_provider_universal_router\Service\RouteDecider:
     class: Drupal\ai_provider_universal_router\Service\RouteDecider
     arguments:
