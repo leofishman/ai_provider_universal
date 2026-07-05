@@ -2,9 +2,11 @@
 
 ## Where limits live and why
 
-Each **server** can carry a **daily request limit** and a **daily token limit** (input + output, all its models combined) — that is where the account/budget actually lives (OpenRouter credits, amazee.ai budget, a LiteLLM master key). Set them on the server form under "Usage limits".
+Each **server** can carry a **daily request limit** and a **daily token limit** (input + output, all its models combined) — that is where the account/budget actually lives (OpenRouter credits, amazee.ai budget, a LiteLLM master key). Set them on the server form under "Usage limits". Leave a limit empty for unlimited; a limit of `0` deliberately blocks the server until the next day (useful to pause a server without deleting it).
 
-Counters stay **per model** per day (site timezone) in the `ai_provider_universal_usage` table; the per-model breakdown is shown in the model overrides section of the server form, the server total in the "Usage limits" section.
+Counters stay **per model** per day in the `ai_provider_universal_usage` table; the per-model breakdown is shown in the model overrides section of the server form, the server total in the "Usage limits" section.
+
+**When does "daily" reset?** Days are keyed by calendar date (`Ymd`) in the **site's default timezone** (Configuration → Regional settings), so limits reset at local midnight — not a rolling 24-hour window, and not UTC unless your site is configured that way.
 
 ## Enforcement
 
@@ -19,8 +21,10 @@ Without the submodule, usage is still recorded but never blocks. The main module
 
 Two optional per-server thresholds refine the hard limit (same form section):
 
-- **Alert threshold (%)** — default 80. When usage crosses this percentage of a limit, a warning is logged and `UsageThresholdEvent::ALERT` is dispatched (once per server and day). Leave empty to disable alerts.
-- **Limit grace (%)** — default off. Lets usage exceed the limit by up to this percentage before blocking (e.g. 10 blocks at 110%). Empty or 0 blocks exactly at the limit. Exhaustion logs a warning and dispatches `UsageThresholdEvent::EXHAUSTED` (once per server and day).
+- **Alert threshold (%)** — default 80. When usage crosses this percentage of a limit, a warning is logged and `UsageThresholdEvent::ALERT` is dispatched. Leave empty to disable alerts.
+- **Limit grace (%)** — default off. Lets usage exceed the limit by up to this percentage before blocking (e.g. 10 blocks at 110%). Empty or 0 blocks exactly at the limit. Exhaustion logs a warning and dispatches `UsageThresholdEvent::EXHAUSTED`.
+
+Each event fires **once per server per day**, not on every call: once a server is over its threshold every subsequent request would re-qualify, so dispatches are deduplicated in State (see below). Blocked calls themselves keep failing with `AiQuotaException` — only the event is deduplicated.
 
 ## Reacting to events
 
@@ -30,7 +34,7 @@ Both events (`Drupal\ai_provider_universal_router\Event\UsageThresholdEvent`) ca
 |---|---|
 | `serverId` | the `ai_universal_server` entity id |
 | `metric` | which limit was crossed: `requests` or `tokens` |
-| `usage` | today's usage for that metric |
+| `usage` | today's usage for that metric (requests, or input + output tokens combined) |
 | `limit` | the configured daily limit |
 
 Subscribe with a normal event subscriber to send mail/Slack notifications or trigger ECA workflows:

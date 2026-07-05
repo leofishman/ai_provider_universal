@@ -33,9 +33,9 @@ Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBacken
 | `huggingface` | Hugging Face Inference Providers | `router.huggingface.co/v1` | optional | `/v1/models` | `architecture.output_modalities` → generic heuristics | Cheapest **live** provider offer by input price; context length is the max any live provider serves |
 | `ollama_cloud` | Ollama Cloud (ollama.com) | `ollama.com/v1` | optional (needs API key) | `/v1/models` | Generic heuristics only (bare ids, no metadata) | None — fill in manually |
 
-Notes:
+> ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons.
 
-- **Fireworks pricing** is a maintained lookup table, not live data — verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation.
+Notes:
 - **LiteLLM discovery degrades gracefully**: if the configured key cannot read `/model/info` (common with scoped virtual keys), the backend falls back to the plain `/v1/models` catalog with name-based detection instead of failing discovery outright.
 - **amazee.ai** is a thin subclass of `litellm` purely so it shows up as its own option in the backend select with amazee-specific description text — there is no protocol difference.
 - Two core AI-module patches are recommended for optgrouped model selects and `ai_search` compatibility — see the README's "Recommended core AI patches" section.

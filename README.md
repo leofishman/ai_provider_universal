@@ -4,19 +4,22 @@ A universal, multi-instance AI provider for the [Drupal AI module](https://www.d
 
 Unlike single-endpoint providers, this module models your AI infrastructure as **config entities**:
 
-- **Servers** (`ai_universal_server`) — each server is an independent endpoint with its own host, port, API key, timeout and model filter. Run as many as you want: a local llama.cpp box, an Ollama instance, a vLLM moderation server and a remote Fireworks/OpenAI account can all coexist under one provider.
-- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-image) are **detected dynamically** per model and can be overridden per model in the UI.
+- **Servers** (`ai_universal_server`) — each server is an independent endpoint with its own backend, host, port, API key, timeout, model filter and daily usage limits. Run as many as you want: a local llama.cpp box, an Ollama instance, a vLLM moderation server and a remote Fireworks/OpenAI account can all coexist under one provider.
+- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-image) are **detected dynamically** per model, and each model carries routing metadata (cost per 1M tokens, quality tier, context length, reasoning effort) — all overridable per model in the UI.
 
 ## Backends
 
-Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with two backends:
+Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with seven backends:
 
 - `fireworks` — Fireworks AI serverless inference: fixed default endpoint, Fireworks-specific capability detection, and published pricing + context lengths prefilled at discovery for smart routing.
 - `openai_compatible` — llama.cpp, Ollama, vLLM, LM Studio, LiteLLM, Fireworks, OpenAI, and anything else speaking the OpenAI REST protocol. Capability detection uses llama.cpp's per-model `status.args` (router mode), HuggingFace `pipeline_tag` lookup for `--hf-repo` models, and model-name heuristics.
-- `litellm` — LiteLLM proxy servers, including **amazee.ai** (managed LiteLLM: point the host at your private `litellm_api_url` and use your amazee.ai key). Discovery uses LiteLLM's `/model/info` endpoint: operation types from the structured `mode` field, per-token costs and context window read live — falling back to the plain OpenAI catalog when the key cannot read `/model/info`.
+- `litellm` — LiteLLM proxy servers. Discovery uses LiteLLM's `/model/info` endpoint: operation types from the structured `mode` field, per-token costs and context window read live — falling back to the plain OpenAI catalog when the key cannot read `/model/info`.
+- `amazee` — **amazee.ai** (managed, region-pinned LiteLLM): same protocol as `litellm`, shipped as its own backend so it appears with amazee-specific guidance in the server form. Point the host at your private `litellm_api_url` and use your amazee.ai key.
 - `openrouter` — OpenRouter unified API (openrouter.ai): 300+ models from OpenAI, Anthropic, Google, Meta and others behind one endpoint. Fixed default endpoint, capability detection from the catalog's `architecture.output_modalities`, and pricing + context length prefilled from the live catalog for smart routing (no hardcoded price table). OpenRouter's embedding models live on a separate catalog endpoint and are not discovered yet — see ROADMAP.
+- `huggingface` — Hugging Face Inference Providers (router.huggingface.co): capability detection from the catalog's output modalities, pricing prefilled from the cheapest live provider offer per model.
+- `ollama_cloud` — Ollama Cloud (ollama.com): plain catalog with bare model ids; routing metadata is filled in manually.
 
-Two more hosted backends are bundled: `huggingface` (Hugging Face Inference Providers) and `ollama_cloud` (Ollama Cloud). Full catalog — default endpoints, capability detection sources, pricing/context prefill — and the server configuration reference: [docs/servers-and-models.md](docs/servers-and-models.md).
+Full catalog — default endpoints, capability detection sources, pricing/context prefill — and the server configuration reference: [docs/servers-and-models.md](docs/servers-and-models.md).
 
 Other modules can contribute native backends (e.g. Anthropic or Gemini) by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — model discovery, capability detection and the multi-instance UI come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md) for a contributor guide with a full walkthrough.
 
@@ -37,9 +40,9 @@ drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck
 
 ### Recommended core AI patches
 
-Two small bugs in the AI module affect this provider; fixes ship in `patches/` and are declared in this module's `composer.json`:
+Two small bugs in the AI module affect this module's provider; fixes ship in `patches/` and are declared in this module's `composer.json`:
 
-- `ai-support-optgrouped-model-options.patch` — the AI settings form rejects models presented in optgroups (this provider groups models by server).
+- `ai-support-optgrouped-model-options.patch` — the AI settings form rejects models presented in optgroups (this module's provider groups models by server).
 - `ai-search-embeddings-engine-explode-limit.patch` — `ai_search` breaks model ids containing double underscores (used here for `server__model` ids).
 
 Composer does **not** apply patches from dependencies by default. To apply them in your site, install [composer-patches](https://github.com/cweagans/composer-patches) and enable dependency patching:
@@ -50,14 +53,14 @@ composer config extra.enable-patching true
 composer update drupal/ai
 ```
 
-Without the patches the provider works, but route/model selects in the AI settings form may not validate, and `ai_search` cannot use this provider's embedding models. Upstream issues are being filed against the AI module.
+Without the patches the module works, but route/model selects in the AI settings form may not validate, and `ai_search` cannot use this module's embedding models. Upstream issues are being filed against the AI module.
 
 ## Setup
 
-1. Enable the module.
-2. Go to **Configuration → AI → Providers → Universal** and add a server (host, port, optional API key as a Key entity).
-3. Saving the server runs model discovery; review detected models and adjust per-model operation types if needed.
-4. Select provider/models per operation type in the AI module settings.
+1. Enable the module (if you haven't already — see Installation above).
+2. Go to **Configuration → AI → Providers → Universal** and add a server: backend, host/port (local servers) or just the API key (hosted services), timeout, optional model filter and daily usage limits. The **Test connection & list models** button previews what the server reports before you save.
+3. Saving the server runs model discovery; review detected models and adjust per-model operation types and routing metadata if needed.
+4. Select the default provider/model per operation type at **Configuration → AI → AI settings** (`/admin/config/ai/settings`).
 
 Discovery can be re-run any time with `drush aip:discover-models [server_id]` (alias `aipdm`) or by re-saving the server.
 
@@ -67,7 +70,8 @@ Servers authenticate through the [Key](https://www.drupal.org/project/key) modul
 
 - Hosted services (OpenRouter, Hugging Face, Ollama Cloud, Fireworks, amazee.ai) always require a key.
 - A LiteLLM proxy started with a `master_key` requires a key for *everything*, including listing models — the connection test on the server form will fail with 401 until a valid key is selected.
-- Plain local servers (llama.cpp, Ollama, LM Studio) usually need none.
+- Plain local servers (llama.cpp, Ollama, LM Studio) usually **don't need a key** — leave the field empty.
+- The fact check submodule needs one extra key for web evidence: a [Tavily](https://tavily.com) API key (also a Key entity), selected in the Fact Check settings — not on a server. Leave it empty to keep verification local-only.
 
 If the connection test fails, the exact server response (e.g. `401 Unauthorized`) is logged to the `ai_provider_universal` channel: see **Reports → Recent log messages**.
 
@@ -79,7 +83,7 @@ Full details — decision algorithm, route configuration, fact-check escalation,
 
 ### Usage limits
 
-Each **server** can carry daily request/token limits — that is where the account/budget actually lives (OpenRouter credits, amazee.ai budget, a LiteLLM master key). Usage is tracked per model per day; enforcement lives in the Smart Router submodule: over-limit servers are skipped by routes (failover to another provider) and reject direct calls until the day rolls over. An optional **alert threshold** (default 80%) and **limit grace** dispatch `UsageThresholdEvent`s you can subscribe to for mail/Slack/ECA.
+Each **server** can carry daily request/token limits — that is where the account/budget actually lives (OpenRouter credits, amazee.ai budget, a LiteLLM master key). Usage is tracked per model per day; the day rolls over at midnight in the site's default timezone. Enforcement lives in the Smart Router submodule: over-limit servers are skipped by routes (failover to another provider) and reject direct calls until the day rolls over. A limit of `0` deliberately blocks the server for the rest of the day. An optional **alert threshold** (default 80%) and **limit grace** dispatch `UsageThresholdEvent`s you can subscribe to for mail/Slack/ECA.
 
 Full details — enforcement model, thresholds, event reference: [docs/usage-limits.md](docs/usage-limits.md).
 

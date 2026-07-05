@@ -85,7 +85,60 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       validator pool. Escalation ladder mirrors Optimistic Democracy's
       finality window: 1 → 3 → 5 models.
 - [ ] Classifier-based complexity (tiny local model) as alternative to
-      heuristics in RouteDecider.
+      heuristics in RouteDecider. Related: use a real tokenizer (not the
+      chars/4 estimate) when classifying prompts.
 - [ ] Latency/throughput capture from llama.cpp `timings` into decisions.
 - [ ] drupal.org project creation + 1.0 alpha release; migration notes from
       ai_provider_llama_cpp (manual, 2 known installs).
+
+## UX & platform improvements
+
+- [x] Rename to namespaced ids: `ai_universal_server`, `ai_universal_model`,
+      `ai_universal_route` entities; `AiServerBackend` plugin family.
+- [x] Server form: "Test connection & list models" button (preview before
+      saving); key creation via new tab + AJAX "Refresh keys".
+- [ ] **Inline key creation**: create the Key entity in a modal from the
+      server form and refresh the select on close (today's two-tab flow is
+      the stopgap).
+- [ ] **Hourly usage limits** alongside daily ones (tracking + enforcement +
+      thresholds); document when the daily window resets and in which
+      timezone.
+- [ ] **Pre-call gate**: dispatch an event before a model is used so other
+      modules can check limits/conditions and block the call or swap the
+      model.
+- [ ] Set limits via Rules/ECA (or document the UsageThresholdEvent recipe
+      for it).
+- [ ] Per-field configuration on content types to enforce fact-check
+      features (plagiarism, AI-likelihood, ...) per field.
+- [ ] Default quality-tier list for known models (prefill tiers by model
+      family instead of manual entry).
+- [ ] Glossary of module terms (server, model, backend, route, tier, ...).
+
+## Factcheck backlog
+
+- [ ] Standalone fact-check page + block: check a URL (internal/external),
+      pasted text, or an uploaded PDF.
+- [ ] Admin UI (views/ECA?) to choose which content types/fields
+      support/enforce fact-check, which checks run, and what happens on
+      failure.
+- [ ] Ship a default search_api index for internal content knowledge?
+- [ ] Cache + invalidation strategy for trusted-site lookups (performance).
+- [ ] Permission granularity (per check type / per bundle).
+- [ ] Move fact-check capabilities to plugins (vs services) so they can be
+      overridden or extended — evaluate best approach.
+- [ ] MCP integration, the Drupal AI way.
+
+## Documentation backlog
+
+- [x] README: server limits, all seven backends listed, per-model routing
+      metadata, "this module's provider" wording, setup steps (AI settings
+      path, detect button), local servers don't need a key, Tavily key.
+- [x] usage-limits: daily reset time/timezone; 0 = pause server; events
+      fire once per server per day (not per call); token metric wording.
+- [x] servers-and-models: warning box under Fireworks costs (lookup table,
+      not live).
+- [ ] Recommended patches: file the upstream issues in the AI module queue
+      and link them from the README.
+- [ ] Hourly limits in README/usage-limits/servers-and-models once the
+      feature lands (see UX & platform improvements).
+- [ ] smart-routing: savings dashboard — move to Views?
