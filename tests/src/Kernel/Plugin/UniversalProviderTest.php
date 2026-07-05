@@ -309,12 +309,12 @@ final class UniversalProviderTest extends KernelTestBase {
     $this->assertArrayHasKey('embeddings', $definition);
     $this->assertArrayHasKey('moderation', $definition);
 
-    // Spot-check chat configuration parameters from api_defaults.yml
+    // Spot-check chat configuration parameters from api_defaults.yml.
     $this->assertArrayHasKey('configuration', $definition['chat']);
     $this->assertArrayHasKey('temperature', $definition['chat']['configuration']);
     $this->assertArrayHasKey('max_tokens', $definition['chat']['configuration']);
 
-    // Embeddings has no extra configuration in the defaults
+    // Embeddings has no extra configuration in the defaults.
     $this->assertSame([], $definition['embeddings']['configuration']);
   }
 
