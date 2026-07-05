@@ -1,0 +1,142 @@
+# Spanish translation of AI Provider: Universal — Smart Router
+msgid ""
+msgstr ""
+"Project-Id-Version: AI Provider: Universal — Smart Router 1.0.0-alpha1\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: es\n"
+
+# Entity
+msgid "Smart Route"
+msgstr "Ruta inteligente"
+
+msgid "Smart Routes"
+msgstr "Rutas inteligentes"
+
+msgid "smart route"
+msgstr "ruta inteligente"
+
+msgid "smart routes"
+msgstr "rutas inteligentes"
+
+# Route form
+msgid "Route name"
+msgstr "Nombre de la ruta"
+
+msgid "Shown in the AI model dropdown, e.g. \"Auto: cheapest capable\"."
+msgstr "Se muestra en el desplegable de modelos de IA, por ejemplo: \"Auto: más barato capaz\"."
+
+msgid "Operation type"
+msgstr "Tipo de operación"
+
+msgid "Chat"
+msgstr "Chat"
+
+msgid "Embeddings"
+msgstr "Embeddings"
+
+msgid "Moderation"
+msgstr "Moderación"
+
+msgid "Rerank"
+msgstr "Reordenar"
+
+msgid "Minimum tier for simple prompts"
+msgstr "Nivel mínimo para prompts simples"
+
+msgid "Minimum tier for complex prompts"
+msgstr "Nivel mínimo para prompts complejos"
+
+msgid "Prompts are classified complex when long or containing code/reasoning cues; those require at least this tier."
+msgstr "Los prompts se clasifican como complejos cuando son largos o contienen código o señales de razonamiento; estos requieren al menos este nivel."
+
+msgid "Fact-check answers and escalate on failure"
+msgstr "Verificar hechos de las respuestas y escalar en caso de fallo"
+
+msgid "Chat answers are verified claim by claim (see the Fact Check settings for checker model and evidence index). Below the score threshold the request is retried with the best candidate."
+msgstr "Las respuestas de chat se verifican afirmación por afirmación (consulte la configuración de Verificación de hechos para el modelo verificador e índice de evidencia). Por debajo del umbral de puntuación se reintenta la solicitud con el mejor candidato."
+
+msgid "Minimum support score"
+msgstr "Puntuación mínima de soporte"
+
+msgid "Fraction of claims that must be SUPPORTED (0–1)."
+msgstr "Fracción de afirmaciones que deben estar SOPORTADAS (0–1)."
+
+msgid "Candidate models"
+msgstr "Modelos candidatos"
+
+msgid "Only models supporting %type are shown. Leave all unchecked to consider every model that supports the operation type. The router picks the cheapest candidate whose quality tier satisfies the prompt class."
+msgstr "Solo se muestran los modelos que soportan %type. Déjelos todos sin marcar para considerar todos los modelos que soportan el tipo de operación. El enrutador elige el candidato más barato cuyo nivel de calidad satisfaga la clase de prompt."
+
+msgid "No models support the %type operation type. Run model discovery on a server or edit model capabilities."
+msgstr "Ningún modelo soporta el tipo de operación %type. Ejecute el descubrimiento de modelos en un servidor o edite las capacidades de los modelos."
+
+msgid "(detected: @detected)"
+msgstr "(detectado: @detected)"
+
+msgid "none"
+msgstr "ninguno"
+
+msgid "@label (tier @tier, $@cost/1M in) — @types"
+msgstr "@label (nivel @tier, $@cost/1M entrada) — @types"
+
+msgid "Smart route %label saved. It appears as a model option for %type operations."
+msgstr "Ruta inteligente %label guardada. Aparece como opción de modelo para operaciones de tipo %type."
+
+# List builder
+msgid "Route"
+msgstr "Ruta"
+
+msgid "Operation"
+msgstr "Operación"
+
+msgid "Candidates"
+msgstr "Candidatos"
+
+msgid "Tier (simple / complex)"
+msgstr "Nivel (simple / complejo)"
+
+msgid "All capable models"
+msgstr "Todos los modelos capaces"
+
+# Log controller
+msgid "When"
+msgstr "Cuándo"
+
+msgid "Complexity"
+msgstr "Complejidad"
+
+msgid "Est. tokens"
+msgstr "Tokens est."
+
+msgid "Chosen model"
+msgstr "Modelo elegido"
+
+msgid "Est. cost"
+msgstr "Costo est."
+
+msgid "Saved"
+msgstr "Ahorrado"
+
+msgid "No routing decisions yet. Select a smart route as model in the AI settings and run a request."
+msgstr "Aún no hay decisiones de enrutamiento. Seleccione una ruta inteligente como modelo en la configuración de IA y ejecute una solicitud."
+
+msgid "When a Smart Route is used, this module logs the decision, estimated cost, and savings compared to the most expensive eligible model."
+msgstr "Cuando se usa una Ruta Inteligente, este módulo registra la decisión, el costo estimado y el ahorro comparado con el modelo elegible más caro."
+
+msgid "<strong>Total spent via routes:</strong> $@spent<br><strong>Total saved vs worst eligible:</strong> $@saved"
+msgstr "<strong>Total gastado vía rutas:</strong> $@spent<br><strong>Total ahorrado vs. el peor elegible:</strong> $@saved"
+
+# Usage limits / events (if exposed in UI)
+msgid "Usage limits"
+msgstr "Límites de uso"
+
+# Module name and description (for .info.yml)
+msgid "AI Provider: Universal — Smart Router"
+msgstr "AI Provider: Universal — Enrutador inteligente"
+
+msgid "Cost-aware smart routing: exposes virtual \"route\" models that pick the cheapest capable model (local or remote) per request, with a decision log."
+msgstr "Enrutamiento inteligente consciente del costo: expone modelos virtuales \"ruta\" que eligen el modelo más barato capaz (local o remoto) por solicitud, con un registro de decisiones."
+
