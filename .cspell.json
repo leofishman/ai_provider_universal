@@ -16,6 +16,7 @@
     "Flesch",
     "Fontes",
     "GGUF",
+    "Grok",
     "Groq",
     "HuggingFace",
     "Jaccard",
@@ -63,6 +64,7 @@
     "gguf",
     "gpustack",
     "grey",
+    "grok",
     "guzzlehttp",
     "hackathon",
     "hf",
@@ -136,6 +138,7 @@
     "whisper",
     "whitelist",
     "whitelisted",
-    "whitelists"
+    "whitelists",
+    "xai"
   ]
 }
