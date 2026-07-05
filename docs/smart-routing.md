@@ -12,8 +12,11 @@ A route (`ai_universal_route` config entity, `modules/ai_provider_universal_rout
 | Candidate models | Explicit model pool. Empty = every model that supports the operation type. | empty |
 | Minimum tier for simple prompts | Quality tier (1–5) a candidate must reach for a prompt classified as simple. | 2 |
 | Minimum tier for complex prompts | Quality tier a candidate must reach for a prompt classified as complex. | 4 |
+| Verifier model | Model that judges each answer before it is returned (one yes/no call — use a free local model). On rejection the request is retried once with the best candidate. Lighter than fact-checking and independent of the factcheck submodule; a broken verifier fails open (the answer is returned unverified, with a watchdog warning). | disabled |
 | Fact-check answers and escalate on failure | Chat-only, requires the factcheck submodule. See [Fact-check escalation](#fact-check-escalation) below. | off |
 | Minimum support score | Fraction of claims that must be SUPPORTED before accepting the answer. | 0.7 |
+
+**Local-first pattern**: candidates restricted to local (cost 0) models + a local verifier model + an expensive model in the pool gives "answer locally, verify locally, pay for a remote call only when the local answer demonstrably failed" — the token-cheapest strategy when latency is not a constraint.
 
 The candidate checkbox list is filtered to the selected operation type and rebuilds via AJAX when you change it; each option shows the model's tier, input cost, and effective operation types (with `⚙ (detected: ...)` when you've overridden them — see [docs/servers-and-models.md](servers-and-models.md#model-capability-overrides)).
 

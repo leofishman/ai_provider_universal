@@ -49,6 +49,7 @@ use Drupal\ai_provider_universal_router\AiUniversalRouteListBuilder;
     'complex_tier',
     'factcheck',
     'factcheck_min_score',
+    'verifier_model',
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/routes/add',
@@ -114,6 +115,24 @@ class AiUniversalRoute extends ConfigEntityBase implements AiUniversalRouteInter
    * @var float
    */
   protected float $factcheck_min_score = 0.7;
+
+  /**
+   * Model that judges answers before they are returned ('' = disabled).
+   *
+   * A lightweight alternative to the fact-check cascade: one yes/no call
+   * to (typically) a free local model; on rejection the request escalates
+   * to the best candidate.
+   *
+   * @var string
+   */
+  protected string $verifier_model = '';
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getVerifierModel(): string {
+    return $this->verifier_model ?? '';
+  }
 
   /**
    * {@inheritdoc}

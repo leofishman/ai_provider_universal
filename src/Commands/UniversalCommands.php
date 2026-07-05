@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\ai_provider_universal\Commands;
 
 use Drupal\ai\AiProviderPluginManager;
+use Drupal\ai\OperationType\Chat\ChatInput;
+use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drush\Commands\DrushCommands;
@@ -96,6 +98,42 @@ class UniversalCommands extends DrushCommands {
         $this->output()->writeln('<error>' . $error . '</error>');
       }
     }
+  }
+
+  /**
+   * Sends one chat prompt to a model or smart route.
+   *
+   * @param string $prompt
+   *   The prompt text.
+   * @param string $model_id
+   *   An ai_universal_model entity id, or "route__<id>" for a smart route.
+   * @param array $options
+   *   Drush options.
+   *
+   * @command aip:chat
+   * @option system Optional system prompt.
+   * @usage drush aip:chat "What is 2+2?" my_server__llama3
+   *   Ask a specific model.
+   * @usage drush aip:chat "What is 2+2?" route__my_route
+   *   Ask through a smart route (the router picks the model).
+   */
+  public function chat(string $prompt, string $model_id, array $options = ['system' => '']): void {
+    $provider = $this->aiProviderManager->createInstance('universal');
+    if ($options['system']) {
+      $provider->setChatSystemRole($options['system']);
+    }
+    $input = new ChatInput([new ChatMessage('user', $prompt)]);
+
+    $start = microtime(TRUE);
+    $response = $provider->chat($input, $model_id, ['aip_chat']);
+    $elapsed = (int) round((microtime(TRUE) - $start) * 1000);
+
+    $this->output()->writeln($response->getNormalized()->getText());
+    $usage = $response->getTokenUsage();
+    $this->output()->writeln(sprintf(
+      '<comment>[%s] %d ms, tokens in/out: %s/%s</comment>',
+      $model_id, $elapsed, $usage->input ?? '?', $usage->output ?? '?',
+    ));
   }
 
 }

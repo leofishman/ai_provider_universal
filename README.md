@@ -82,6 +82,8 @@ If the connection test fails, the exact server response (e.g. `401 Unauthorized`
 
 With `ai_provider_universal_router` enabled, a **Smart Route** is a virtual model — pick "Auto: \<label\>" as the provider for an operation type and each request is routed to the cheapest candidate model whose quality tier satisfies the prompt: short/simple prompts get a low tier threshold, long or reasoning-flavored prompts (code fences, "step by step", "prove", "refactor", ...) get a higher one. Candidates on a server that has hit its daily usage limit drop out automatically, so routing doubles as failover.
 
+A route can also name a **verifier model**: before returning, that model (typically a free local one) judges the answer with a single yes/no call, and a rejection retries the request once with the best candidate — a lightweight alternative to full fact-checking that enables local-first/verify/escalate routing at zero cost.
+
 Complexity classification is heuristic by default (free), and can optionally delegate to a **local classifier model** — including a fine-tuned one — for the prompts heuristics consider simple: set `classifier_model` in `ai_provider_universal_router.settings` to a model entity id (empty = heuristics only; any classifier failure falls back to heuristics).
 
 Every decision lands in a log table exposed to Views: a packaged **AI routing decisions** report at `/admin/reports/ai-router-decisions` shows timestamp, complexity, chosen model, token estimate and chosen vs. worst-case cost, with exposed filters. The savings dashboard at **Smart Routes → Routing decisions** aggregates estimated spend vs. always using the priciest candidate.

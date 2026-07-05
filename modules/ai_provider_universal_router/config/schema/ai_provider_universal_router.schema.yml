@@ -37,3 +37,6 @@ ai_provider_universal_router.route.*:
     factcheck_min_score:
       type: float
       label: 'Minimum support score before escalation'
+    verifier_model:
+      type: string
+      label: 'Model that judges answers before returning them (empty = disabled)'

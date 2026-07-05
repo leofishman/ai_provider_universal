@@ -92,6 +92,20 @@ class AiUniversalRouteForm extends EntityForm {
       '#default_value' => $route->getComplexTier(),
     ];
 
+    $verifier_options = [];
+    foreach ($this->entityTypeManager->getStorage('ai_universal_model')->loadMultiple() as $model) {
+      if (in_array('chat', $model->getEffectiveOperationTypes(), TRUE)) {
+        $verifier_options[$model->id()] = $this->buildModelLabel($model);
+      }
+    }
+    $form['verifier_model'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Verifier model'),
+      '#description' => $this->t('Before returning, this model judges whether the answer solves the prompt (one yes/no call — use a free local model). On rejection the request is retried with the best candidate. Lighter than fact-checking; leave disabled to skip.'),
+      '#options' => ['' => $this->t('- Disabled -')] + $verifier_options,
+      '#default_value' => $route->getVerifierModel(),
+    ];
+
     if ($this->moduleHandler->moduleExists('ai_provider_universal_factcheck')) {
       $form['factcheck'] = [
         '#type' => 'checkbox',

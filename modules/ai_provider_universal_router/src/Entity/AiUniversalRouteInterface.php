@@ -33,6 +33,15 @@ interface AiUniversalRouteInterface extends ConfigEntityInterface {
   public function getComplexTier(): int;
 
   /**
+   * Model entity id that judges answers before returning ('' = disabled).
+   *
+   * One yes/no verification call (typically to a free local model); on
+   * rejection the request escalates to the best candidate. Lighter than
+   * the fact-check cascade and independent of the factcheck module.
+   */
+  public function getVerifierModel(): string;
+
+  /**
    * Whether chat answers on this route are fact-checked.
    *
    * Requires the ai_provider_universal_factcheck module; ignored otherwise.

@@ -9,6 +9,7 @@ use Drupal\ai\Exception\AiQuotaException;
 use Drupal\ai\Exception\AiRequestErrorException;
 use Drupal\ai\Exception\AiSetupFailureException;
 use Drupal\ai\OperationType\Chat\ChatInput;
+use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai\OperationType\Chat\ChatOutput;
 use Drupal\ai\OperationType\Embeddings\EmbeddingsInput;
 use Drupal\ai\OperationType\Embeddings\EmbeddingsOutput;
@@ -626,12 +627,38 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   protected function maybeEscalate(string $route_id, array|string|ChatInput $input, string $model_id, ChatOutput $output, array $tags): ChatOutput {
     $container = $this->serviceContainer;
-    if (!$container->has('ai_provider_universal_factcheck.checker')) {
+    $route = $this->entityTypeManager->getStorage('ai_universal_route')->load($route_id);
+    if (!$route) {
       return $output;
     }
 
-    $route = $this->entityTypeManager->getStorage('ai_universal_route')->load($route_id);
-    if (!$route || !$route->isFactcheckEnabled()) {
+    $question = $input instanceof ChatInput
+      ? implode("\n", array_map(static fn ($m) => $m->getText(), $input->getMessages()))
+      : (is_string($input) ? $input : '');
+
+    // Lightweight verifier: one yes/no judgment, typically by a free local
+    // model. Runs before (and independently of) the fact-check cascade.
+    $verifier = $route->getVerifierModel();
+    if ($verifier && $verifier !== $model_id
+      && !$this->verifyAnswer($question, $output->getNormalized()->getText(), $verifier)) {
+      $best = $container->get('ai_provider_universal_router.decider')
+        ->resolveBest($route_id, 'chat', [$model_id]);
+      if ($best) {
+        $this->loggerFactory->get('ai_provider_universal')->info(
+          'Verifier @verifier rejected the answer from @model on route @route; escalating to @best.',
+          [
+            '@verifier' => $verifier,
+            '@model' => $model_id,
+            '@route' => $route_id,
+            '@best' => $best,
+          ],
+        );
+        // Escalated answer returned as-is: one escalation per request.
+        return $this->doChat($input, $best, $tags);
+      }
+    }
+
+    if (!$route->isFactcheckEnabled() || !$container->has('ai_provider_universal_factcheck.checker')) {
       return $output;
     }
 
@@ -639,10 +666,6 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     if (!$checker->isConfigured()) {
       return $output;
     }
-
-    $question = $input instanceof ChatInput
-      ? implode("\n", array_map(static fn ($m) => $m->getText(), $input->getMessages()))
-      : (is_string($input) ? $input : '');
 
     $result = $checker->verify($question, $output->getNormalized()->getText());
     if ($result['score'] >= $route->getFactcheckMinScore()) {
@@ -667,6 +690,29 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     );
 
     return $this->doChat($input, $best, $tags);
+  }
+
+  /**
+   * Asks the verifier model whether the answer solves the prompt.
+   *
+   * Fails open: a broken or unreachable verifier never sinks an answer.
+   */
+  protected function verifyAnswer(string $question, string $answer, string $verifier): bool {
+    try {
+      $input = new ChatInput([
+        new ChatMessage('user', "Task:\n$question\n\nAnswer:\n$answer\n\nDoes the answer correctly and completely solve the task? Reply with exactly one word: yes or no."),
+      ]);
+      $reply = $this->doChat($input, $verifier, ['route_verifier'])
+        ->getNormalized()->getText();
+      return !str_contains(strtolower($reply), 'no');
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('ai_provider_universal')->warning(
+        'Verifier model @model failed (@message); accepting the answer unverified.',
+        ['@model' => $verifier, '@message' => $e->getMessage()],
+      );
+      return TRUE;
+    }
   }
 
   /**
