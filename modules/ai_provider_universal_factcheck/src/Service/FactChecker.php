@@ -270,6 +270,7 @@ PROMPT;
    *   The text to extract from.
    * @param string $context
    *   Optional original question or title for disambiguation.
+   *
    * @return string[]
    *   The claims; empty when extraction fails (treated as "nothing to
    *   verify" — the answer passes rather than hard-failing inference).
@@ -286,8 +287,9 @@ PROMPT;
 
     $claims = [];
 
-    // 1. Best: strict JSON array anywhere in the response (handles ```json fences too).
-    // Models sometimes return [{"claim": "..."}] instead of plain strings.
+    // 1. Best: a strict JSON array anywhere in the response (handles
+    // ```json fences too). Models sometimes return [{"claim": "..."}]
+    // instead of plain strings.
     if (preg_match('/\[.*\]/s', $raw, $match)) {
       $decoded = json_decode($match[0], TRUE);
       if (is_array($decoded)) {

@@ -7,3 +7,5 @@ dependencies:
   - ai:ai
   - key:key
 configure: entity.ai_universal_server.collection
+'interface translation project': ai_provider_universal
+'interface translation server pattern': 'modules/contrib/ai_provider_universal/translations/%project.%language.po'

@@ -8,3 +8,5 @@ dependencies:
   - ai_provider_universal:ai_provider_universal_router
   - drupal:node
 configure: ai_provider_universal_factcheck.settings
+'interface translation project': ai_provider_universal_factcheck
+'interface translation server pattern': 'modules/contrib/ai_provider_universal/modules/ai_provider_universal_factcheck/translations/%project.%language.po'

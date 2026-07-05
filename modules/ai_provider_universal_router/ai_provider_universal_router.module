@@ -8,9 +8,10 @@
 use Drupal\Core\Entity\EntityInterface;
 
 /**
- * Clears the AI provider cache so that new/updated Smart Routes appear
- * immediately in model dropdowns (including Factcheck settings) without
- * requiring a full cache rebuild from users.
+ * Clears the AI provider cache when Smart Routes change.
+ *
+ * New/updated routes then appear immediately in model dropdowns (including
+ * Factcheck settings) without requiring a full cache rebuild from users.
  */
 function _ai_provider_universal_router_clear_ai_cache(): void {
   if (\Drupal::hasService('ai.provider')) {

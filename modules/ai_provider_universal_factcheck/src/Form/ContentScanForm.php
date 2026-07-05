@@ -350,12 +350,14 @@ class ContentScanForm extends FormBase {
         // stays readable.
         $analysis = trim((string) ($c['analysis'] ?? ''));
         $analysisCell = mb_strlen($analysis) > 160
-          ? ['data' => [
-            '#type' => 'details',
-            '#title' => $this->t('Analysis'),
-            '#open' => FALSE,
-            'text' => ['#plain_text' => $analysis],
-          ]]
+          ? [
+            'data' => [
+              '#type' => 'details',
+              '#title' => $this->t('Analysis'),
+              '#open' => FALSE,
+              'text' => ['#plain_text' => $analysis],
+            ],
+          ]
           : $analysis;
         return [
           ['data' => ['#markup' => '<strong>' . htmlspecialchars($c['claim']) . '</strong>']],

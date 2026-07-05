@@ -6,3 +6,5 @@ package: AI Providers
 dependencies:
   - ai_provider_universal:ai_provider_universal
 configure: entity.ai_universal_route.collection
+'interface translation project': ai_provider_universal_router
+'interface translation server pattern': 'modules/contrib/ai_provider_universal/modules/ai_provider_universal_router/translations/%project.%language.po'
