@@ -320,8 +320,10 @@ PROMPT;
       $sentences = preg_split('/(?<=[.!?…])\s+/u', $answer);
       foreach ($sentences as $s) {
         $s = trim($s);
-        if (mb_strlen($s) > 15 && !preg_match('/^(who|what|when|where|why|how|es|son|está|será|¿|\?)/i', $s)) {
-          // Very rough filter: skip obvious questions / very short.
+        // ponytail: language-neutral filter — skip very short fragments and
+        // anything containing a question mark. Smarter declarative-vs-question
+        // detection is the extractor model's job, not a regex's.
+        if (mb_strlen($s) > 15 && !str_contains($s, '?') && !str_contains($s, '¿')) {
           $claims[] = $s;
         }
       }
