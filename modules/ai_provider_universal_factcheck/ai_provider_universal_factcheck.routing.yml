@@ -22,7 +22,7 @@ ai_provider_universal_factcheck.content_scan:
     _title: 'Content scan'
   requirements:
     _entity_access: 'node.update'
-    _permission: 'run content scan'
+    _permission: 'run content scan+administer nodes+administer ai providers'
   options:
     parameters:
       node:

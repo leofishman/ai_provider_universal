@@ -1,0 +1,6 @@
+ai_provider_universal_factcheck.content_scan:
+  route_name: ai_provider_universal_factcheck.content_scan
+  title: 'Content scan'
+  appears_on:
+    - entity.node.edit_form
+  weight: 10

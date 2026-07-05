@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Fact Check submodule.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function ai_provider_universal_factcheck_install(): void {
+  // Grant the custom 'run content scan' permission to the administrator role
+  // if it exists. This makes the Content scan tab visible to admins by default.
+  // Note: even admins do not automatically receive custom module permissions.
+  $role = \Drupal\user\Entity\Role::load('administrator');
+  if ($role && !$role->hasPermission('run content scan')) {
+    $role->grantPermission('run content scan');
+    $role->save();
+  }
+}
