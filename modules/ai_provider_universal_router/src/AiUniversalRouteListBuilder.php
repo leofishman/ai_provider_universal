@@ -8,7 +8,7 @@ use Drupal\Core\Entity\EntityInterface;
 /**
  * List builder for smart routes.
  */
-class UniversalRouteListBuilder extends ConfigEntityListBuilder {
+class AiUniversalRouteListBuilder extends ConfigEntityListBuilder {
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class UniversalRouteListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity) {
-    /** @var \Drupal\ai_provider_universal_router\Entity\UniversalRouteInterface $entity */
+    /** @var \Drupal\ai_provider_universal_router\Entity\AiUniversalRouteInterface $entity */
     $candidates = $entity->getCandidates();
     return [
       'label' => $entity->label(),

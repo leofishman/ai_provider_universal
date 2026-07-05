@@ -7,10 +7,10 @@ ai_provider_universal_factcheck.settings:
       label: 'Verification profile: fast | balanced | thorough'
     checker_model:
       type: string
-      label: 'Checker model (universal_model id)'
+      label: 'Checker model (ai_universal_model id)'
     extractor_model:
       type: string
-      label: 'Claim extractor model (universal_model id, empty = checker model)'
+      label: 'Claim extractor model (ai_universal_model id, empty = checker model)'
     evidence_index:
       type: string
       label: 'Search API index for evidence (optional)'
@@ -19,7 +19,7 @@ ai_provider_universal_factcheck.settings:
       label: 'Maximum claims to verify per answer'
     detector_model:
       type: string
-      label: 'AI-detection model (universal_model id, empty = checker model)'
+      label: 'AI-detection model (ai_universal_model id, empty = checker model)'
     plagiarism_key:
       type: string
       label: 'Key entity holding the Serper.dev API key (empty = plagiarism check disabled)'

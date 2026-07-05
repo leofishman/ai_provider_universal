@@ -13,7 +13,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * Replaces State-based storage (ai_provider_universal.server.*.models etc).
  */
 #[ConfigEntityType(
-  id: 'universal_model',
+  id: 'ai_universal_model',
   label: new TranslatableMarkup('AI Model'),
   label_collection: new TranslatableMarkup('Models'),
   label_singular: new TranslatableMarkup('model'),
@@ -49,7 +49,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     // edit/delete optional for v1 of this refactor.
   ],
 )]
-class UniversalModel extends ConfigEntityBase implements UniversalModelInterface {
+class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInterface {
 
   /**
    * The model machine name (unique, typically server_id + sanitized raw id).
@@ -66,7 +66,7 @@ class UniversalModel extends ConfigEntityBase implements UniversalModelInterface
   protected string $label;
 
   /**
-   * Owning server ID (references universal_server.id).
+   * Owning server ID (references ai_universal_server.id).
    *
    * @var string
    */

@@ -39,7 +39,7 @@ final class RouteDeciderTest extends KernelTestBase {
     parent::setUp();
     $this->installSchema('ai_provider_universal_router', ['ai_universal_router_log']);
 
-    $model_storage = $this->container->get('entity_type.manager')->getStorage('universal_model');
+    $model_storage = $this->container->get('entity_type.manager')->getStorage('ai_universal_model');
     // Local: free, mid quality, small context.
     $model_storage->create([
       'id' => 'local__qwen',
@@ -77,7 +77,7 @@ final class RouteDeciderTest extends KernelTestBase {
       'context_length' => 163840,
     ])->save();
 
-    $this->container->get('entity_type.manager')->getStorage('universal_route')->create([
+    $this->container->get('entity_type.manager')->getStorage('ai_universal_route')->create([
       'id' => 'default_chat',
       'label' => 'Default chat',
       'operation_type' => 'chat',

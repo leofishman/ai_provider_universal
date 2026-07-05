@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
+namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -20,7 +20,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * Managed LiteLLM services (amazee.ai) get their own subclass so they
  * appear as distinct providers in the UI.
  */
-#[ServerBackend(
+#[AiServerBackend(
   id: 'litellm',
   label: new TranslatableMarkup('LiteLLM'),
   description: new TranslatableMarkup("Self-hosted LiteLLM proxy servers. Operation types, pricing and context length are read from LiteLLM's /model/info endpoint. For amazee.ai use the dedicated amazee.ai backend."),
@@ -49,7 +49,7 @@ class LiteLlm extends OpenAiCompatible {
    * model_info}. Falls back to the standard OpenAI catalog when the key
    * lacks access to it.
    */
-  public function listModels(UniversalServerInterface $server): array {
+  public function listModels(AiUniversalServerInterface $server): array {
     $base = $this->getBaseUri($server);
     $root = preg_replace('~/v1/?$~', '', rtrim($base, '/'));
 

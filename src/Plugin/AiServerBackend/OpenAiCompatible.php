@@ -1,11 +1,11 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
+namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
 use OpenAI\Client;
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
-use Drupal\ai_provider_universal\Backend\ServerBackendPluginBase;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
+use Drupal\ai_provider_universal\Backend\AiServerBackendPluginBase;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\State\StateInterface;
@@ -22,12 +22,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * the HuggingFace pipeline_tag of the model's --hf-repo, then model-name
  * heuristics, and finally defaults to chat.
  */
-#[ServerBackend(
+#[AiServerBackend(
   id: 'openai_compatible',
   label: new TranslatableMarkup('OpenAI-compatible'),
   description: new TranslatableMarkup('llama.cpp, Ollama, vLLM, LM Studio, LiteLLM, Fireworks, OpenAI and any other server speaking the OpenAI REST protocol.'),
 )]
-class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFactoryPluginInterface {
+class OpenAiCompatible extends AiServerBackendPluginBase implements ContainerFactoryPluginInterface {
 
   /**
    * Map from HuggingFace pipeline_tag to operation type.
@@ -71,7 +71,7 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
   /**
    * {@inheritdoc}
    */
-  public function getBaseUri(UniversalServerInterface $server): string {
+  public function getBaseUri(AiUniversalServerInterface $server): string {
     $host = rtrim($server->getHostName(), '/');
     if ($host === '') {
       // No default endpoint for the generic backend; the server is unusable
@@ -91,7 +91,7 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
    * client: its Model DTO drops non-standard fields (llama.cpp's status.args,
    * vLLM's max_model_len, ...) that capability and metadata detection need.
    */
-  public function listModels(UniversalServerInterface $server): array {
+  public function listModels(AiUniversalServerInterface $server): array {
     $options = ['headers' => ['Accept' => 'application/json'] + $this->getHttpHeaders($server) + $this->authHeaders($server)];
 
     $client = $this->httpClientFactory->fromOptions(['timeout' => $server->getTimeout() ?: 600]);
@@ -173,7 +173,7 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
    * @return array<string, string>
    *   Header map with the Bearer token, or empty array.
    */
-  protected function authHeaders(UniversalServerInterface $server): array {
+  protected function authHeaders(AiUniversalServerInterface $server): array {
     $keyId = $server->getApiKey();
     if ($keyId && $this->keyRepository) {
       $keyValue = $this->keyRepository->getKey($keyId)?->getKeyValue();
@@ -187,7 +187,7 @@ class OpenAiCompatible extends ServerBackendPluginBase implements ContainerFacto
   /**
    * Creates an OpenAI client for the given server.
    */
-  protected function createClient(UniversalServerInterface $server): Client {
+  protected function createClient(AiUniversalServerInterface $server): Client {
     $factory = \OpenAI::factory();
 
     $keyId = $server->getApiKey();

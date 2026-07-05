@@ -6,25 +6,25 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\ai_provider_universal\Form\UniversalServerDeleteForm;
-use Drupal\ai_provider_universal\Form\UniversalServerForm;
-use Drupal\ai_provider_universal\UniversalServerListBuilder;
+use Drupal\ai_provider_universal\Form\AiUniversalServerDeleteForm;
+use Drupal\ai_provider_universal\Form\AiUniversalServerForm;
+use Drupal\ai_provider_universal\AiUniversalServerListBuilder;
 
 /**
  * Defines a configured OpenAI-compatible server instance.
  */
 #[ConfigEntityType(
-  id: 'universal_server',
+  id: 'ai_universal_server',
   label: new TranslatableMarkup('OpenAI-compatible Server'),
   label_collection: new TranslatableMarkup('Servers'),
   label_singular: new TranslatableMarkup('server'),
   label_plural: new TranslatableMarkup('servers'),
   handlers: [
-    'list_builder' => UniversalServerListBuilder::class,
+    'list_builder' => AiUniversalServerListBuilder::class,
     'form' => [
-      'add' => UniversalServerForm::class,
-      'edit' => UniversalServerForm::class,
-      'delete' => UniversalServerDeleteForm::class,
+      'add' => AiUniversalServerForm::class,
+      'edit' => AiUniversalServerForm::class,
+      'delete' => AiUniversalServerDeleteForm::class,
     ],
     'route_provider' => [
       'html' => AdminHtmlRouteProvider::class,
@@ -53,12 +53,12 @@ use Drupal\ai_provider_universal\UniversalServerListBuilder;
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/add',
-    'edit-form' => '/admin/config/ai/providers/universal/{universal_server}',
-    'delete-form' => '/admin/config/ai/providers/universal/{universal_server}/delete',
+    'edit-form' => '/admin/config/ai/providers/universal/{ai_universal_server}',
+    'delete-form' => '/admin/config/ai/providers/universal/{ai_universal_server}/delete',
     'collection' => '/admin/config/ai/providers/universal',
   ],
 )]
-class UniversalServer extends ConfigEntityBase implements UniversalServerInterface {
+class AiUniversalServer extends ConfigEntityBase implements AiUniversalServerInterface {
 
   /**
    * The server machine name.

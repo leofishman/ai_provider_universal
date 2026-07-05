@@ -26,7 +26,7 @@ class UsageTracker {
    * Records one request against a model's counters for today.
    *
    * @param string $model_id
-   *   The universal_model entity id.
+   *   The ai_universal_model entity id.
    * @param int|null $input_tokens
    *   Input tokens reported by the server, if any.
    * @param int|null $output_tokens
@@ -79,7 +79,7 @@ class UsageTracker {
    *   Zeroes when the server has no usage today.
    */
   public function getTodayForServer(string $server_id): array {
-    $model_ids = $this->entityTypeManager->getStorage('universal_model')
+    $model_ids = $this->entityTypeManager->getStorage('ai_universal_model')
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('server_id', $server_id)

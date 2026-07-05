@@ -1,6 +1,6 @@
 # Servers, models and backends
 
-## Servers: `universal_server` config entities
+## Servers: `ai_universal_server` config entities
 
 A **server** is one endpoint: a host, a backend (protocol), optional authentication, a timeout, an optional model filter, and optional daily usage limits. Manage them at **Configuration → AI → Providers → Universal** (`/admin/config/ai/providers/universal`).
 
@@ -8,7 +8,7 @@ Fields on the server form:
 
 | Field | Meaning |
 |---|---|
-| Server name / machine name | Label and permanent id (`universal_server.id`). |
+| Server name / machine name | Label and permanent id (`ai_universal_server.id`). |
 | Backend | Protocol plugin — see the catalog below. Hidden when only one backend is installed. |
 | Host name | `http://host` or `https://host`. Hidden for backends with a fixed endpoint (OpenRouter, Hugging Face, Fireworks, Ollama Cloud), which show their endpoint as a hint instead. |
 | Port | Optional; common local defaults are documented inline (Ollama 11434, llama.cpp 8080, vLLM 8000, LM Studio 1234, LiteLLM 4000). |
@@ -17,16 +17,16 @@ Fields on the server form:
 | Model filter pattern | See [Model filtering](#model-filtering) below. |
 | Usage limits | Daily request/token caps — see [docs/usage-limits.md](usage-limits.md). |
 
-Saving a server **tests the connection** (the backend's `listModels()` is called during validation; failure blocks the save with the exact protocol error logged to the `ai_provider_universal` channel) and then **runs model discovery**, persisting the result as `universal_model` entities.
+Saving a server **tests the connection** (the backend's `listModels()` is called during validation; failure blocks the save with the exact protocol error logged to the `ai_provider_universal` channel) and then **runs model discovery**, persisting the result as `ai_universal_model` entities.
 
 ## Backend catalog
 
-Every backend is a `ServerBackendInterface` plugin (`src/Plugin/ServerBackend/`), auto-discovered via the `#[ServerBackend]` attribute. They share one execution path (`OpenAiBasedProviderClientBase` — all speak the OpenAI REST protocol) and differ only in: default endpoint, how models are listed, how capabilities are detected, and how routing metadata (cost/tier/context) is prefilled.
+Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBackend/`), auto-discovered via the `#[AiServerBackend]` attribute. They share one execution path (`OpenAiBasedProviderClientBase` — all speak the OpenAI REST protocol) and differ only in: default endpoint, how models are listed, how capabilities are detected, and how routing metadata (cost/tier/context) is prefilled.
 
 | Backend id | Service | Default endpoint | Needs host/port | Discovery source | Capability detection | Pricing/context source |
 |---|---|---|---|---|---|---|
 | `openai_compatible` | llama.cpp, Ollama, vLLM, LM Studio and any OpenAI-protocol server | none (required) | yes | `/v1/models` | llama.cpp `status.args` (`--embeddings`, `--reranking`) → HF `pipeline_tag` of `--hf-repo` → name heuristics → `chat` | `--ctx-size` (router mode) → `meta.n_ctx_train` → `max_model_len` (vLLM); cost stays unset |
-| `fireworks` | Fireworks AI serverless | `api.fireworks.ai/inference/v1` | optional | `/v1/models` | Name heuristics tuned to `accounts/fireworks/models/*` ids | Hardcoded table of published serverless prices by model-family substring (`src/Plugin/ServerBackend/Fireworks.php::MODEL_METADATA`) |
+| `fireworks` | Fireworks AI serverless | `api.fireworks.ai/inference/v1` | optional | `/v1/models` | Name heuristics tuned to `accounts/fireworks/models/*` ids | Hardcoded table of published serverless prices by model-family substring (`src/Plugin/AiServerBackend/Fireworks.php::MODEL_METADATA`) |
 | `openrouter` | OpenRouter unified API | `openrouter.ai/api/v1` | optional | `/v1/models` | `architecture.output_modalities` (image → `text_to_image`) → generic heuristics | Live from the catalog payload (`pricing.prompt`/`completion`, `context_length`) — no hardcoded table |
 | `litellm` | Self-hosted LiteLLM proxy | none (required) | yes | `/model/info` (proxy root, not `/v1`); falls back to `/v1/models` if the key can't read it | Structured `model_info.mode` field → generic heuristics on fallback | `model_info.input_cost_per_token`/`output_cost_per_token` (× 1M) and `max_input_tokens` |
 | `amazee` | amazee.ai (managed LiteLLM, region-pinned) | none — host is your `litellm_api_url` | yes | Same as `litellm` (subclass, no protocol differences) | Same as `litellm` | Same as `litellm` |
@@ -42,11 +42,11 @@ Notes:
 
 ## Model discovery
 
-Discovery is the **write path**: it calls the backend's `listModels()`, runs the model filter, asks the backend to detect operation types and routing metadata per model, then persists the result as `universal_model` config entities (`src/Service/ModelCatalog.php`).
+Discovery is the **write path**: it calls the backend's `listModels()`, runs the model filter, asks the backend to detect operation types and routing metadata per model, then persists the result as `ai_universal_model` config entities (`src/Service/ModelCatalog.php`).
 
 - **Entity id**: `<server_id>__<sanitized_raw_model_id>`, so ids stay unique across servers even when two servers expose a model with the same raw id (e.g. `local__llama3` vs `openrouter__llama3`).
 - **Label**: `<Server label> / <raw model id>`, only set automatically while it still matches the auto-generated pattern — a manually renamed model label survives re-discovery.
-- **Removed models are deleted**: any `universal_model` for the server that discovery no longer sees is removed (`hook_entity_delete` also cascades: deleting a server deletes all its models).
+- **Removed models are deleted**: any `ai_universal_model` for the server that discovery no longer sees is removed (`hook_entity_delete` also cascades: deleting a server deletes all its models).
 - **Manual edits are never clobbered**: `applyDetectedMetadata()` only writes a detected value (cost, quality tier, context length) into a field that is still `NULL`. Once you set a value in the UI, re-discovery leaves it alone.
 
 Trigger discovery with:
@@ -98,7 +98,7 @@ Any other model falls back to a generic chat-completions call, flagged by a lite
 
 ## Cache invalidation
 
-`src/Hook/AiProviderUniversalHooks.php` clears the AI module's provider plugin definition cache whenever a `universal_server` entity is inserted, updated, or deleted, so newly added/removed servers and their models appear in the AI settings model dropdowns without a manual cache rebuild. Deleting a server also cascades to delete its `universal_model` entities.
+`src/Hook/AiProviderUniversalHooks.php` clears the AI module's provider plugin definition cache whenever a `ai_universal_server` entity is inserted, updated, or deleted, so newly added/removed servers and their models appear in the AI settings model dropdowns without a manual cache rebuild. Deleting a server also cascades to delete its `ai_universal_model` entities.
 
 ## Extending: adding a backend
 

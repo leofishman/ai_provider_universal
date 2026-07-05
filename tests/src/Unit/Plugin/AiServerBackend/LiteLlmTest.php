@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\ai_provider_universal\Unit\Plugin\ServerBackend;
+namespace Drupal\Tests\ai_provider_universal\Unit\Plugin\AiServerBackend;
 
-use Drupal\ai_provider_universal\Plugin\ServerBackend\LiteLlm;
+use Drupal\ai_provider_universal\Plugin\AiServerBackend\LiteLlm;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Tests\UnitTestCase;

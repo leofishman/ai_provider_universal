@@ -6,4 +6,4 @@ package: AI Providers
 dependencies:
   - ai:ai
   - key:key
-configure: entity.universal_server.collection
+configure: entity.ai_universal_server.collection

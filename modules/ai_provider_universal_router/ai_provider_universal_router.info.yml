@@ -5,4 +5,4 @@ core_version_requirement: ^10.2 || ^11 || ^12
 package: AI Providers
 dependencies:
   - ai_provider_universal:ai_provider_universal
-configure: entity.universal_route.collection
+configure: entity.ai_universal_route.collection

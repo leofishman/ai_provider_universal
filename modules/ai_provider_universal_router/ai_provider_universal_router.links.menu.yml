@@ -1,7 +1,7 @@
 ai_provider_universal_router.routes:
   title: 'Smart Routes'
   description: 'Cost-aware routing: virtual models that pick the cheapest capable model per request.'
-  route_name: entity.universal_route.collection
+  route_name: entity.ai_universal_route.collection
   parent: ai.admin_providers
 
 ai_provider_universal_router.report:

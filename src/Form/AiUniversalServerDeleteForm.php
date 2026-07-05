@@ -7,9 +7,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
 /**
- * Confirmation form for deleting a universal_server entity.
+ * Confirmation form for deleting a ai_universal_server entity.
  */
-class UniversalServerDeleteForm extends EntityConfirmFormBase {
+class AiUniversalServerDeleteForm extends EntityConfirmFormBase {
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class UniversalServerDeleteForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getCancelUrl() {
-    return new Url('entity.universal_server.collection');
+    return new Url('entity.ai_universal_server.collection');
   }
 
   /**

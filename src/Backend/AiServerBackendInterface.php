@@ -2,7 +2,7 @@
 
 namespace Drupal\ai_provider_universal\Backend;
 
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 
 /**
  * Interface for server backend plugins.
@@ -14,23 +14,23 @@ use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
  * (e.g. Anthropic, Gemini) can be added as further plugins without
  * touching the catalog or the provider.
  */
-interface ServerBackendInterface {
+interface AiServerBackendInterface {
 
   /**
    * Returns the base URI requests to this server should target.
    *
-   * @param \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server
+   * @param \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server
    *   The server entity.
    *
    * @return string
    *   Absolute base URI, e.g. "http://box:8080/v1".
    */
-  public function getBaseUri(UniversalServerInterface $server): string;
+  public function getBaseUri(AiUniversalServerInterface $server): string;
 
   /**
    * Lists the models the server currently exposes.
    *
-   * @param \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server
+   * @param \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server
    *   The server entity.
    *
    * @return array<int, array<string, mixed>>
@@ -41,7 +41,7 @@ interface ServerBackendInterface {
    * @throws \Throwable
    *   When the server cannot be reached or answers with an error.
    */
-  public function listModels(UniversalServerInterface $server): array;
+  public function listModels(AiUniversalServerInterface $server): array;
 
   /**
    * Detects the operation types a discovered model supports.
@@ -58,7 +58,7 @@ interface ServerBackendInterface {
   /**
    * Detects routing-relevant metadata for a discovered model.
    *
-   * Values are applied to the universal_model entity only when the
+   * Values are applied to the ai_universal_model entity only when the
    * corresponding field is still unset, so user edits are never clobbered
    * by re-discovery.
    *
@@ -75,7 +75,7 @@ interface ServerBackendInterface {
   /**
    * Returns extra HTTP headers every request to this server should carry.
    *
-   * @param \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server
+   * @param \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server
    *   The server entity.
    *
    * @return array<string, string>
@@ -83,6 +83,6 @@ interface ServerBackendInterface {
    *   for service-specific headers such as OpenRouter's attribution
    *   headers; authentication is handled separately via the Key module.
    */
-  public function getHttpHeaders(UniversalServerInterface $server): array;
+  public function getHttpHeaders(AiUniversalServerInterface $server): array;
 
 }

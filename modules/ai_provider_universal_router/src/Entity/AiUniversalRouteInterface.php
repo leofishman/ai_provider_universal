@@ -7,7 +7,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 /**
  * Interface for smart route config entities.
  */
-interface UniversalRouteInterface extends ConfigEntityInterface {
+interface AiUniversalRouteInterface extends ConfigEntityInterface {
 
   /**
    * Gets the operation type this route serves (chat, embeddings, ...).
@@ -15,7 +15,7 @@ interface UniversalRouteInterface extends ConfigEntityInterface {
   public function getOperationType(): string;
 
   /**
-   * Gets the candidate universal_model entity ids.
+   * Gets the candidate ai_universal_model entity ids.
    *
    * @return string[]
    *   Candidate model ids. Empty = every model supporting the operation.

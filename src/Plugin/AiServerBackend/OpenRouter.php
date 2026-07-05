@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
+namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -16,7 +16,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * metadata (pricing and context length) read straight from the catalog
  * payload — no hardcoded table, prices stay current automatically.
  */
-#[ServerBackend(
+#[AiServerBackend(
   id: 'openrouter',
   label: new TranslatableMarkup('OpenRouter'),
   description: new TranslatableMarkup('OpenRouter unified API (openrouter.ai): 300+ models from OpenAI, Anthropic, Google, Meta and others behind one OpenAI-compatible endpoint. Pricing and context length are prefilled for smart routing.'),
@@ -34,7 +34,7 @@ class OpenRouter extends OpenAiCompatible {
    * OpenRouter's optional attribution headers identify the calling app in
    * its usage rankings (https://openrouter.ai/docs/app-attribution).
    */
-  public function getHttpHeaders(UniversalServerInterface $server): array {
+  public function getHttpHeaders(AiUniversalServerInterface $server): array {
     return [
       'HTTP-Referer' => 'https://www.drupal.org/project/ai_provider_universal',
       'X-Title' => 'Drupal AI Provider Universal',
@@ -44,7 +44,7 @@ class OpenRouter extends OpenAiCompatible {
   /**
    * {@inheritdoc}
    */
-  public function getBaseUri(UniversalServerInterface $server): string {
+  public function getBaseUri(AiUniversalServerInterface $server): string {
     if (!$server->getHostName()) {
       return self::DEFAULT_BASE_URI;
     }

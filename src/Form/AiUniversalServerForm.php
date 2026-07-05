@@ -3,17 +3,19 @@
 namespace Drupal\ai_provider_universal\Form;
 
 use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\ai_provider_universal\Backend\ServerBackendManager;
+use Drupal\Core\Url;
+use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Form for adding and editing universal_server entities.
+ * Form for adding and editing ai_universal_server entities.
  */
-class UniversalServerForm extends EntityForm {
+class AiUniversalServerForm extends EntityForm {
 
   /**
    * Operation type labels for override checkboxes.
@@ -32,7 +34,7 @@ class UniversalServerForm extends EntityForm {
    */
   public function __construct(
     protected ModelCatalog $modelCatalog,
-    protected ServerBackendManager $backendManager,
+    protected AiServerBackendManager $backendManager,
     protected UsageTracker $usageTracker,
     EntityTypeManagerInterface $entity_type_manager,
   ) {
@@ -47,7 +49,7 @@ class UniversalServerForm extends EntityForm {
   final public static function create(ContainerInterface $container) {
     return new static(
       $container->get(ModelCatalog::class),
-      $container->get(ServerBackendManager::class),
+      $container->get(AiServerBackendManager::class),
       $container->get(UsageTracker::class),
       $container->get('entity_type.manager'),
     );
@@ -58,7 +60,7 @@ class UniversalServerForm extends EntityForm {
    */
   public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server */
     $server = $this->entity;
 
     $form['label'] = [
@@ -74,7 +76,7 @@ class UniversalServerForm extends EntityForm {
       '#type' => 'machine_name',
       '#default_value' => $server->id(),
       '#machine_name' => [
-        'exists' => '\Drupal\ai_provider_universal\Entity\UniversalServer::load',
+        'exists' => '\Drupal\ai_provider_universal\Entity\AiUniversalServer::load',
       ],
       '#disabled' => !$server->isNew(),
     ];
@@ -150,8 +152,25 @@ class UniversalServerForm extends EntityForm {
     $form['connection']['api_key'] = [
       '#type' => 'key_select',
       '#title' => $this->t('API Key'),
-      '#description' => $this->t('Required for hosted services. Optional for local servers: leave empty when unauthenticated (llama.cpp, Ollama, LM Studio), set for vLLM or LiteLLM with an api-key configured.'),
+      '#key_description' => FALSE,
+      '#description' => $this->t('Required for hosted services. Optional for local servers: leave empty when unauthenticated (llama.cpp, Ollama, LM Studio), set for vLLM or LiteLLM with an api-key configured. Missing key? <a href=":url" target="_blank">Create one in a new tab</a>, then press %refresh.', [
+        ':url' => Url::fromRoute('entity.key.add_form')->toString(),
+        '%refresh' => $this->t('Refresh keys'),
+      ]),
       '#default_value' => $server->getApiKey(),
+      '#prefix' => '<div id="aip-key-select">',
+      '#suffix' => '</div>',
+    ];
+
+    $form['connection']['refresh_keys'] = [
+      '#type' => 'button',
+      '#name' => 'refresh_keys',
+      '#value' => $this->t('Refresh keys'),
+      '#limit_validation_errors' => [],
+      '#ajax' => [
+        'callback' => '::refreshKeysAjax',
+        'wrapper' => 'aip-key-select',
+      ],
     ];
 
     $form['connection']['timeout'] = [
@@ -161,6 +180,20 @@ class UniversalServerForm extends EntityForm {
       '#default_value' => $server->getTimeout() ?: 600,
       '#min' => 5,
       '#max' => 3600,
+    ];
+
+    $form['connection']['detect'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Test connection & list models'),
+      '#ajax' => [
+        'callback' => '::detectModelsAjax',
+        'wrapper' => 'aip-detect-results',
+      ],
+    ];
+
+    $form['connection']['detect_results'] = [
+      '#type' => 'container',
+      '#attributes' => ['id' => 'aip-detect-results'],
     ];
 
     $usage = $server->isNew() ? NULL : $this->usageTracker->getTodayForServer((string) $server->id());
@@ -179,9 +212,9 @@ class UniversalServerForm extends EntityForm {
     $form['limits']['daily_request_limit'] = [
       '#type' => 'number',
       '#title' => $this->t('Daily request limit'),
-      '#description' => $this->t('Maximum requests per day. Leave empty for unlimited.'),
+      '#description' => $this->t('Maximum requests per day. Leave empty for unlimited; 0 blocks the server until the day rolls over.'),
       '#default_value' => $server->getDailyRequestLimit(),
-      '#min' => 1,
+      '#min' => 0,
       '#step' => 1,
       '#parents' => ['daily_request_limit'],
     ];
@@ -189,9 +222,9 @@ class UniversalServerForm extends EntityForm {
     $form['limits']['daily_token_limit'] = [
       '#type' => 'number',
       '#title' => $this->t('Daily token limit'),
-      '#description' => $this->t('Maximum tokens (input + output) per day. Leave empty for unlimited.'),
+      '#description' => $this->t('Maximum tokens (input + output) per day. Leave empty for unlimited; 0 blocks the server until the day rolls over.'),
       '#default_value' => $server->getDailyTokenLimit(),
-      '#min' => 1,
+      '#min' => 0,
       '#step' => 1,
       '#parents' => ['daily_token_limit'],
     ];
@@ -257,8 +290,8 @@ class UniversalServerForm extends EntityForm {
   protected function getBackendDefaultUri(string $backend_id): string {
     try {
       $backend = $this->backendManager->createInstance($backend_id);
-      /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface $blank */
-      $blank = $this->entityTypeManager->getStorage('universal_server')->create([
+      /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $blank */
+      $blank = $this->entityTypeManager->getStorage('ai_universal_server')->create([
         'host_name' => '',
         'port' => '',
       ]);
@@ -272,7 +305,7 @@ class UniversalServerForm extends EntityForm {
   /**
    * Builds the model capability overrides fieldset.
    *
-   * Now reads from universal_model config entities (instead of State).
+   * Now reads from ai_universal_model config entities (instead of State).
    */
   protected function buildOverridesForm($server): array {
     $server_id = $server->id();
@@ -291,7 +324,7 @@ class UniversalServerForm extends EntityForm {
       '#tree' => TRUE,
     ];
 
-    $model_storage = $this->entityTypeManager->getStorage('universal_model');
+    $model_storage = $this->entityTypeManager->getStorage('ai_universal_model');
     $models = $model_storage->loadByProperties(['server_id' => $server_id]);
 
     if (empty($models)) {
@@ -303,7 +336,7 @@ class UniversalServerForm extends EntityForm {
 
     $type_options = array_map([$this, 't'], self::OPERATION_TYPE_LABELS);
 
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
     foreach ($models as $model) {
       $raw_id = $model->getRawModelId();
       $auto_types = $model->getDetectedOperationTypes() ?: ['chat'];
@@ -397,14 +430,22 @@ class UniversalServerForm extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
-    // Number elements submit '' when empty, but buildEntity() copies values
-    // verbatim onto typed ?int entity properties: normalize first.
+  protected function copyFormValuesToEntity(EntityInterface $entity, array $form, FormStateInterface $form_state) {
+    // Number elements submit '' when empty, which PHP cannot coerce onto the
+    // typed int/?int entity properties. Normalize here (not in validateForm):
+    // EntityForm::afterBuild() builds the entity before validation runs.
     foreach (['daily_request_limit', 'daily_token_limit', 'alert_threshold', 'limit_grace'] as $key) {
       $value = $form_state->getValue($key);
       $form_state->setValue($key, ($value === '' || $value === NULL) ? NULL : (int) $value);
     }
+    $form_state->setValue('timeout', (int) ($form_state->getValue('timeout') ?: 600));
+    parent::copyFormValuesToEntity($entity, $form, $form_state);
+  }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     parent::validateForm($form, $form_state);
 
     // Host/port are hidden (#states) for backends with a fixed endpoint, but
@@ -415,13 +456,21 @@ class UniversalServerForm extends EntityForm {
       $form_state->setValue('port', '');
     }
 
+    // The key-refresh button only needs a form rebuild, not a connection
+    // test (its errors are discarded anyway by #limit_validation_errors).
+    if (($form_state->getTriggeringElement()['#name'] ?? '') === 'refresh_keys') {
+      return;
+    }
+
     // Connection test: ask the selected backend to list models, so the check
     // exercises the same protocol path used later for discovery.
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server */
     $server = $this->buildEntity($form, $form_state);
     try {
       $backend = $this->backendManager->createInstance($server->getBackend());
-      $backend->listModels($server);
+      // Stash the catalog so the "Test connection & list models" AJAX button
+      // can render it without a second request to the server.
+      $form_state->set('aip_detected_models', $backend->listModels($server));
     }
     catch (\Throwable $e) {
       $this->logger('ai_provider_universal')->error(
@@ -437,22 +486,45 @@ class UniversalServerForm extends EntityForm {
   }
 
   /**
+   * AJAX callback: re-renders the key select with freshly created keys.
+   */
+  public function refreshKeysAjax(array &$form, FormStateInterface $form_state): array {
+    return $form['connection']['api_key'];
+  }
+
+  /**
+   * AJAX callback: shows the models the server reports, without saving.
+   */
+  public function detectModelsAjax(array &$form, FormStateInterface $form_state): array {
+    $build = [
+      '#type' => 'container',
+      '#attributes' => ['id' => 'aip-detect-results'],
+      'messages' => ['#type' => 'status_messages'],
+    ];
+    $models = $form_state->get('aip_detected_models');
+    if (!$form_state->getErrors() && is_array($models)) {
+      $ids = array_column($models, 'id');
+      sort($ids);
+      $build['list'] = [
+        '#theme' => 'item_list',
+        '#title' => $this->t('Connection OK — @count models available (model filter not applied):', ['@count' => count($ids)]),
+        '#items' => $ids,
+      ];
+    }
+    return $build;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server */
     $server = $this->entity;
 
     // Persist the model filter explicitly. Config entity forms do not
     // auto-map arbitrary form values onto the entity, so without this the
     // filter would never be saved and discovery below would run unfiltered.
     $server->set('model_filter', (string) $form_state->getValue('model_filter', ''));
-
-    $toInt = static fn ($v) => ($v === '' || $v === NULL) ? NULL : (int) $v;
-    $server->setDailyRequestLimit($toInt($form_state->getValue('daily_request_limit')));
-    $server->setDailyTokenLimit($toInt($form_state->getValue('daily_token_limit')));
-    $server->setAlertThreshold($toInt($form_state->getValue('alert_threshold')));
-    $server->setLimitGrace($toInt($form_state->getValue('limit_grace')));
 
     $status = $server->save();
 
@@ -513,13 +585,13 @@ class UniversalServerForm extends EntityForm {
   }
 
   /**
-   * Persists manual model capability overrides to universal_model entities.
+   * Persists manual model capability overrides to ai_universal_model entities.
    */
   protected function saveModelOverrides(FormStateInterface $form_state, string $server_id): void {
-    $model_storage = $this->entityTypeManager->getStorage('universal_model');
+    $model_storage = $this->entityTypeManager->getStorage('ai_universal_model');
     $models = $model_storage->loadByProperties(['server_id' => $server_id]);
 
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
     foreach ($models as $model) {
       $key = $model->id();
       $values = $form_state->getValue(['overrides', $key], []);

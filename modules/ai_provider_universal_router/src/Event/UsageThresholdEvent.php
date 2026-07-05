@@ -27,7 +27,7 @@ class UsageThresholdEvent extends Event {
    * Constructs the event.
    *
    * @param string $serverId
-   *   The universal_server entity id.
+   *   The ai_universal_server entity id.
    * @param string $metric
    *   Which limit was crossed: 'requests' or 'tokens'.
    * @param int $usage

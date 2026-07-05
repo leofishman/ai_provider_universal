@@ -2,14 +2,15 @@
 
 namespace Drupal\ai_provider_universal_router\Form;
 
-use Drupal\ai_provider_universal\Entity\UniversalModelInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
 use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
- * Form for adding and editing universal_route entities.
+ * Form for adding and editing ai_universal_route entities.
  */
-class UniversalRouteForm extends EntityForm {
+class AiUniversalRouteForm extends EntityForm {
 
   /**
    * Tier options shared by the two threshold selects.
@@ -29,7 +30,7 @@ class UniversalRouteForm extends EntityForm {
    */
   public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
-    /** @var \Drupal\ai_provider_universal_router\Entity\UniversalRouteInterface $route */
+    /** @var \Drupal\ai_provider_universal_router\Entity\AiUniversalRouteInterface $route */
     $route = $this->entity;
 
     $form['label'] = [
@@ -45,7 +46,7 @@ class UniversalRouteForm extends EntityForm {
       '#type' => 'machine_name',
       '#default_value' => $route->id(),
       '#machine_name' => [
-        'exists' => '\Drupal\ai_provider_universal_router\Entity\UniversalRoute::load',
+        'exists' => '\Drupal\ai_provider_universal_router\Entity\AiUniversalRoute::load',
       ],
       '#disabled' => !$route->isNew(),
     ];
@@ -131,10 +132,10 @@ class UniversalRouteForm extends EntityForm {
    *   A FAPI checkboxes element.
    */
   protected function buildCandidates(string $operationType, array $defaultCandidates): array {
-    $model_storage = $this->entityTypeManager->getStorage('universal_model');
+    $model_storage = $this->entityTypeManager->getStorage('ai_universal_model');
     $options = [];
 
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
     foreach ($model_storage->loadMultiple() as $model) {
       $effective = $model->getEffectiveOperationTypes();
       if (!in_array($operationType, $effective, TRUE)) {
@@ -162,7 +163,7 @@ class UniversalRouteForm extends EntityForm {
    *
    * Shows tier, cost, and operation type provenance (detected vs overridden).
    */
-  protected function buildModelLabel(UniversalModelInterface $model): string {
+  protected function buildModelLabel(AiUniversalModelInterface $model): string {
     $cost = $model->getCostInput();
     $tier = $model->getQualityTier();
 
@@ -190,6 +191,18 @@ class UniversalRouteForm extends EntityForm {
    */
   public static function updateCandidates(array &$form, FormStateInterface $form_state): array {
     return $form['candidates_wrapper'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function copyFormValuesToEntity(EntityInterface $entity, array $form, FormStateInterface $form_state) {
+    // An emptied number element submits '', which PHP cannot coerce onto the
+    // typed float property: drop it so the entity keeps its current value.
+    if ($form_state->getValue('factcheck_min_score') === '') {
+      $form_state->unsetValue('factcheck_min_score');
+    }
+    parent::copyFormValuesToEntity($entity, $form, $form_state);
   }
 
   /**

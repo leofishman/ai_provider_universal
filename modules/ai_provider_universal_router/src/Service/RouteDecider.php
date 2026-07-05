@@ -3,8 +3,8 @@
 namespace Drupal\ai_provider_universal_router\Service;
 
 use Drupal\ai\OperationType\Chat\ChatInput;
-use Drupal\ai_provider_universal\Entity\UniversalModelInterface;
-use Drupal\ai_provider_universal_router\Entity\UniversalRouteInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
+use Drupal\ai_provider_universal_router\Entity\AiUniversalRouteInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -48,10 +48,10 @@ class RouteDecider {
   ) {}
 
   /**
-   * Resolves a route to a concrete universal_model entity id.
+   * Resolves a route to a concrete ai_universal_model entity id.
    *
    * @param string $routeId
-   *   The universal_route entity id.
+   *   The ai_universal_route entity id.
    * @param mixed $input
    *   The operation input (ChatInput, string, array, ...); used for
    *   complexity classification and context-fit checks.
@@ -59,14 +59,14 @@ class RouteDecider {
    *   The operation type being executed.
    *
    * @return string
-   *   The chosen universal_model entity id.
+   *   The chosen ai_universal_model entity id.
    *
    * @throws \RuntimeException
    *   When the route does not exist or no candidate is available.
    */
   public function resolve(string $routeId, mixed $input, string $operationType = 'chat'): string {
-    $route = $this->entityTypeManager->getStorage('universal_route')->load($routeId);
-    if (!$route instanceof UniversalRouteInterface) {
+    $route = $this->entityTypeManager->getStorage('ai_universal_route')->load($routeId);
+    if (!$route instanceof AiUniversalRouteInterface) {
       throw new \RuntimeException(sprintf('Smart route "%s" does not exist.', $routeId));
     }
 
@@ -80,7 +80,7 @@ class RouteDecider {
       throw new \RuntimeException(sprintf('Smart route "%s" has no candidate models for operation "%s". Run model discovery or edit the route.', $routeId, $operationType));
     }
 
-    $eligible = array_filter($candidates, function (UniversalModelInterface $model) use ($estTokens, $requiredTier) {
+    $eligible = array_filter($candidates, function (AiUniversalModelInterface $model) use ($estTokens, $requiredTier) {
       $ctx = $model->getContextLength();
       if ($ctx !== NULL && $estTokens + self::ASSUMED_OUTPUT_TOKENS > $ctx) {
         return FALSE;
@@ -127,14 +127,14 @@ class RouteDecider {
    *   The model entity id, or NULL when there is nothing to escalate to.
    */
   public function resolveBest(string $routeId, string $operationType = 'chat', array $exclude = []): ?string {
-    $route = $this->entityTypeManager->getStorage('universal_route')->load($routeId);
-    if (!$route instanceof UniversalRouteInterface) {
+    $route = $this->entityTypeManager->getStorage('ai_universal_route')->load($routeId);
+    if (!$route instanceof AiUniversalRouteInterface) {
       return NULL;
     }
 
     $candidates = array_filter(
       $this->candidateModels($route, $operationType),
-      static fn (UniversalModelInterface $m) => !in_array($m->id(), $exclude, TRUE),
+      static fn (AiUniversalModelInterface $m) => !in_array($m->id(), $exclude, TRUE),
     );
     if (!$candidates) {
       return NULL;
@@ -152,23 +152,23 @@ class RouteDecider {
   /**
    * Loads candidate models: the route's list, or all capable models.
    *
-   * @return \Drupal\ai_provider_universal\Entity\UniversalModelInterface[]
+   * @return \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface[]
    *   Candidate model entities supporting the operation type.
    */
-  protected function candidateModels(UniversalRouteInterface $route, string $operationType): array {
-    $storage = $this->entityTypeManager->getStorage('universal_model');
+  protected function candidateModels(AiUniversalRouteInterface $route, string $operationType): array {
+    $storage = $this->entityTypeManager->getStorage('ai_universal_model');
     $ids = $route->getCandidates();
     $models = $ids ? $storage->loadMultiple($ids) : $storage->loadMultiple();
 
     // Models whose server exhausted a daily usage limit drop out of the
     // candidate pool, so routing fails over to another provider.
-    $servers = $this->entityTypeManager->getStorage('universal_server')
+    $servers = $this->entityTypeManager->getStorage('ai_universal_server')
       ->loadMultiple(array_unique(array_map(
-        static fn (UniversalModelInterface $m) => $m->getServerId(),
+        static fn (AiUniversalModelInterface $m) => $m->getServerId(),
         $models,
       )));
 
-    return array_filter($models, fn (UniversalModelInterface $m) =>
+    return array_filter($models, fn (AiUniversalModelInterface $m) =>
       in_array($operationType, $m->getEffectiveOperationTypes(), TRUE)
       && (!isset($servers[$m->getServerId()])
         || !$this->limitEnforcer->isServerOverLimit($servers[$m->getServerId()])));
@@ -180,7 +180,7 @@ class RouteDecider {
    * Unknown costs count as 0, which naturally prefers local/self-hosted
    * models; set explicit costs on remote models so they compare correctly.
    */
-  public function costOf(UniversalModelInterface $model, int $estTokens): float {
+  public function costOf(AiUniversalModelInterface $model, int $estTokens): float {
     $in = ($model->getCostInput() ?? 0.0) * $estTokens;
     $out = ($model->getCostOutput() ?? 0.0) * self::ASSUMED_OUTPUT_TOKENS;
     return ($in + $out) / 1000000;
@@ -232,7 +232,7 @@ class RouteDecider {
   /**
    * Persists one decision row for the dashboard.
    */
-  protected function log(UniversalRouteInterface $route, string $operationType, string $complexity, int $estTokens, UniversalModelInterface $chosen, int $candidateCount, float $estCost, float $worstCost): void {
+  protected function log(AiUniversalRouteInterface $route, string $operationType, string $complexity, int $estTokens, AiUniversalModelInterface $chosen, int $candidateCount, float $estCost, float $worstCost): void {
     try {
       $this->database->insert('ai_universal_router_log')
         ->fields([

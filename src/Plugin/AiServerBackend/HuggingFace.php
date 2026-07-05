@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
+namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -16,7 +16,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * cheapest live provider and context length from the largest, matching the
  * router's ":cheapest" selection.
  */
-#[ServerBackend(
+#[AiServerBackend(
   id: 'huggingface',
   label: new TranslatableMarkup('Hugging Face'),
   description: new TranslatableMarkup('Hugging Face Inference Providers (router.huggingface.co): open models served by Together, Fireworks, Novita, DeepInfra and others behind one OpenAI-compatible endpoint. Pricing and context length are prefilled for smart routing.'),
@@ -31,7 +31,7 @@ class HuggingFace extends OpenAiCompatible {
   /**
    * {@inheritdoc}
    */
-  public function getBaseUri(UniversalServerInterface $server): string {
+  public function getBaseUri(AiUniversalServerInterface $server): string {
     if (!$server->getHostName()) {
       return self::DEFAULT_BASE_URI;
     }

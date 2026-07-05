@@ -7,8 +7,8 @@ use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityDeleteForm;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\ai_provider_universal_router\Form\UniversalRouteForm;
-use Drupal\ai_provider_universal_router\UniversalRouteListBuilder;
+use Drupal\ai_provider_universal_router\Form\AiUniversalRouteForm;
+use Drupal\ai_provider_universal_router\AiUniversalRouteListBuilder;
 
 /**
  * A smart route: a virtual model that picks a real model per request.
@@ -18,16 +18,16 @@ use Drupal\ai_provider_universal_router\UniversalRouteListBuilder;
  * picks the cheapest candidate whose quality tier satisfies the class.
  */
 #[ConfigEntityType(
-  id: 'universal_route',
+  id: 'ai_universal_route',
   label: new TranslatableMarkup('Smart Route'),
   label_collection: new TranslatableMarkup('Smart Routes'),
   label_singular: new TranslatableMarkup('smart route'),
   label_plural: new TranslatableMarkup('smart routes'),
   handlers: [
-    'list_builder' => UniversalRouteListBuilder::class,
+    'list_builder' => AiUniversalRouteListBuilder::class,
     'form' => [
-      'add' => UniversalRouteForm::class,
-      'edit' => UniversalRouteForm::class,
+      'add' => AiUniversalRouteForm::class,
+      'edit' => AiUniversalRouteForm::class,
       'delete' => EntityDeleteForm::class,
     ],
     'route_provider' => [
@@ -52,12 +52,12 @@ use Drupal\ai_provider_universal_router\UniversalRouteListBuilder;
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/routes/add',
-    'edit-form' => '/admin/config/ai/providers/universal/routes/{universal_route}',
-    'delete-form' => '/admin/config/ai/providers/universal/routes/{universal_route}/delete',
+    'edit-form' => '/admin/config/ai/providers/universal/routes/{ai_universal_route}',
+    'delete-form' => '/admin/config/ai/providers/universal/routes/{ai_universal_route}/delete',
     'collection' => '/admin/config/ai/providers/universal/routes',
   ],
 )]
-class UniversalRoute extends ConfigEntityBase implements UniversalRouteInterface {
+class AiUniversalRoute extends ConfigEntityBase implements AiUniversalRouteInterface {
 
   /**
    * The route machine name.
@@ -81,7 +81,7 @@ class UniversalRoute extends ConfigEntityBase implements UniversalRouteInterface
   protected string $operation_type = 'chat';
 
   /**
-   * Candidate universal_model ids. Empty = all capable models.
+   * Candidate ai_universal_model ids. Empty = all capable models.
    *
    * @var string[]
    */

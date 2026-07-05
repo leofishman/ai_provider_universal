@@ -77,7 +77,7 @@ final class UsageTrackerTest extends KernelTestBase {
    */
   public function testRecordAndGetTodayForServer(): void {
     $entity_type_manager = $this->container->get('entity_type.manager');
-    $model_storage = $entity_type_manager->getStorage('universal_model');
+    $model_storage = $entity_type_manager->getStorage('ai_universal_model');
 
     // Create models belonging to different servers.
     $model_storage->create([

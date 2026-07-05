@@ -4,12 +4,12 @@ A universal, multi-instance AI provider for the [Drupal AI module](https://www.d
 
 Unlike single-endpoint providers, this module models your AI infrastructure as **config entities**:
 
-- **Servers** (`universal_server`) — each server is an independent endpoint with its own host, port, API key, timeout and model filter. Run as many as you want: a local llama.cpp box, an Ollama instance, a vLLM moderation server and a remote Fireworks/OpenAI account can all coexist under one provider.
-- **Models** (`universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-image) are **detected dynamically** per model and can be overridden per model in the UI.
+- **Servers** (`ai_universal_server`) — each server is an independent endpoint with its own host, port, API key, timeout and model filter. Run as many as you want: a local llama.cpp box, an Ollama instance, a vLLM moderation server and a remote Fireworks/OpenAI account can all coexist under one provider.
+- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-image) are **detected dynamically** per model and can be overridden per model in the UI.
 
 ## Backends
 
-Protocol-specific logic lives in **ServerBackend plugins**. The module ships with two backends:
+Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with two backends:
 
 - `fireworks` — Fireworks AI serverless inference: fixed default endpoint, Fireworks-specific capability detection, and published pricing + context lengths prefilled at discovery for smart routing.
 - `openai_compatible` — llama.cpp, Ollama, vLLM, LM Studio, LiteLLM, Fireworks, OpenAI, and anything else speaking the OpenAI REST protocol. Capability detection uses llama.cpp's per-model `status.args` (router mode), HuggingFace `pipeline_tag` lookup for `--hf-repo` models, and model-name heuristics.
@@ -18,7 +18,7 @@ Protocol-specific logic lives in **ServerBackend plugins**. The module ships wit
 
 Two more hosted backends are bundled: `huggingface` (Hugging Face Inference Providers) and `ollama_cloud` (Ollama Cloud). Full catalog — default endpoints, capability detection sources, pricing/context prefill — and the server configuration reference: [docs/servers-and-models.md](docs/servers-and-models.md).
 
-Other modules can contribute native backends (e.g. Anthropic or Gemini) by dropping a plugin in `Plugin/ServerBackend` that implements `ServerBackendInterface` — model discovery, capability detection and the multi-instance UI come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md) for a contributor guide with a full walkthrough.
+Other modules can contribute native backends (e.g. Anthropic or Gemini) by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — model discovery, capability detection and the multi-instance UI come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md) for a contributor guide with a full walkthrough.
 
 ## Requirements
 

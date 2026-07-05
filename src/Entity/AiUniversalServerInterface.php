@@ -7,7 +7,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 /**
  * Interface for universal server config entities.
  */
-interface UniversalServerInterface extends ConfigEntityInterface {
+interface AiUniversalServerInterface extends ConfigEntityInterface {
 
   /**
    * Gets the backend plugin id (protocol) for this server.

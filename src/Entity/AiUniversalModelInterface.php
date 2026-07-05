@@ -10,7 +10,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
  * Models are discovered from servers and stored as first-class config entities
  * (instead of State). This enables Views, export, per-model config, etc.
  */
-interface UniversalModelInterface extends ConfigEntityInterface {
+interface AiUniversalModelInterface extends ConfigEntityInterface {
 
   /**
    * Gets the owning server entity ID.

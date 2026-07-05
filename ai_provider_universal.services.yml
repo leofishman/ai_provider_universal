@@ -5,12 +5,12 @@ services:
     arguments:
       $aiProviderManager: '@ai.provider'
 
-  Drupal\ai_provider_universal\Backend\ServerBackendManager:
-    class: Drupal\ai_provider_universal\Backend\ServerBackendManager
+  Drupal\ai_provider_universal\Backend\AiServerBackendManager:
+    class: Drupal\ai_provider_universal\Backend\AiServerBackendManager
     parent: default_plugin_manager
 
   plugin.manager.ai_provider_universal.server_backend:
-    alias: Drupal\ai_provider_universal\Backend\ServerBackendManager
+    alias: Drupal\ai_provider_universal\Backend\AiServerBackendManager
 
   Drupal\ai_provider_universal\Service\UsageTracker:
     class: Drupal\ai_provider_universal\Service\UsageTracker

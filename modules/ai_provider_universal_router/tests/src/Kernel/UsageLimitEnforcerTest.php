@@ -61,7 +61,7 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
    */
   protected function createServerAndModel(string $id, ?int $request_limit = NULL, ?int $grace = NULL, ?int $alert = NULL) {
     $server = $this->container->get('entity_type.manager')
-      ->getStorage('universal_server')
+      ->getStorage('ai_universal_server')
       ->create([
         'id' => $id,
         'label' => 'Server ' . $id,
@@ -72,7 +72,7 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
     $server->save();
 
     $this->container->get('entity_type.manager')
-      ->getStorage('universal_model')
+      ->getStorage('ai_universal_model')
       ->create([
         'id' => $id . '__model',
         'label' => 'Model ' . $id,

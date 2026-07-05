@@ -6,14 +6,14 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 
 ## Done
 
-- [x] Universal provider port with ServerBackend plugin architecture
+- [x] Universal provider port with AiServerBackend plugin architecture
       (`openai_compatible` reference backend).
 - [x] Per-model routing metadata: cost in/out (USD/1M tokens), quality tier
       (1-5), context length; backend prefill at discovery, never clobbers
       manual edits.
 - [x] `fireworks` backend: default endpoint, Fireworks-tuned capability
       detection, published pricing/context prefilled.
-- [x] Router submodule: `universal_route` entity, cheapest-capable decision
+- [x] Router submodule: `ai_universal_route` entity, cheapest-capable decision
       engine (simple/complex tiers), virtual `route__<id>` models, decision
       log + savings dashboard.
 - [x] Raw-JSON discovery fix: llama.cpp `status.args` (--ctx-size) and vLLM
@@ -58,7 +58,7 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       cheaper): optional per-model/server cost schedule by hour range; the
       smart router uses the price in effect when comparing candidates.
 - [ ] **Inference dispatch through backends**: move chat/embeddings
-      execution behind ServerBackendInterface so non-OpenAI backends work
+      execution behind AiServerBackendInterface so non-OpenAI backends work
       end to end ("earn the universal name").
 - [ ] **`llama_cpp` backend** (thin, extends openai_compatible): modality
       detection from `architecture.input_modalities`, `/props`

@@ -4,7 +4,7 @@ A **smart route** is a virtual model that picks a real model per request: cheape
 
 ## What a route is
 
-A route (`universal_route` config entity, `modules/ai_provider_universal_router/src/Entity/UniversalRoute.php`) appears in every AI settings model dropdown as `Auto: <label>`, grouped under a **"Smart Routing"** optgroup, with the internal model id `route__<route id>`. Selecting it as the provider for an operation type means every request to that operation type is decided per-request instead of pinned to one model.
+A route (`ai_universal_route` config entity, `modules/ai_provider_universal_router/src/Entity/AiUniversalRoute.php`) appears in every AI settings model dropdown as `Auto: <label>`, grouped under a **"Smart Routing"** optgroup, with the internal model id `route__<route id>`. Selecting it as the provider for an operation type means every request to that operation type is decided per-request instead of pinned to one model.
 
 | Field | Meaning | Default |
 |---|---|---|

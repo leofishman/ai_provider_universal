@@ -54,14 +54,14 @@ final class UniversalProviderTest extends KernelTestBase {
   }
 
   /**
-   * Tests that the universal_model entity type stores models as config.
+   * Tests that the ai_universal_model entity type stores models as config.
    *
    * Exercised after a server creation + simulated discovery.
    */
   public function testModelConfigEntities(): void {
     $etm = $this->container->get('entity_type.manager');
-    $server_storage = $etm->getStorage('universal_server');
-    $model_storage = $etm->getStorage('universal_model');
+    $server_storage = $etm->getStorage('ai_universal_server');
+    $model_storage = $etm->getStorage('ai_universal_model');
 
     $server = $server_storage->create([
       'id' => 'testserver',
@@ -88,7 +88,7 @@ final class UniversalProviderTest extends KernelTestBase {
     $models = $model_storage->loadByProperties(['server_id' => 'testserver']);
     $this->assertCount(1, $models);
 
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $m */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $m */
     $m = reset($models);
     $this->assertSame('llama3', $m->getRawModelId());
     $this->assertSame(['chat'], $m->getEffectiveOperationTypes());
@@ -109,9 +109,9 @@ final class UniversalProviderTest extends KernelTestBase {
    */
   public function testGetConfiguredModelsIsReadOnly(): void {
     $etm = $this->container->get('entity_type.manager');
-    $model_storage = $etm->getStorage('universal_model');
+    $model_storage = $etm->getStorage('ai_universal_model');
 
-    $etm->getStorage('universal_server')->create([
+    $etm->getStorage('ai_universal_server')->create([
       'id' => 'readonly',
       'label' => 'Read Only',
       'host_name' => 'http://127.0.0.1',
@@ -184,8 +184,8 @@ final class UniversalProviderTest extends KernelTestBase {
    */
   public function testModelDiscoveryAndFiltering(): void {
     $etm = $this->container->get('entity_type.manager');
-    $server_storage = $etm->getStorage('universal_server');
-    $model_storage = $etm->getStorage('universal_model');
+    $server_storage = $etm->getStorage('ai_universal_server');
+    $model_storage = $etm->getStorage('ai_universal_model');
 
     $server = $server_storage->create([
       'id' => 'discover_test',
@@ -235,7 +235,7 @@ final class UniversalProviderTest extends KernelTestBase {
 
     $models = $model_storage->loadMultiple();
     $this->assertCount(1, $models);
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model_entity */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model_entity */
     $model_entity = reset($models);
     $this->assertSame('discover_test__llama3_8b_instruct', $model_entity->id());
     $this->assertSame('llama3-8b-instruct', $model_entity->getRawModelId());

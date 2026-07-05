@@ -6,9 +6,9 @@ use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 
 /**
- * List builder for universal_server config entities.
+ * List builder for ai_universal_server config entities.
  */
-class UniversalServerListBuilder extends ConfigEntityListBuilder {
+class AiUniversalServerListBuilder extends ConfigEntityListBuilder {
 
   /**
    * {@inheritdoc}
@@ -24,7 +24,7 @@ class UniversalServerListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity) {
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface $entity */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $entity */
     $row['label'] = $entity->label();
 
     $host = $entity->getHostName();

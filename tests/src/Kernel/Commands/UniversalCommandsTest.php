@@ -86,7 +86,7 @@ final class UniversalCommandsTest extends KernelTestBase {
    */
   public function testDiscoverModelsWithServer(): void {
     $etm = $this->container->get('entity_type.manager');
-    $server_storage = $etm->getStorage('universal_server');
+    $server_storage = $etm->getStorage('ai_universal_server');
 
     $server = $server_storage->create([
       'id' => 'test_drush_server',

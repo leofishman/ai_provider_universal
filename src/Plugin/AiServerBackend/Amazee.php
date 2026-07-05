@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
+namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -17,7 +17,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * plugin exists so amazee.ai appears as its own provider with its own
  * guidance in the UI.
  */
-#[ServerBackend(
+#[AiServerBackend(
   id: 'amazee',
   label: new TranslatableMarkup('amazee.ai'),
   description: new TranslatableMarkup('amazee.ai private AI gateway (managed LiteLLM, region-pinned). Set the host to the litellm_api_url from your amazee.ai dashboard and use your amazee.ai key. Operation types, pricing and context length are read from /model/info.'),

@@ -54,8 +54,8 @@ class SettingsForm extends ConfigFormBase {
     $config = $this->config('ai_provider_universal_factcheck.settings');
 
     $model_options = [];
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
-    foreach ($this->entityTypeManager->getStorage('universal_model')->loadMultiple() as $model) {
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
+    foreach ($this->entityTypeManager->getStorage('ai_universal_model')->loadMultiple() as $model) {
       if (in_array('chat', $model->getEffectiveOperationTypes(), TRUE)) {
         $model_options[$model->id()] = $model->label();
       }

@@ -4,7 +4,7 @@ namespace Drupal\ai_provider_universal_router\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Service\UsageTracker;
 use Drupal\ai_provider_universal_router\Event\UsageThresholdEvent;
 use Psr\Log\LoggerInterface;
@@ -50,7 +50,7 @@ class UsageLimitEnforcer {
   /**
    * Whether a server has exhausted any of its daily limits (grace included).
    */
-  public function isServerOverLimit(UniversalServerInterface $server): bool {
+  public function isServerOverLimit(AiUniversalServerInterface $server): bool {
     $limits = array_filter([
       'requests' => $server->getDailyRequestLimit(),
       'tokens' => $server->getDailyTokenLimit(),

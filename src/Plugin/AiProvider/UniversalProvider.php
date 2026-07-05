@@ -25,8 +25,8 @@ use Drupal\ai\OperationType\TextToImage\TextToImageInput;
 use Drupal\ai\OperationType\TextToImage\TextToImageInterface;
 use Drupal\ai\OperationType\TextToImage\TextToImageOutput;
 use Drupal\ai\Traits\OperationType\ChatTrait;
-use Drupal\ai_provider_universal\Entity\UniversalModelInterface;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Models\Moderation\LlamaGuard3;
 use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
@@ -42,7 +42,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Universal multi-instance AI provider plugin.
  *
  * This is a single non-derived plugin. Multi-server support is achieved via
- * universal_server config entities + universal_model config entities.
+ * ai_universal_server config entities + ai_universal_model config entities.
  * Model IDs are unique across servers to allow the AI module to pick specific
  * backends/models without using plugin derivatives.
  */
@@ -101,9 +101,9 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   /**
    * Cached server entity.
    *
-   * @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface|null|false
+   * @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface|null|false
    */
-  protected UniversalServerInterface|null|false $serverEntity = FALSE;
+  protected AiUniversalServerInterface|null|false $serverEntity = FALSE;
 
   /**
    * The service container.
@@ -134,10 +134,10 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * 2. Active server set for the current model op (setActiveServerForModel).
    * 3. NULL (generic/validation paths that inject host_name into config).
    *
-   * @return \Drupal\ai_provider_universal\Entity\UniversalServerInterface|null
+   * @return \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface|null
    *   The resolved server entity, or NULL when there is no server context.
    */
-  protected function getServerEntity(): ?UniversalServerInterface {
+  protected function getServerEntity(): ?AiUniversalServerInterface {
     if ($this->serverEntity === FALSE) {
       $server_id = $this->configuration['server_id'] ?? NULL;
 
@@ -147,9 +147,9 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
 
       if ($server_id) {
         $entity = $this->entityTypeManager
-          ->getStorage('universal_server')
+          ->getStorage('ai_universal_server')
           ->load($server_id);
-        $this->serverEntity = $entity instanceof UniversalServerInterface ? $entity : NULL;
+        $this->serverEntity = $entity instanceof AiUniversalServerInterface ? $entity : NULL;
       }
       else {
         $this->serverEntity = NULL;
@@ -169,7 +169,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * Resolve and set the active server based on a model identifier.
    *
    * The model identifier here is the key returned by getConfiguredModels()
-   * (which is the universal_model entity id).
+   * (which is the ai_universal_model entity id).
    */
   protected function setActiveServerForModel(string $model_key): void {
     $this->activeServerId = NULL;
@@ -177,17 +177,17 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
 
     // Try to load the model entity to find its server.
     $model = $this->entityTypeManager
-      ->getStorage('universal_model')
+      ->getStorage('ai_universal_model')
       ->load($model_key);
 
-    if ($model instanceof UniversalModelInterface) {
+    if ($model instanceof AiUniversalModelInterface) {
       $this->activeServerId = $model->getServerId();
     }
     elseif (str_contains($model_key, '__')) {
       // Compatibility fallback for old-style compound keys ("server__machine").
-      // Post-2.0 all model keys are universal_model entity IDs.
+      // Post-2.0 all model keys are ai_universal_model entity IDs.
       [$maybe_server] = explode('__', $model_key, 2);
-      if ($this->entityTypeManager->getStorage('universal_server')->load($maybe_server)) {
+      if ($this->entityTypeManager->getStorage('ai_universal_server')->load($maybe_server)) {
         $this->activeServerId = $maybe_server;
       }
     }
@@ -227,7 +227,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     // stays
     // honest — but the bare "is a provider configured?" check (no operation
     // type) must not depend on discovery having run yet.
-    $server_storage = $this->entityTypeManager->getStorage('universal_server');
+    $server_storage = $this->entityTypeManager->getStorage('ai_universal_server');
     $servers = $server_storage->loadMultiple();
 
     foreach ($servers as $srv) {
@@ -321,7 +321,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     }
 
     // No specific server context: union across all servers.
-    $storage = $this->entityTypeManager->getStorage('universal_server');
+    $storage = $this->entityTypeManager->getStorage('ai_universal_server');
     $servers = $storage->loadMultiple();
     $union = [];
     foreach ($servers as $srv) {
@@ -387,12 +387,12 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   /**
    * {@inheritdoc}
    *
-   * Read-only: this never writes configuration. Model discovery (creating or
-   * updating universal_model config entities) happens explicitly when a server
-   * is saved (see UniversalServerForm) or via ::discoverModels(). Keeping this
-   * read path side-effect free avoids polluting config sync with runtime data
-   * pulled from a remote server, and prevents config writes on cache-cold reads
-   * from the AI subsystem.
+   * Read-only: this never writes configuration. Model discovery (creating
+   * or updating ai_universal_model config entities) happens explicitly when
+   * a server is saved (see AiUniversalServerForm) or via ::discoverModels().
+   * Keeping this read path side-effect free avoids polluting config sync
+   * with runtime data pulled from a remote server, and prevents config
+   * writes on cache-cold reads from the AI subsystem.
    */
   public function getConfiguredModels(?string $operation_type = NULL, array $capabilities = []): array {
     $server = $this->getServerEntity();
@@ -426,11 +426,11 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    *   Map of "route__<id>" => route label.
    */
   protected function getRouteModelOptions(?string $operation_type): array {
-    if (!$this->entityTypeManager->hasDefinition('universal_route')) {
+    if (!$this->entityTypeManager->hasDefinition('ai_universal_route')) {
       return [];
     }
     $options = [];
-    foreach ($this->entityTypeManager->getStorage('universal_route')->loadMultiple() as $route) {
+    foreach ($this->entityTypeManager->getStorage('ai_universal_route')->loadMultiple() as $route) {
       if ($operation_type === NULL || $route->getOperationType() === $operation_type) {
         $options['route__' . $route->id()] = (string) $this->t('Auto: @label', ['@label' => $route->label()]);
       }
@@ -512,19 +512,19 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     // from $this->configuration, so merging here reaches every chat call.
     // "reasoning_effort" is the OpenAI-compatible parameter (OpenAI, vLLM,
     // llama.cpp, Fireworks); lenient local servers ignore it when unsupported.
-    $model = $this->entityTypeManager->getStorage('universal_model')->load($model_id);
+    $model = $this->entityTypeManager->getStorage('ai_universal_model')->load($model_id);
     $had_reasoning = array_key_exists('reasoning_effort', $this->configuration);
     $previous_reasoning = $this->configuration['reasoning_effort'] ?? NULL;
-    if ($model instanceof UniversalModelInterface && ($effort = $model->getReasoning()) !== NULL) {
+    if ($model instanceof AiUniversalModelInterface && ($effort = $model->getReasoning()) !== NULL) {
       $this->configuration['reasoning_effort'] = $effort;
     }
 
     // Usage limits are enforced per server by the router submodule; without
     // it counters are still recorded but nothing blocks.
-    if ($model instanceof UniversalModelInterface
+    if ($model instanceof AiUniversalModelInterface
       && $this->serviceContainer->has('ai_provider_universal_router.limits')) {
-      $server = $this->entityTypeManager->getStorage('universal_server')->load($model->getServerId());
-      if ($server instanceof UniversalServerInterface
+      $server = $this->entityTypeManager->getStorage('ai_universal_server')->load($model->getServerId());
+      if ($server instanceof AiUniversalServerInterface
         && $this->serviceContainer->get('ai_provider_universal_router.limits')->isServerOverLimit($server)) {
         $this->loggerFactory->get('ai_provider_universal')->warning(
           'Server @server rejected a chat request to @model: daily usage limit reached.',
@@ -567,7 +567,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       return $output;
     }
 
-    $route = $this->entityTypeManager->getStorage('universal_route')->load($route_id);
+    $route = $this->entityTypeManager->getStorage('ai_universal_route')->load($route_id);
     if (!$route || !$route->isFactcheckEnabled()) {
       return $output;
     }
@@ -872,16 +872,17 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   /**
    * Gets the raw model identifier from the stored mapping (or model entities).
    *
-   * The $model_id here is the key used by the AI system (universal_model id).
+   * The $model_id here is the key the AI system uses (ai_universal_model
+   * id).
    */
   protected function getModel(string $model_id): string {
     // Resolve the raw model id straight from the model entity. This is the
     // authoritative source and keeps API resolution independent of the display
     // labels returned by getConfiguredModels() (which include the server name).
     $model = $this->entityTypeManager
-      ->getStorage('universal_model')
+      ->getStorage('ai_universal_model')
       ->load($model_id);
-    if ($model instanceof UniversalModelInterface) {
+    if ($model instanceof AiUniversalModelInterface) {
       return $model->getRawModelId();
     }
     return $model_id;

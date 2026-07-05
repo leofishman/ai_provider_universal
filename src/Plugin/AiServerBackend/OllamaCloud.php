@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
+namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -14,7 +14,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * context metadata), so capability detection relies on the inherited name
  * heuristics and routing metadata stays empty for the user to fill in.
  */
-#[ServerBackend(
+#[AiServerBackend(
   id: 'ollama_cloud',
   label: new TranslatableMarkup('Ollama Cloud'),
   description: new TranslatableMarkup('Ollama Cloud (ollama.com): hosted open models (DeepSeek, GLM, Gemma, ...) behind the familiar Ollama OpenAI-compatible endpoint. Requires an ollama.com API key.'),
@@ -29,7 +29,7 @@ class OllamaCloud extends OpenAiCompatible {
   /**
    * {@inheritdoc}
    */
-  public function getBaseUri(UniversalServerInterface $server): string {
+  public function getBaseUri(AiUniversalServerInterface $server): string {
     if (!$server->getHostName()) {
       return self::DEFAULT_BASE_URI;
     }

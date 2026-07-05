@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Plugin\ServerBackend;
+namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -19,7 +19,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * Pricing follows Fireworks' parameter-count tiers for serverless inference;
  * verify against https://fireworks.ai/pricing when models change generation.
  */
-#[ServerBackend(
+#[AiServerBackend(
   id: 'fireworks',
   label: new TranslatableMarkup('Fireworks AI'),
   description: new TranslatableMarkup('Fireworks AI serverless inference (api.fireworks.ai). OpenAI-compatible protocol with Fireworks-specific model metadata: pricing and context length are prefilled for smart routing.'),
@@ -115,7 +115,7 @@ class Fireworks extends OpenAiCompatible {
   /**
    * {@inheritdoc}
    */
-  public function getBaseUri(UniversalServerInterface $server): string {
+  public function getBaseUri(AiUniversalServerInterface $server): string {
     // Host/port are optional for Fireworks; fall back to the public API.
     if (!$server->getHostName()) {
       return self::DEFAULT_BASE_URI;

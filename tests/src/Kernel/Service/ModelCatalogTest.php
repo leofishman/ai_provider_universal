@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\ai_provider_universal\Kernel\Service;
 
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\ai_provider_universal\Backend\ServerBackendManager;
+use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -42,8 +42,8 @@ final class ModelCatalogTest extends KernelTestBase {
    */
   #[DataProvider('providerDetection')]
   public function testDetectOperationTypes(array $model, array $expected): void {
-    /** @var \Drupal\ai_provider_universal\Backend\ServerBackendInterface $backend */
-    $backend = $this->container->get(ServerBackendManager::class)
+    /** @var \Drupal\ai_provider_universal\Backend\AiServerBackendInterface $backend */
+    $backend = $this->container->get(AiServerBackendManager::class)
       ->createInstance('openai_compatible');
     $this->assertSame($expected, $backend->detectOperationTypes($model));
   }
@@ -115,7 +115,7 @@ final class ModelCatalogTest extends KernelTestBase {
     $catalog = $this->container->get(ModelCatalog::class);
 
     $server = $this->container->get('entity_type.manager')
-      ->getStorage('universal_server')
+      ->getStorage('ai_universal_server')
       ->create([
         'id' => 'unreachable',
         'label' => 'Unreachable',

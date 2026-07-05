@@ -41,10 +41,10 @@ class UniversalCommands extends DrushCommands {
    *   Discover models specifically for the server "my_server".
    */
   public function discoverModels(?string $server_id = NULL): void {
-    $server_storage = $this->entityTypeManager->getStorage('universal_server');
+    $server_storage = $this->entityTypeManager->getStorage('ai_universal_server');
 
     if ($server_id) {
-      /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface|null $server */
+      /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface|null $server */
       $server = $server_storage->load($server_id);
       if (!$server) {
         $error = $this->t('Server "@id" not found.', ['@id' => $server_id]);
@@ -54,7 +54,7 @@ class UniversalCommands extends DrushCommands {
       $servers = [$server];
     }
     else {
-      /** @var \Drupal\ai_provider_universal\Entity\UniversalServerInterface[] $servers */
+      /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface[] $servers */
       $servers = $server_storage->loadMultiple();
       if (empty($servers)) {
         $this->output()->writeln('<comment>' . $this->t('No configured servers found.') . '</comment>');

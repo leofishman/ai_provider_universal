@@ -2,14 +2,14 @@
 
 namespace Drupal\ai_provider_universal\Backend;
 
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Base class for server backend plugins.
  */
-abstract class ServerBackendPluginBase extends PluginBase implements ServerBackendInterface {
+abstract class AiServerBackendPluginBase extends PluginBase implements AiServerBackendInterface {
 
   use StringTranslationTrait;
 
@@ -23,7 +23,7 @@ abstract class ServerBackendPluginBase extends PluginBase implements ServerBacke
   /**
    * {@inheritdoc}
    */
-  public function getHttpHeaders(UniversalServerInterface $server): array {
+  public function getHttpHeaders(AiUniversalServerInterface $server): array {
     return [];
   }
 

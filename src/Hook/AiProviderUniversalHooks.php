@@ -38,9 +38,9 @@ class AiProviderUniversalHooks {
    */
   #[Hook('entity_delete')]
   public function entityDelete(EntityInterface $entity): void {
-    if ($entity->getEntityTypeId() === 'universal_server') {
+    if ($entity->getEntityTypeId() === 'ai_universal_server') {
       // Clean up associated model entities.
-      $model_storage = $this->entityTypeManager->getStorage('universal_model');
+      $model_storage = $this->entityTypeManager->getStorage('ai_universal_model');
       $models = $model_storage->loadByProperties(['server_id' => $entity->id()]);
       foreach ($models as $model) {
         $model->delete();
@@ -53,7 +53,7 @@ class AiProviderUniversalHooks {
    * Clears AI provider plugin discovery when server entities change.
    */
   protected function clearProviderCache(EntityInterface $entity): void {
-    if ($entity->getEntityTypeId() !== 'universal_server') {
+    if ($entity->getEntityTypeId() !== 'ai_universal_server') {
       return;
     }
     $this->aiProviderManager->clearCachedDefinitions();

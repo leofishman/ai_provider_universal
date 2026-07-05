@@ -2,9 +2,9 @@
 
 namespace Drupal\ai_provider_universal\Service;
 
-use Drupal\ai_provider_universal\Backend\ServerBackendInterface;
-use Drupal\ai_provider_universal\Backend\ServerBackendManager;
-use Drupal\ai_provider_universal\Entity\UniversalServerInterface;
+use Drupal\ai_provider_universal\Backend\AiServerBackendInterface;
+use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Utility\ModelFilter;
 use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -15,7 +15,7 @@ use Drupal\Core\Language\LanguageInterface;
  *
  * All protocol-specific work (listing models, detecting capabilities) is
  * delegated to the server's backend plugin; this service only owns the
- * catalog lifecycle: naming, persistence and queries over universal_model
+ * catalog lifecycle: naming, persistence and queries over ai_universal_model
  * config entities.
  */
 class ModelCatalog {
@@ -23,19 +23,19 @@ class ModelCatalog {
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected TransliterationInterface $transliteration,
-    protected ServerBackendManager $backendManager,
+    protected AiServerBackendManager $backendManager,
   ) {}
 
   /**
-   * Discovers models from a server and persists them as universal_model items.
+   * Discovers server models and persists them as ai_universal_model items.
    *
-   * @param \Drupal\ai_provider_universal\Entity\UniversalServerInterface $server
+   * @param \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server
    *   The server whose catalog is being (re-)discovered.
    *
    * @return array<string, string>
    *   Map of model entity id => raw model id.
    */
-  public function discoverModels(UniversalServerInterface $server): array {
+  public function discoverModels(AiUniversalServerInterface $server): array {
     $serverId = $server->id();
     $backend = $this->getBackend($server);
 
@@ -65,8 +65,8 @@ class ModelCatalog {
   /**
    * Instantiates the backend plugin configured on a server.
    */
-  public function getBackend(UniversalServerInterface $server): ServerBackendInterface {
-    /** @var \Drupal\ai_provider_universal\Backend\ServerBackendInterface $backend */
+  public function getBackend(AiUniversalServerInterface $server): AiServerBackendInterface {
+    /** @var \Drupal\ai_provider_universal\Backend\AiServerBackendInterface $backend */
     $backend = $this->backendManager->createInstance($server->getBackend());
     return $backend;
   }
@@ -75,7 +75,7 @@ class ModelCatalog {
    * Returns configured models for a server (or all if no serverId).
    */
   public function getModelsForServer(?string $serverId = NULL, ?string $operationType = NULL): array {
-    $storage = $this->entityTypeManager->getStorage('universal_model');
+    $storage = $this->entityTypeManager->getStorage('ai_universal_model');
     $query = $storage->getQuery();
 
     if ($serverId) {
@@ -87,7 +87,7 @@ class ModelCatalog {
 
     $result = [];
 
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
     foreach ($models as $model) {
       $key = $model->id();
       $raw = $model->getRawModelId();
@@ -116,13 +116,13 @@ class ModelCatalog {
    *   Map of server label => [model entity id => raw model id].
    */
   public function getModelsGroupedByServer(?string $operationType = NULL): array {
-    $storage = $this->entityTypeManager->getStorage('universal_model');
-    $serverStorage = $this->entityTypeManager->getStorage('universal_server');
+    $storage = $this->entityTypeManager->getStorage('ai_universal_model');
+    $serverStorage = $this->entityTypeManager->getStorage('ai_universal_server');
     $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
 
     $grouped = [];
 
-    /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
     foreach ($storage->loadMultiple($ids) as $model) {
       $effective = $model->getEffectiveOperationTypes();
       if ($operationType !== NULL && !in_array($operationType, $effective, TRUE)) {
@@ -141,14 +141,14 @@ class ModelCatalog {
    * Persists discovered models and cleans up removed ones.
    */
   protected function persistModelsForServer(string $serverId, array $discovered): void {
-    $storage = $this->entityTypeManager->getStorage('universal_model');
+    $storage = $this->entityTypeManager->getStorage('ai_universal_model');
     $existing = $storage->loadByProperties(['server_id' => $serverId]);
     $seen = [];
 
     foreach ($discovered as $entityId => $info) {
       $seen[$entityId] = TRUE;
 
-      /** @var \Drupal\ai_provider_universal\Entity\UniversalModelInterface $model */
+      /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
       $model = $storage->load($entityId) ?: $storage->create(['id' => $entityId]);
 
       $raw = $info['raw'];
@@ -159,7 +159,7 @@ class ModelCatalog {
       $model->setDetectedOperationTypes($detected);
       $this->applyDetectedMetadata($model, $info['metadata'] ?? []);
 
-      $server = $this->entityTypeManager->getStorage('universal_server')->load($serverId);
+      $server = $this->entityTypeManager->getStorage('ai_universal_server')->load($serverId);
       $serverLabel = $server?->label() ?? '';
       $niceLabel = $serverLabel ? ($serverLabel . ' / ' . $raw) : $raw;
 

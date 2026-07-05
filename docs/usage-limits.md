@@ -28,7 +28,7 @@ Both events (`Drupal\ai_provider_universal_router\Event\UsageThresholdEvent`) ca
 
 | Property | Meaning |
 |---|---|
-| `serverId` | the `universal_server` entity id |
+| `serverId` | the `ai_universal_server` entity id |
 | `metric` | which limit was crossed: `requests` or `tokens` |
 | `usage` | today's usage for that metric |
 | `limit` | the configured daily limit |

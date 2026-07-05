@@ -2,7 +2,7 @@
 
 namespace Drupal\ai_provider_universal\Backend;
 
-use Drupal\ai_provider_universal\Attribute\ServerBackend;
+use Drupal\ai_provider_universal\Attribute\AiServerBackend;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
@@ -10,11 +10,11 @@ use Drupal\Core\Plugin\DefaultPluginManager;
 /**
  * Plugin manager for server backend plugins.
  *
- * Discovers classes in Plugin/ServerBackend of any enabled module, so other
+ * Discovers classes in Plugin/AiServerBackend of any enabled module, so other
  * modules can contribute native backends (Anthropic, Gemini, ...) without
  * patching this module.
  */
-class ServerBackendManager extends DefaultPluginManager {
+class AiServerBackendManager extends DefaultPluginManager {
 
   public function __construct(
     \Traversable $namespaces,
@@ -22,11 +22,11 @@ class ServerBackendManager extends DefaultPluginManager {
     ModuleHandlerInterface $module_handler,
   ) {
     parent::__construct(
-      'Plugin/ServerBackend',
+      'Plugin/AiServerBackend',
       $namespaces,
       $module_handler,
-      ServerBackendInterface::class,
-      ServerBackend::class,
+      AiServerBackendInterface::class,
+      AiServerBackend::class,
     );
     $this->alterInfo('ai_provider_universal_server_backend_info');
     $this->setCacheBackend($cache_backend, 'ai_provider_universal_server_backend_plugins');
