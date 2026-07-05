@@ -32,6 +32,7 @@ Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBacken
 | `amazee` | amazee.ai (managed LiteLLM, region-pinned) | none — host is your `litellm_api_url` | yes | Same as `litellm` (subclass, no protocol differences) | Same as `litellm` | Same as `litellm` |
 | `huggingface` | Hugging Face Inference Providers | `router.huggingface.co/v1` | optional | `/v1/models` | `architecture.output_modalities` → generic heuristics | Cheapest **live** provider offer by input price; context length is the max any live provider serves |
 | `ollama_cloud` | Ollama Cloud (ollama.com) | `ollama.com/v1` | optional (needs API key) | `/v1/models` | Generic heuristics only (bare ids, no metadata) | None — fill in manually |
+| `grok` | Grok (xAI) | `api.x.ai/v1` | no (fixed) | `/v1/models` | Generic heuristics | Basic hardcoded table for grok-2 / grok-beta |
 
 > ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons.
 

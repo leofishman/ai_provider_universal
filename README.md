@@ -20,6 +20,7 @@ Protocol-specific logic lives in **AiServerBackend plugins**. The module ships w
 - `openrouter` — OpenRouter unified API (openrouter.ai): 300+ models from OpenAI, Anthropic, Google, Meta and others behind one endpoint. Fixed default endpoint, capability detection from the catalog's `architecture.output_modalities`, and pricing + context length prefilled from the live catalog for smart routing (no hardcoded price table). OpenRouter's embedding models live on a separate catalog endpoint and are not discovered yet — see ROADMAP.
 - `huggingface` — Hugging Face Inference Providers (router.huggingface.co): capability detection from the catalog's output modalities, pricing prefilled from the cheapest live provider offer per model.
 - `ollama_cloud` — Ollama Cloud (ollama.com): plain catalog with bare model ids; routing metadata is filled in manually.
+- `grok` — Grok by xAI: fixed endpoint, basic metadata for grok-2 family.
 
 Full catalog — default endpoints, capability detection sources, pricing/context prefill — and the server configuration reference: [docs/servers-and-models.md](docs/servers-and-models.md).
 
