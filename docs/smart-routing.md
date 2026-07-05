@@ -117,6 +117,35 @@ Both aliases exist so `ai_provider_universal` degrades gracefully
 (everything works, just without routing/limit enforcement) when this
 submodule is disabled.
 
+## Recommended model mix for cost / benefit (2026)
+
+Smart routing shines when you have a **tiered pool** of models. The goal is to
+send simple prompts to cheap/fast models and only pay for big models on
+complex/reasoning work.
+
+### Suggested tiers & example models (local-first)
+
+| Tier | Typical models (quantized)          | Approx. cost (local) | Best for                          | Notes |
+|------|-------------------------------------|----------------------|-----------------------------------|-------|
+| 1–2  | Llama-3.2-1B/3B, SmolLM2-360M, Qwen2.5-7B, Phi-3-mini | very low            | Simple prompts, fast fact-checks | Excellent price/performance. Use as default for low-tier routes. |
+| 3    | Gemma-2-27B, Qwen2.5-14B/32B, Llama-3.1-70B (Q4) | low–medium          | Most chat + factcheck checker    | Sweet spot for many sites. Bespoke-MiniCheck (tier ~3) for verification. |
+| 4–5  | Qwen2.5-72B, Llama-3.1-405B (Q3/Q4), large Mixtral | medium–high         | Complex reasoning, discrepancy   | Only for high-tier or escalation. |
+
+**Practical route examples**:
+- **General chat route**: candidates = [7B tier2, 32B tier3, 70B tier4], simple=2, complex=4.
+- **Factcheck route**: candidates = [MiniCheck tier3, 27B tier3, 70B tier4], simple=2, complex=3 (fact verification rarely needs frontier).
+- Always include at least one specialized small model (MiniCheck, embedding rerankers) — they give huge cost savings on narrow tasks.
+
+### API providers worth adding (if not using)
+
+If you want higher quality at still-reasonable cost without managing GPUs:
+
+- **Fireworks.ai** or **Together.ai** — excellent Qwen/Llama/Mixtral hosting, very competitive per-token pricing, fast.
+- **Groq** — extreme speed on Llama-3.1 models (great for extractor/checker when latency matters).
+- **OpenRouter** — easy access to many providers + automatic fallback.
+
+All are supported out of the box via the `openai_compatible`, `fireworks`, `litellm` or `openrouter` backends.
+
 ## Known limitations
 
 - Complexity classification is a fixed heuristic (token threshold + regex

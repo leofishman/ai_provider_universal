@@ -107,6 +107,24 @@ Every node gets a **Content scan** local task (visible to users who can edit the
 
 The AI-likelihood score is a heuristic LLM judgement, not a trained detector — treat it as a hint. Plagiarism matches list the URL and snippet of every page containing a sentence verbatim.
 
+## Recommended models (cost / benefit)
+
+For fact-checking the key is **specialization + low per-claim cost**, because you may run 5–20 LLM calls per scan.
+
+| Role            | Recommended (local / self-hosted)          | Why (cost/benefit)                          | Alternative (API)          |
+|-----------------|--------------------------------------------|---------------------------------------------|----------------------------|
+| **Checker**     | `bespoke-minicheck` (or any MiniCheck)    | Tiny specialized NLI model. Extremely cheap, excellent at SUPPORTED/NO for claims. | — (local is best here)    |
+| **Extractor**   | Qwen2.5-14B / Gemma-2-27B / Llama-3.1-8B  | Good JSON/structured output at low cost. Use 7-14B quantized for speed. | Groq Llama-3.1-70B (very fast) |
+| **Evidence embedding** | nomic-embed-text, bge-large-en-v1.5     | Strong retrieval quality vs size. Use in your AI Search index. | —                         |
+| **General fallback** | Qwen2.5-32B or Gemma-2-27B               | Solid reasoning when MiniCheck is not enough or for extractor. | Fireworks or Together Qwen-72B |
+
+**Rule of thumb for routes**:
+- Low tier (simple prompts / fast factchecks): 7–14B models (cost ~$0.10–0.30 / M tokens).
+- High tier (complex claims, discrepancy analysis): 27–72B (cost ~$0.40–1.00 / M).
+- Always prefer quantized GGUF/Q4_K_M or vLLM for local inference.
+
+If you only have large frontier models, use a small local checker + a strong API model only for escalation.
+
 ## Settings reference
 
 At **Configuration → AI → Providers → Universal → Fact check settings** (`ai_provider_universal_factcheck.settings`):
@@ -135,6 +153,19 @@ One knob moves all the cost/quality levers together:
 | Verdict cache | 6 h | 1 h | none |
 
 Worst-case LLM calls for a 5-claim answer: ~2 (`fast`), ~4 + analyses (`balanced`), ~16 (`thorough`). Cached claims cost nothing on re-scan; any settings change invalidates the cache. MiniCheck checkers cannot batch and always use per-claim verdict calls.
+
+## Smart routing + factcheck
+
+For the best cost/benefit, configure your **Fact check** settings to use a **Smart Route** as the *Checker model* (see [docs/smart-routing.md](smart-routing.md)).
+
+Recommended setup:
+- Create a dedicated smart route called "Auto: Factcheck" with:
+  - Low-tier candidates (MiniCheck + 7-14B) for simple claims.
+  - Higher-tier (27B+) only for complex claims or escalation.
+- In Factcheck settings → **Checker model** select that route.
+- Enable "Fact-check answers and escalate on failure" on your main chat routes. This way cheap models handle most traffic and only escalate when verification fails.
+
+This combination usually gives the best price/performance: 70-90% of factchecks run on tiny specialized models, while complex reasoning still gets a strong model.
 
 ## Extending
 
