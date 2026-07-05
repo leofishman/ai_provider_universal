@@ -3,14 +3,13 @@
 namespace Drupal\ai_provider_universal\Plugin\AiServerBackend;
 
 use Drupal\ai_provider_universal\Attribute\AiServerBackend;
-use Drupal\ai_provider_universal\Plugin\AiServerBackend\OpenAiCompatible;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Grok (xAI) server backend.
  *
- * xAI's Grok API is OpenAI-compatible. This backend provides a fixed
+ * XAI's Grok API is OpenAI-compatible. This backend provides a fixed
  * endpoint and some basic metadata for popular Grok models so they can be
  * used with smart routing.
  */
@@ -27,7 +26,9 @@ class Grok extends OpenAiCompatible {
   protected const DEFAULT_BASE_URI = 'https://api.x.ai/v1';
 
   /**
-   * Basic metadata for common Grok models (approximate pricing in USD per 1M tokens).
+   * Basic metadata for common Grok models.
+   *
+   * Approximate pricing in USD per 1M tokens.
    */
   protected const MODEL_METADATA = [
     'grok-2' => [
