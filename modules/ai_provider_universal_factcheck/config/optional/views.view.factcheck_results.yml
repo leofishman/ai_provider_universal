@@ -1,0 +1,171 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - ai_provider_universal_factcheck
+    - user
+id: factcheck_results
+label: 'Fact check results'
+module: views
+description: 'History of content scans: fact check score, AI likelihood, readability, plagiarism.'
+tag: ''
+base_table: aip_factcheck_result
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Fact check results'
+      fields:
+        created:
+          id: created
+          table: aip_factcheck_result
+          field: created
+          plugin_id: field
+          label: 'Scanned on'
+          type: timestamp
+          settings:
+            date_format: short
+            custom_date_format: ''
+            timezone: ''
+        subject:
+          id: subject
+          table: aip_factcheck_result
+          field: subject
+          plugin_id: field
+          label: Subject
+          type: string
+        url:
+          id: url
+          table: aip_factcheck_result
+          field: url
+          plugin_id: field
+          label: URL
+          type: uri_link
+          empty: ''
+        score:
+          id: score
+          table: aip_factcheck_result
+          field: score
+          plugin_id: field
+          label: 'Support score'
+          type: number_decimal
+          settings:
+            thousand_separator: ''
+            decimal_separator: .
+            scale: 2
+            prefix_suffix: true
+          empty: '-'
+        ai_score:
+          id: ai_score
+          table: aip_factcheck_result
+          field: ai_score
+          plugin_id: field
+          label: 'AI likelihood (%)'
+          type: number_integer
+          empty: '-'
+        readability:
+          id: readability
+          table: aip_factcheck_result
+          field: readability
+          plugin_id: field
+          label: Readability
+          type: number_decimal
+          settings:
+            thousand_separator: ''
+            decimal_separator: .
+            scale: 1
+            prefix_suffix: true
+          empty: '-'
+        plagiarism_matches:
+          id: plagiarism_matches
+          table: aip_factcheck_result
+          field: plagiarism_matches
+          plugin_id: field
+          label: Plagiarism
+          type: number_integer
+          empty: '-'
+        uid:
+          id: uid
+          table: aip_factcheck_result
+          field: uid
+          plugin_id: field
+          label: 'Run by'
+          type: entity_reference_label
+          settings:
+            link: true
+      pager:
+        type: full
+        options:
+          items_per_page: 25
+      sorts:
+        created:
+          id: created
+          table: aip_factcheck_result
+          field: created
+          plugin_id: date
+          order: DESC
+      access:
+        type: perm
+        options:
+          perm: 'view factcheck results'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      exposed_form:
+        type: basic
+        options: {  }
+      style:
+        type: table
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: true
+          columns: {  }
+          default: created
+          info: {  }
+          override: true
+          sticky: false
+          summary: ''
+          empty_table: true
+      row:
+        type: fields
+        options: {  }
+      empty:
+        area:
+          id: area
+          table: views
+          field: area
+          plugin_id: text
+          empty: true
+          content:
+            value: 'No scans stored yet. Run one from a node''s Content scan tab or the standalone Fact check page.'
+            format: plain_text
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: admin/content/factcheck/results
+      menu:
+        type: normal
+        title: 'Fact check results'
+        description: 'History of content scans.'
+        parent: system.admin_content
+  block_1:
+    id: block_1
+    display_title: Block
+    display_plugin: block
+    position: 2
+    display_options:
+      display_extenders: {  }
+      block_description: 'Fact check results'
+      block_category: AI

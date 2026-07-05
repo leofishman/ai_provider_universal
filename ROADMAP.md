@@ -119,14 +119,23 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 
 ## Factcheck backlog
 
-- [ ] Standalone fact-check page + block: check a URL (internal/external),
-      pasted text, or an uploaded PDF.
+- [x] Standalone fact-check page + block: URL (internal/external) or pasted
+      text at /admin/content/factcheck, plus a placeable "Fact check"
+      block; gated by the `use standalone fact check` permission.
+- [x] Scan history as Views: every scan persists an `aip_factcheck_result`
+      entity; shipped, fully editable "Fact check results" view (page at
+      /admin/content/factcheck/results + block).
+- [ ] PDF upload for the standalone fact check (needs a text-extraction
+      library, e.g. smalot/pdfparser).
 - [ ] Admin UI (views/ECA?) to choose which content types/fields
       support/enforce fact-check, which checks run, and what happens on
       failure.
 - [ ] Ship a default search_api index for internal content knowledge?
-- [ ] Cache + invalidation strategy for trusted-site lookups (performance).
-- [ ] Permission granularity (per check type / per bundle).
+- [x] Cache + invalidation for trusted-site lookups: persistent cache keyed
+      by the `node_list:trusted_site` tag — zero manual invalidation.
+- [x] Permission granularity, first pass: `administer factcheck settings` +
+      `run content scan` (on top of node update access). Per check type /
+      per bundle granularity can come with the enforcement admin UI.
 - [ ] Move fact-check capabilities to plugins (vs services) so they can be
       overridden or extended — evaluate best approach.
 - [ ] MCP integration, the Drupal AI way.

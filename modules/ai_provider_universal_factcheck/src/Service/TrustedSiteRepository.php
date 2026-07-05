@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Service;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 /**
@@ -28,8 +29,14 @@ class TrustedSiteRepository {
    */
   protected ?array $map = NULL;
 
+  /**
+   * Persistent cache id for the domain profile map.
+   */
+  protected const CACHE_ID = 'ai_provider_universal_factcheck.trusted_sites';
+
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected CacheBackendInterface $cache,
   ) {}
 
   /**
@@ -92,6 +99,11 @@ class TrustedSiteRepository {
     if ($this->map !== NULL) {
       return $this->map;
     }
+    // Persistent cache, invalidated by core's bundle list tag whenever any
+    // trusted_site node is created, updated or deleted.
+    if ($cached = $this->cache->get(self::CACHE_ID)) {
+      return $this->map = $cached->data;
+    }
     $this->map = [];
 
     $storage = $this->entityTypeManager->getStorage('node');
@@ -134,6 +146,7 @@ class TrustedSiteRepository {
         'assessments' => $assessments,
       ];
     }
+    $this->cache->set(self::CACHE_ID, $this->map, CacheBackendInterface::CACHE_PERMANENT, ['node_list:trusted_site']);
     return $this->map;
   }
 

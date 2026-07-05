@@ -14,6 +14,7 @@ services:
     class: Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository
     arguments:
       - '@entity_type.manager'
+      - '@cache.default'
 
   Drupal\ai_provider_universal_factcheck\Service\FactChecker:
     class: Drupal\ai_provider_universal_factcheck\Service\FactChecker

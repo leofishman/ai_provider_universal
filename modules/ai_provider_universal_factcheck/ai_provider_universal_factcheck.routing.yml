@@ -4,7 +4,16 @@ ai_provider_universal_factcheck.settings:
     _form: '\Drupal\ai_provider_universal_factcheck\Form\SettingsForm'
     _title: 'Fact check settings'
   requirements:
-    _permission: 'administer ai providers'
+    # Either the module-specific permission or the provider-wide one.
+    _permission: 'administer factcheck settings+administer ai providers'
+
+ai_provider_universal_factcheck.standalone:
+  path: '/admin/content/factcheck'
+  defaults:
+    _form: '\Drupal\ai_provider_universal_factcheck\Form\StandaloneFactCheckForm'
+    _title: 'Fact check'
+  requirements:
+    _permission: 'use standalone fact check'
 
 ai_provider_universal_factcheck.content_scan:
   path: '/node/{node}/factcheck'
@@ -13,6 +22,7 @@ ai_provider_universal_factcheck.content_scan:
     _title: 'Content scan'
   requirements:
     _entity_access: 'node.update'
+    _permission: 'run content scan'
   options:
     parameters:
       node:

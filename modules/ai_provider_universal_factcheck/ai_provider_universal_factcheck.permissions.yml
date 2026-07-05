@@ -1,0 +1,16 @@
+administer factcheck settings:
+  title: 'Administer fact check settings'
+  description: 'Configure checker models, evidence index and API keys.'
+  restrict access: true
+
+view factcheck results:
+  title: 'View fact check results'
+  description: 'See the stored scan history (results view, page and block).'
+
+use standalone fact check:
+  title: 'Use the standalone fact check page and block'
+  description: 'Scan arbitrary URLs or pasted text. Model-based checks spend LLM/API budget.'
+
+run content scan:
+  title: 'Run content scans'
+  description: 'Use the Content scan tab on nodes (fact check, readability, AI likelihood, plagiarism). The user still needs update access to the node.'

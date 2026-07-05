@@ -3,3 +3,9 @@ ai_provider_universal_factcheck.settings:
   description: 'Verify routed answers claim by claim and escalate on failure.'
   route_name: ai_provider_universal_factcheck.settings
   parent: ai.admin_providers
+
+ai_provider_universal_factcheck.standalone:
+  title: 'Fact check'
+  description: 'Scan any URL or pasted text: fact check, readability, AI likelihood, plagiarism.'
+  route_name: ai_provider_universal_factcheck.standalone
+  parent: system.admin_content

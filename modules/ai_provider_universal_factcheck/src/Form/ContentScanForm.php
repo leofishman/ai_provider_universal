@@ -121,16 +121,45 @@ class ContentScanForm extends FormBase {
       return;
     }
 
-    $results = [
+    $results = $this->runChecks((string) $node->label(), $text);
+    $this->saveResult($results, ['subject' => (string) $node->label(), 'node' => $node->id()]);
+    $form_state->set('results', $results);
+    $form_state->setRebuild();
+  }
+
+  /**
+   * Runs all configured checks on a plain-text passage.
+   */
+  protected function runChecks(string $question, string $text): array {
+    return [
       'factcheck' => $this->factChecker->isConfigured()
-        ? $this->factChecker->verify((string) $node->label(), $text)
+        ? $this->factChecker->verify($question, $text)
         : NULL,
       'readability' => $this->readabilityScorer->score($text),
       'ai' => $this->aiDetector->detect($text),
       'plagiarism' => $this->plagiarismChecker->check($text),
     ];
-    $form_state->set('results', $results);
-    $form_state->setRebuild();
+  }
+
+  /**
+   * Persists a scan outcome as an aip_factcheck_result row (best effort).
+   *
+   * The rows feed the shipped "Fact check results" view; failing to write
+   * one must never fail the scan itself.
+   */
+  protected function saveResult(array $results, array $context): void {
+    try {
+      $this->entityTypeManager->getStorage('aip_factcheck_result')->create($context + [
+        'score' => $results['factcheck']['score'] ?? NULL,
+        'ai_score' => $results['ai']['score'] ?? NULL,
+        'readability' => $results['readability']['score'] ?? NULL,
+        'plagiarism_matches' => $results['plagiarism'] === NULL ? NULL : count($results['plagiarism']),
+        'details' => $results,
+      ])->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger('ai_provider_universal_factcheck')->warning('Could not store the scan result: @message', ['@message' => $e->getMessage()]);
+    }
   }
 
   /**

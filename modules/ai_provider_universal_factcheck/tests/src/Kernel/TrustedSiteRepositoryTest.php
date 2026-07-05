@@ -92,7 +92,7 @@ class TrustedSiteRepositoryTest extends KernelTestBase {
       'status' => 0,
     ])->save();
 
-    $repository = new TrustedSiteRepository($this->container->get('entity_type.manager'));
+    $repository = new TrustedSiteRepository($this->container->get('entity_type.manager'), $this->container->get('cache.default'));
 
     // Positive domains, best reputation first.
     $this->assertSame(['better.example', 'good.example'], $repository->includeDomains());
@@ -115,10 +115,36 @@ class TrustedSiteRepositoryTest extends KernelTestBase {
    * @covers ::profileMap
    */
   public function testNoCurationMeansEmptyLists(): void {
-    $repository = new TrustedSiteRepository($this->container->get('entity_type.manager'));
+    $repository = new TrustedSiteRepository($this->container->get('entity_type.manager'), $this->container->get('cache.default'));
     $this->assertSame([], $repository->includeDomains());
     $this->assertSame([], $repository->excludeDomains());
     $this->assertSame(0, $repository->reputation('anything.example'));
+  }
+
+  /**
+   * The persistent cache is invalidated when trusted_site nodes change.
+   *
+   * @covers ::profileMap
+   */
+  public function testPersistentCacheInvalidation(): void {
+    $etm = $this->container->get('entity_type.manager');
+    $cache = $this->container->get('cache.default');
+
+    // Prime the persistent cache with an empty curation map.
+    (new TrustedSiteRepository($etm, $cache))->profileMap();
+
+    $etm->getStorage('node')->create([
+      'type' => 'trusted_site',
+      'title' => 'New source',
+      'field_domain' => 'new.example',
+      'field_reputation' => 5,
+      'status' => 1,
+    ])->save();
+
+    // A fresh instance (no per-request cache) must see the new node: saving
+    // it invalidated the node_list:trusted_site tag.
+    $repository = new TrustedSiteRepository($etm, $cache);
+    $this->assertSame(5, $repository->reputation('new.example'));
   }
 
 }

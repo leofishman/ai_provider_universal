@@ -75,6 +75,25 @@ vendor/bin/dr recipe:apply web/modules/custom/ai_provider_universal/recipes/fact
 
 Tip: if your evidence index covers all content types, exclude `trusted_site` from it so curation entries never surface as "evidence".
 
+**Performance**: the domain/reputation map is cached persistently and invalidated automatically whenever a `trusted_site` node is created, updated or deleted (core's `node_list:trusted_site` cache tag) — curating entries never requires a manual cache clear, and scans never re-query the nodes.
+
+## Standalone fact check (page + block)
+
+Besides the per-node tab, **Content → Fact check** (`/admin/content/factcheck`) scans anything: give it a URL (this site or any other — the page is fetched and its text extracted) or paste text directly. Same checks, same result rendering. A **Fact check** block (category "AI") exposes the same form for placement anywhere; both are gated by the `use standalone fact check` permission. PDF upload is planned (needs a text-extraction library — see ROADMAP).
+
+Every scan (tab or standalone) is also stored as an `aip_factcheck_result` entity, and the shipped **Fact check results** view lists the history at **Content → Fact check results** (`/admin/content/factcheck/results`) with a matching block. It is a normal view: edit columns, filters, path and displays at **Structure → Views** like any other. Rows are plain audit data (subject, scores, who ran it, full details) — deleting them is safe, and uninstalling the module removes them.
+
+## Permissions
+
+| Permission | Grants |
+|---|---|
+| `administer factcheck settings` | The settings form (checker models, evidence index, API keys). `administer ai providers` also works, so provider admins need no extra grant. |
+| `run content scan` | The Content scan tab. The user **also** needs update access to the node — the permission narrows who may spend LLM/API budget, it does not widen content access. |
+| `use standalone fact check` | The standalone page and block above. |
+| `view factcheck results` | The stored scan history (results view, page and block). |
+
+After enabling the module, grant `run content scan` to your editor roles — the tab is not visible without it.
+
 ## Content scan tab
 
 Every node gets a **Content scan** local task (visible to users who can edit the node). *Run scan* executes up to four checks on the rendered node and shows the results inline — nothing is stored:
