@@ -314,21 +314,11 @@ PROMPT;
       }
     }
 
-    // 3. Last resort heuristic: split into sentences and keep those that look
-    // like declarative statements (helps when the model ignores the JSON rule).
-    if (empty($claims)) {
-      $sentences = preg_split('/(?<=[.!?…])\s+/u', $answer);
-      foreach ($sentences as $s) {
-        $s = trim($s);
-        // ponytail: language-neutral filter — skip very short fragments and
-        // anything containing a question mark. Smarter declarative-vs-question
-        // detection is the extractor model's job, not a regex's.
-        if (mb_strlen($s) > 15 && !str_contains($s, '?') && !str_contains($s, '¿')) {
-          $claims[] = $s;
-        }
-      }
-    }
-
+    // No sentence-splitting last resort on purpose: when the extractor
+    // returns nothing parseable, the answer passes (score 1.0) instead of
+    // verifying raw sentences at full cost — verification must never break
+    // or tax inference on a flaky extractor. The raw response is logged
+    // below for diagnosis.
     $claims = array_values(array_filter(array_map(
       static fn ($c) => is_string($c) ? trim($c, " \t\n\r\0\x0B\"'") : '',
       $claims,
