@@ -48,6 +48,7 @@ Discovery is the **write path**: it calls the backend's `listModels()`, runs the
 - **Label**: `<Server label> / <raw model id>`, only set automatically while it still matches the auto-generated pattern — a manually renamed model label survives re-discovery.
 - **Removed models are deleted**: any `ai_universal_model` for the server that discovery no longer sees is removed (`hook_entity_delete` also cascades: deleting a server deletes all its models).
 - **Manual edits are never clobbered**: `applyDetectedMetadata()` only writes a detected value (cost, quality tier, context length) into a field that is still `NULL`. Once you set a value in the UI, re-discovery leaves it alone.
+- **Site-editable defaults**: when the backend detects no quality tier (and optionally no costs), `definitions/model_defaults.yml` fills the gap — named-family regexes (claude-opus → 5, mixtral → 3, ...), a parameter-count fallback (70b → 3, 7b → 2, ...), and a `costs:` map shipped empty for you to maintain (USD per 1M tokens). Same never-clobber rule applies. Don't edit the module file (it is replaced on updates): put site entries in an override file with the same format — its entries win — and declare it in settings.php: `$settings['ai_provider_universal_model_defaults'] = 'sites/default/model_defaults.yml';`.
 
 Trigger discovery with:
 

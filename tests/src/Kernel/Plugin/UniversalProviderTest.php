@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\ai_provider_universal\Kernel\Plugin;
 
+use Drupal\ai\Exception\AiRequestErrorException;
+use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\ai_provider_universal\Kernel\Traits\HttpClientMockTrait;
@@ -175,6 +177,54 @@ final class UniversalProviderTest extends KernelTestBase {
     $capped_diff = $catalog->buildModelEntityId('gpu', $long_diff);
     $this->assertNotEquals($capped, $capped_diff);
     $this->assertLessThanOrEqual(160, strlen($capped_diff));
+  }
+
+  /**
+   * Tests the pre-call gate event: block and model swap.
+   */
+  public function testModelPreCallEvent(): void {
+    $etm = $this->container->get('entity_type.manager');
+    $etm->getStorage('ai_universal_server')->create([
+      'id' => 'gated',
+      'label' => 'Gated',
+      'host_name' => 'http://127.0.0.1',
+      'port' => '8080',
+    ])->save();
+    $etm->getStorage('ai_universal_model')->create([
+      'id' => 'gated__llama3',
+      'label' => 'llama3',
+      'server_id' => 'gated',
+      'raw_model_id' => 'llama3',
+      'detected_operation_types' => ['chat'],
+    ])->save();
+
+    $dispatcher = $this->container->get('event_dispatcher');
+    $dispatcher->addListener(ModelPreCallEvent::EVENT_NAME, static function (ModelPreCallEvent $event): void {
+      $event->block('blocked by test');
+    });
+
+    /** @var \Drupal\ai_provider_universal\Plugin\AiProvider\UniversalProvider $provider */
+    $provider = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'gated']);
+
+    // The gate runs before any HTTP request: no mock responses are queued,
+    // so anything past the gate would fail differently.
+    $this->expectException(AiRequestErrorException::class);
+    $this->expectExceptionMessage('blocked by test');
+    $provider->chat('hello', 'gated__llama3');
+  }
+
+  /**
+   * Tests that a pre-call subscriber can swap the model.
+   */
+  public function testModelPreCallEventSwap(): void {
+    $event = new ModelPreCallEvent('server__original', 'chat');
+    $event->setModelId('server__cheaper');
+    $this->assertSame('server__cheaper', $event->getModelId());
+    $this->assertFalse($event->isBlocked());
+    $event->block('done');
+    $this->assertTrue($event->isBlocked());
+    $this->assertSame('done', $event->getBlockReason());
   }
 
   /**

@@ -103,16 +103,19 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [ ] **Hourly usage limits** alongside daily ones (tracking + enforcement +
       thresholds); document when the daily window resets and in which
       timezone.
-- [ ] **Pre-call gate**: dispatch an event before a model is used so other
-      modules can check limits/conditions and block the call or swap the
-      model.
-- [ ] Set limits via Rules/ECA (or document the UsageThresholdEvent recipe
-      for it).
+- [x] **Pre-call gate**: `ModelPreCallEvent` dispatched before every
+      inference call; subscribers can block the call or swap the model
+      (see docs/usage-limits.md).
+- [ ] Set limits via Rules/ECA (the pre-call gate + UsageThresholdEvent are
+      the seams; ship an ECA example or dedicated actions).
 - [ ] Per-field configuration on content types to enforce fact-check
       features (plagiarism, AI-likelihood, ...) per field.
-- [ ] Default quality-tier list for known models (prefill tiers by model
-      family instead of manual entry).
-- [ ] Glossary of module terms (server, model, backend, route, tier, ...).
+- [x] Default quality-tier list for known models: site-editable YAML
+      (`definitions/model_defaults.yml`) with named-family regexes +
+      parameter-count heuristic, plus optional cost defaults for backends
+      that publish no pricing. Prefilled at discovery, never overwrites
+      manual edits.
+- [x] Glossary of module terms: [docs/glossary.md](docs/glossary.md).
 
 ## Factcheck backlog
 

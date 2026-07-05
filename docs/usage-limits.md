@@ -49,3 +49,26 @@ public static function getSubscribedEvents(): array {
 ```
 
 The once-per-day deduplication is tracked in State (`ai_provider_universal_router.usage_alert.<server>` / `...usage_exhausted.<server>`), so re-saving config or clearing caches does not re-fire alerts.
+
+## Gating calls yourself (pre-call event)
+
+For custom rules beyond the built-in daily limits (business hours, per-role quotas, compliance), subscribe to `ModelPreCallEvent` — dispatched by the main module before **every** inference call, after smart-route resolution, so you always see the concrete model id. You can block the call or swap the model:
+
+```php
+use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
+
+public static function getSubscribedEvents(): array {
+  return [ModelPreCallEvent::EVENT_NAME => 'onPreCall'];
+}
+
+public function onPreCall(ModelPreCallEvent $event): void {
+  if ($event->getOperationType() === 'chat' && $this->outsideBusinessHours()) {
+    // Either block the call entirely (throws AiRequestErrorException) ...
+    $event->block('Chat is disabled outside business hours.');
+    // ... or swap to a cheaper model instead:
+    // $event->setModelId('local__llama3_8b');
+  }
+}
+```
+
+Unlike the threshold events above, this event fires on every call (no deduplication) — it is a gate, not a notification.

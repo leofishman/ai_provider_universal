@@ -5,6 +5,7 @@ namespace Drupal\ai_provider_universal\Service;
 use Drupal\ai_provider_universal\Backend\AiServerBackendInterface;
 use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
+use Drupal\ai_provider_universal\Utility\ModelDefaults;
 use Drupal\ai_provider_universal\Utility\ModelFilter;
 use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -50,10 +51,19 @@ class ModelCatalog {
       $machine = $this->getMachineName($rawId);
       $entityId = $this->buildModelEntityId($serverId, $machine);
 
+      $metadata = $backend->detectModelMetadata($modelEntry);
+      // Prefill tier/costs from definitions/model_defaults.yml when the
+      // backend detects none; applyDetectedMetadata() still never
+      // overwrites a manual edit.
+      if (!isset($metadata['quality_tier']) && ($tier = ModelDefaults::guessTier($rawId)) !== NULL) {
+        $metadata['quality_tier'] = $tier;
+      }
+      $metadata += ModelDefaults::guessCosts($rawId);
+
       $discovered[$entityId] = [
         'raw' => $rawId,
         'detected' => $backend->detectOperationTypes($modelEntry),
-        'metadata' => $backend->detectModelMetadata($modelEntry),
+        'metadata' => $metadata,
       ];
     }
 

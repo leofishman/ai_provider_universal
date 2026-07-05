@@ -27,6 +27,7 @@ use Drupal\ai\OperationType\TextToImage\TextToImageOutput;
 use Drupal\ai\Traits\OperationType\ChatTrait;
 use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
+use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
 use Drupal\ai_provider_universal\Models\Moderation\LlamaGuard3;
 use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
@@ -503,9 +504,35 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   }
 
   /**
+   * Pre-call gate: lets other modules block the call or swap the model.
+   *
+   * Dispatched after route resolution, so subscribers always see a concrete
+   * ai_universal_model entity id.
+   *
+   * @return string
+   *   The (possibly swapped) model entity id to use.
+   *
+   * @throws \Drupal\ai\Exception\AiRequestErrorException
+   *   When a subscriber blocks the call.
+   */
+  protected function preCallGate(string $model_id, string $operation_type): string {
+    $event = new ModelPreCallEvent($model_id, $operation_type);
+    $this->serviceContainer->get('event_dispatcher')->dispatch($event, ModelPreCallEvent::EVENT_NAME);
+    if ($event->isBlocked()) {
+      $this->loggerFactory->get('ai_provider_universal')->warning(
+        'A @type call to @model was blocked by a pre-call subscriber: @reason',
+        ['@type' => $operation_type, '@model' => $model_id, '@reason' => $event->getBlockReason()],
+      );
+      throw new AiRequestErrorException(sprintf('Call to model "%s" blocked: %s', $model_id, $event->getBlockReason()));
+    }
+    return $event->getModelId();
+  }
+
+  /**
    * Executes one chat call against a concrete model entity id.
    */
   protected function doChat(array|string|ChatInput $input, string $model_id, array $tags): ChatOutput {
+    $model_id = $this->preCallGate($model_id, 'chat');
     $this->setActiveServerForModel($model_id);
 
     // Per-model reasoning override. The parent builds the request payload
@@ -611,6 +638,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   public function embeddings(string|EmbeddingsInput $input, string $model_id, array $tags = []): EmbeddingsOutput {
     $model_id = $this->resolveRoutedModel($model_id, $input instanceof EmbeddingsInput ? '' : $input, 'embeddings');
+    $model_id = $this->preCallGate($model_id, 'embeddings');
     $this->setActiveServerForModel($model_id);
     try {
       $resolved = $this->getModel($model_id);
@@ -625,6 +653,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function speechToText(string|SpeechToTextInput $input, string $model_id, array $tags = []): SpeechToTextOutput {
+    $model_id = $this->preCallGate($model_id, 'speech_to_text');
     $this->setActiveServerForModel($model_id);
     try {
       $resolved = $this->getModel($model_id);
@@ -640,6 +669,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   public function rerank(ReRankInput $input, string $model_id, array $tags = []): ReRankOutput {
     $model_id = $this->resolveRoutedModel($model_id, $input->getQuery(), 'rerank');
+    $model_id = $this->preCallGate($model_id, 'rerank');
     $this->setActiveServerForModel($model_id);
     $this->loadClient();
     $raw_model_id = $this->getModel($model_id);
@@ -694,6 +724,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $prompt = $input instanceof ModerationInput ? $input->getPrompt() : $input;
     if ($model_id) {
       $model_id = $this->resolveRoutedModel($model_id, $prompt, 'moderation');
+      $model_id = $this->preCallGate($model_id, 'moderation');
       $this->setActiveServerForModel($model_id);
     }
     $this->loadClient();
@@ -917,6 +948,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function textToImage(string|TextToImageInput $input, string $model_id, array $tags = []): TextToImageOutput {
+    $model_id = $this->preCallGate($model_id, 'text_to_image');
     $this->setActiveServerForModel($model_id);
     try {
       $resolved = $this->getModel($model_id);
