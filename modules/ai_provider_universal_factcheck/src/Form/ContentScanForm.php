@@ -6,6 +6,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\ai_provider_universal_factcheck\Service\AiDetector;
 use Drupal\ai_provider_universal_factcheck\Service\FactChecker;
@@ -53,6 +54,11 @@ class ContentScanForm extends FormBase {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * The current user.
+   */
+  protected AccountProxyInterface $currentUser;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -63,6 +69,7 @@ class ContentScanForm extends FormBase {
     $instance->plagiarismChecker = $container->get(PlagiarismChecker::class);
     $instance->renderer = $container->get('renderer');
     $instance->entityTypeManager = $container->get('entity_type.manager');
+    $instance->currentUser = $container->get('current_user');
     return $instance;
   }
 
@@ -150,6 +157,7 @@ class ContentScanForm extends FormBase {
   protected function saveResult(array $results, array $context): void {
     try {
       $this->entityTypeManager->getStorage('aip_factcheck_result')->create($context + [
+        'uid' => $this->currentUser->id(),
         'score' => $results['factcheck']['score'] ?? NULL,
         'ai_score' => $results['ai']['score'] ?? NULL,
         'readability' => $results['readability']['score'] ?? NULL,

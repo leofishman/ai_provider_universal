@@ -72,23 +72,12 @@ class FactcheckResult extends ContentEntityBase {
 
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(new TranslatableMarkup('Run by'))
-      ->setSetting('target_type', 'user')
-      ->setDefaultValueCallback(static::class . '::currentUserId');
+      ->setSetting('target_type', 'user');
 
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(new TranslatableMarkup('Scanned on'));
 
     return $fields;
-  }
-
-  /**
-   * Default value callback for uid.
-   *
-   * @return int[]
-   *   The current user id.
-   */
-  public static function currentUserId(): array {
-    return [\Drupal::currentUser()->id()];
   }
 
 }

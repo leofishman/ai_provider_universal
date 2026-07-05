@@ -33,11 +33,13 @@ use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Universal multi-instance AI provider plugin.
@@ -93,6 +95,16 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   protected ModelCatalog $modelCatalog;
 
   /**
+   * Usage tracker (always present; not submodule-dependent).
+   */
+  protected UsageTracker $usageTracker;
+
+  /**
+   * The module handler, for loading api_defaults.yml.
+   */
+  protected ModuleHandlerInterface $moduleHandler;
+
+  /**
    * Cached model mapping (machine_id => raw_id).
    *
    * @var array
@@ -109,8 +121,9 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   /**
    * The service container.
    *
-   * Used to look up optional submodule services (router, factcheck) that
-   * cannot be constructor-injected because they may not be installed.
+   * Used to look up optional submodule services (router, factcheck, event_dispatcher)
+   * that cannot be constructor-injected because the submodules may not be installed.
+   * Core/always-present services are injected directly (see usageTracker).
    */
   protected ContainerInterface $serviceContainer;
 
@@ -123,6 +136,8 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->httpClientFactory = $container->get('http_client_factory');
     $instance->modelCatalog = $container->get(ModelCatalog::class);
+    $instance->usageTracker = $container->get(UsageTracker::class);
+    $instance->moduleHandler = $container->get('module_handler');
     $instance->serviceContainer = $container;
     return $instance;
   }
@@ -341,6 +356,20 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   public function getModelSettings(string $model_id, array $generalConfig = []): array {
     return $generalConfig;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Loads the API parameter definitions (temperature, max_tokens, etc.)
+   * from the module's definitions/api_defaults.yml. This powers the
+   * configuration UI in the AI module for operations using this provider.
+   */
+  public function getApiDefinition(): array {
+    $path = $this->moduleHandler
+      ->getModule('ai_provider_universal')
+      ->getPath() . '/definitions/api_defaults.yml';
+    return Yaml::parseFile($path);
   }
 
   /**
@@ -566,7 +595,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       $resolved = $this->getModel($model_id);
       $output = parent::chat($input, $resolved, $tags);
       $usage = $output->getTokenUsage();
-      $this->serviceContainer->get(UsageTracker::class)->record($model_id, $usage->input, $usage->output);
+      $this->usageTracker->record($model_id, $usage->input, $usage->output);
       return $output;
     }
     finally {

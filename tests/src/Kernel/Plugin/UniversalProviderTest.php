@@ -291,4 +291,31 @@ final class UniversalProviderTest extends KernelTestBase {
     $this->assertSame('llama3-8b-instruct', $model_entity->getRawModelId());
   }
 
+  /**
+   * Tests getApiDefinition() returns the YAML structure (AI provider contract).
+   *
+   * This exercises the new implementation added for Drupal AI best practices
+   * compliance.
+   */
+  public function testGetApiDefinition(): void {
+    /** @var \Drupal\ai_provider_universal\Plugin\AiProvider\UniversalProvider $provider */
+    $provider = $this->container->get('ai.provider')
+      ->createInstance('universal', []);
+
+    $definition = $provider->getApiDefinition();
+
+    $this->assertIsArray($definition);
+    $this->assertArrayHasKey('chat', $definition);
+    $this->assertArrayHasKey('embeddings', $definition);
+    $this->assertArrayHasKey('moderation', $definition);
+
+    // Spot-check chat configuration parameters from api_defaults.yml
+    $this->assertArrayHasKey('configuration', $definition['chat']);
+    $this->assertArrayHasKey('temperature', $definition['chat']['configuration']);
+    $this->assertArrayHasKey('max_tokens', $definition['chat']['configuration']);
+
+    // Embeddings has no extra configuration in the defaults
+    $this->assertSame([], $definition['embeddings']['configuration']);
+  }
+
 }
