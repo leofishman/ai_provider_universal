@@ -3,6 +3,8 @@ status: true
 dependencies:
   module:
     - ai_provider_universal_router
+    - rest
+    - serialization
     - views
 id: ai_router_log
 label: 'AI Router Log'
