@@ -77,7 +77,7 @@ Extract up to %d atomic factual claims from the text below.
 
 Rules:
 - A factual claim is a single, verifiable statement about the world (can be true or false).
-- Extract claims in the **original language** of the text (do not translate).
+- Write every claim in the SAME LANGUAGE as the TEXT below. NEVER translate: English text means English claims. This rule overrides any other language preference.
 - Ignore opinions, questions, hedges ("probably", "I think"), instructions, and meta text.
 - Output **ONLY** a valid JSON array of strings. No explanations, no markdown, no code fences, no extra text.
 
