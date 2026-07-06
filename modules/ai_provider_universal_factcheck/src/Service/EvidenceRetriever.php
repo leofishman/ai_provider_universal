@@ -89,6 +89,14 @@ class EvidenceRetriever {
       $query = $index->query()
         ->keys($claim)
         ->range(0, $limit);
+      // Claims are sentences, not user queries: on keyword backends the
+      // default AND conjunction demands every word (a fabricated detail like
+      // a wrong year then kills the whole match). OR + relevance ranking
+      // finds the passages that overlap the claim. Vector backends ignore
+      // the parse mode, so this is safe for both.
+      $parse_mode = \Drupal::service('plugin.manager.search_api.parse_mode')->createInstance('terms');
+      $parse_mode->setConjunction('OR');
+      $query->setParseMode($parse_mode);
       // Verification is a server-side concern, not a user-facing search: the
       // checker judges answers against published, indexed content regardless
       // of who triggered the request. ai_search runs entity access checks by
