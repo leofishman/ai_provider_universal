@@ -13,3 +13,7 @@ default:
     - value: reuters.com
   field_reputation:
     - value: 8
+  field_assessments:
+    - value: 'Media Bias/Fact Check: Least Biased, Very High factual reporting'
+    - value: 'NewsGuard: high credibility score'
+    - value: 'Public corrections policy (Standards & Values)'
