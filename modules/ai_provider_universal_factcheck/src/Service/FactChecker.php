@@ -303,6 +303,21 @@ PROMPT;
       }
     }
 
+    // 1b. One JSON array (or object) per line — some models emit that
+    // instead of a single array, which makes the greedy match above
+    // non-decodable.
+    if (empty($claims)) {
+      foreach (explode("\n", $raw) as $line) {
+        $line = trim($line);
+        if ($line !== '' && $line[0] === '[' && is_array($decoded = json_decode($line, TRUE))) {
+          foreach ($decoded as $c) {
+            $claims[] = is_array($c) ? ($c['claim'] ?? '') : $c;
+          }
+        }
+      }
+      $claims = array_filter($claims, static fn ($c) => is_string($c) && trim($c) !== '');
+    }
+
     // 2. Bullet / numbered list fallback.
     if (empty($claims)) {
       $lines = explode("\n", $raw);
