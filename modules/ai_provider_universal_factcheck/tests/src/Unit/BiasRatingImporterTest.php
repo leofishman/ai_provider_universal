@@ -21,7 +21,7 @@ use GuzzleHttp\Psr7\Response;
  * MBFC API fetch path, with mocked HTTP.
  *
  * The fixture in tests/fixtures/mbfc-api-response-mini.json is 3 rows cut
- * from a real /ratings capture (the endpoint dumps the full ~15k dataset),
+ * from a real /fetch-data capture (the endpoint dumps the full ~15k dataset),
  * so this test validates our parsing against the real schema.
  *
  * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\BiasRatingImporter
@@ -89,6 +89,7 @@ class BiasRatingImporterTest extends UnitTestCase {
     $this->assertCount(1, $this->history);
     $request = $this->history[0]['request'];
     $this->assertSame('rapid-api-key', $request->getHeaderLine('X-RapidAPI-Key'));
+    $this->assertSame('/fetch-data', $request->getUri()->getPath());
   }
 
   /**

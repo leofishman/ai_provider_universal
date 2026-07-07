@@ -128,7 +128,7 @@ class BiasRatingImporter {
    * RapidAPI key subscribed to the "Media Bias Fact Check Ratings" API
    * (https://rapidapi.com/mbfcnews/api/media-bias-fact-check-ratings-api2).
    *
-   * The /ratings endpoint returns the full dataset (~15k sources, columns
+   * The /fetch-data endpoint returns the full dataset (~15k sources, columns
    * "Source", "Bias", "Factual Reporting", "Source URL", "Credibility",
    * "Political Bias"), so this makes exactly one HTTP call regardless of
    * how many domains are requested — the free tier allows 3 calls/month.
@@ -147,7 +147,7 @@ class BiasRatingImporter {
     }
 
     try {
-      $response = $this->httpClient->request('GET', 'https://media-bias-fact-check-ratings-api2.p.rapidapi.com/ratings', [
+      $response = $this->httpClient->request('GET', 'https://media-bias-fact-check-ratings-api2.p.rapidapi.com/fetch-data', [
         'headers' => [
           'X-RapidAPI-Key' => $apiKey,
           'X-RapidAPI-Host' => 'media-bias-fact-check-ratings-api2.p.rapidapi.com',
