@@ -145,7 +145,10 @@ display:
           default_row_class: true
           columns: {  }
           default: timestamp
-          info: {  }
+          info:
+            timestamp:
+              sortable: true
+              default_sort_order: desc
           override: true
           sticky: false
           summary: ''

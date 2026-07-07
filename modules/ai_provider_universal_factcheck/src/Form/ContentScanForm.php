@@ -221,9 +221,40 @@ class ContentScanForm extends FormBase {
    * Batch op: verify the previously extracted claims.
    */
   public static function batchVerifyClaims(array &$context): void {
+    $claims = $context['results']['claims'] ?? [];
+    if (!$claims) {
+      $context['results']['factcheck'] = ['score' => 1.0, 'claims' => []];
+      return;
+    }
+    // Multi-pass: verify a few claims per batch request so no single HTTP
+    // request outlives reverse-proxy read timeouts (Cloudflare kills the
+    // connection at ~100s with a 524). Per-claim verdicts are cached, so
+    // re-runs stay cheap.
+    $sandbox = &$context['sandbox'];
+    $sandbox['pos'] ??= 0;
+    $sandbox['records'] ??= [];
     /** @var \Drupal\ai_provider_universal_factcheck\Service\FactChecker $checker */
     $checker = \Drupal::service(FactChecker::class);
-    $context['results']['factcheck'] = $checker->verifyClaims($context['results']['claims'] ?? []);
+    $chunk = array_slice($claims, $sandbox['pos'], 3);
+    $result = $checker->verifyClaims($chunk);
+    $sandbox['records'] = array_merge($sandbox['records'], $result['claims']);
+    $sandbox['pos'] += count($chunk);
+    if ($sandbox['pos'] < count($claims)) {
+      $context['finished'] = $sandbox['pos'] / count($claims);
+      $context['message'] = t('Verified @done of @total claims…', [
+        '@done' => $sandbox['pos'],
+        '@total' => count($claims),
+      ]);
+      return;
+    }
+    $records = $sandbox['records'];
+    // Same scoring as FactChecker::verifyClaims(), over the merged records.
+    $supported = count(array_filter($records, static fn (array $r): bool => $r['verdict'] === 'SUPPORTED'));
+    $tainted = count(array_filter($records, static fn (array $r): bool => $r['tainted']));
+    $context['results']['factcheck'] = [
+      'score' => max(0.0, ($supported - 0.5 * $tainted) / count($claims)),
+      'claims' => $records,
+    ];
     $context['message'] = t('Verified claims against the evidence.');
   }
 
