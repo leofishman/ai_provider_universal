@@ -1,0 +1,7 @@
+services:
+  ai_provider_universal_factcheck.commands:
+    class: Drupal\ai_provider_universal_factcheck\Commands\FactcheckCommands
+    arguments:
+      - '@Drupal\ai_provider_universal_factcheck\Service\BiasRatingImporter'
+    tags:
+      - { name: drush.command }

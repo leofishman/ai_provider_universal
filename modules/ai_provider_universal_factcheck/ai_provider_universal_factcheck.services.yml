@@ -51,3 +51,11 @@ services:
       - '@config.factory'
       - '@key.repository'
       - '@logger.channel.ai_provider_universal_factcheck'
+
+  Drupal\ai_provider_universal_factcheck\Service\BiasRatingImporter:
+    class: Drupal\ai_provider_universal_factcheck\Service\BiasRatingImporter
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@key.repository'
+      - '@http_client'

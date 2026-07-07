@@ -26,3 +26,6 @@ ai_provider_universal_factcheck.settings:
     tavily_key:
       type: string
       label: 'Key entity holding the Tavily API key (empty = no web evidence fallback)'
+    mbfc_key:
+      type: string
+      label: 'Key entity holding the MediaBiasFactCheck RapidAPI key (empty = static JSON import only)'

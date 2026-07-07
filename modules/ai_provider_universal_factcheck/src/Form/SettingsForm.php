@@ -148,6 +148,16 @@ class SettingsForm extends ConfigFormBase {
       '#access' => (bool) $key_options,
     ];
 
+    $form['mbfc_key'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Media bias ratings API key (MBFC)'),
+      '#description' => $this->t('Key entity holding a RapidAPI key for the <a href=":url">Media Bias Fact Check Ratings API</a>. Used by <code>drush factcheck:sync-bias-ratings --fetch=domain,…</code> to pull live bias/factual ratings into Trusted sites. Leave empty to import from static JSON only.', [':url' => 'https://rapidapi.com/mbfcnews/api/media-bias-fact-check-ratings-api2']),
+      '#options' => $key_options,
+      '#empty_option' => $this->t('- Disabled -'),
+      '#default_value' => $config->get('mbfc_key'),
+      '#access' => (bool) $key_options,
+    ];
+
     $form['plagiarism_key'] = [
       '#type' => 'select',
       '#title' => $this->t('Plagiarism search API key'),
@@ -195,6 +205,7 @@ class SettingsForm extends ConfigFormBase {
       ->set('detector_model', $form_state->getValue('detector_model') ?? '')
       ->set('plagiarism_key', $form_state->getValue('plagiarism_key') ?? '')
       ->set('tavily_key', $form_state->getValue('tavily_key') ?? '')
+      ->set('mbfc_key', $form_state->getValue('mbfc_key') ?? '')
       ->save();
     parent::submitForm($form, $form_state);
   }

@@ -128,6 +128,38 @@ For fact-checking the key is **specialization + low per-claim cost**, because yo
 
 If you only have large frontier models, use a small local checker + a strong API model only for escalation.
 
+## Importing bias ratings (MediaBiasFactCheck and similar)
+
+The `trusted_site` content type has a `field_bias` field (left / center / right etc.) and `field_reputation`.
+
+You can populate them from external raters using:
+
+```bash
+drush factcheck:sync-bias-ratings
+```
+
+This command reads `data/mbfc-ratings-sample.json` (in the factcheck submodule) and creates/updates trusted sites with:
+
+- `field_reputation` derived from factual reporting + bias
+- `field_assessments` containing the source rating (e.g. "Media Bias / Fact Check — Bias: Right | Factual: Mixed")
+- `field_bias` normalized
+
+You can extend the JSON file with more domains from https://mediabiasfactcheck.com/ or other raters (AllSides, Ad Fontes, etc.).
+
+To fetch ratings live instead of maintaining JSON, subscribe to the [MBFC Ratings API on RapidAPI](https://rapidapi.com/mbfcnews/api/media-bias-fact-check-ratings-api2) (or the commercial direct API), store the key in a Key entity, select it under **Fact check settings → Media bias ratings API key**, and run:
+
+```bash
+drush factcheck:sync-bias-ratings --fetch=example.com,othersite.org
+```
+
+Note MBFC's terms: RapidAPI access is for testing, research and small non-commercial projects, with attribution to MediaBiasFactCheck.com.
+
+The bias information is already used in:
+- Discrepancy analysis (shows the spread of biases behind a claim)
+- Blindspot detection (when all evidence comes from one side)
+
+This makes it easy to curate sources with ideological awareness without hard-coding everything.
+
 ### Fallbacks for extractor and detector
 
 In **Fact check settings**:

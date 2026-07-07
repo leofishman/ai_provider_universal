@@ -6,3 +6,4 @@ max_claims: 5
 detector_model: ''
 plagiarism_key: ''
 tavily_key: ''
+mbfc_key: ''

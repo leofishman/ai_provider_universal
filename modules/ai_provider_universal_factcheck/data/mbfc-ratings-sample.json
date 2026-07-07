@@ -1,0 +1,82 @@
+[
+  {
+    "domain": "foxnews.com",
+    "name": "Fox News",
+    "bias": "Right",
+    "factual": "Mixed",
+    "credibility": "Medium",
+    "notes": "Right bias. Mixed factual reporting on political topics."
+  },
+  {
+    "domain": "rt.com",
+    "name": "RT",
+    "bias": "Right-Center",
+    "factual": "Very Low",
+    "credibility": "Low",
+    "notes": "Questionable source per MBFC: Russian state media, very low factual reporting, propaganda."
+  },
+  {
+    "domain": "reuters.com",
+    "name": "Reuters",
+    "bias": "Center",
+    "factual": "High",
+    "credibility": "High",
+    "notes": "Least biased, very high factual reporting."
+  },
+  {
+    "domain": "apnews.com",
+    "name": "Associated Press",
+    "bias": "Center",
+    "factual": "High",
+    "credibility": "High",
+    "notes": "Least biased, very high factual reporting."
+  },
+  {
+    "domain": "nytimes.com",
+    "name": "The New York Times",
+    "bias": "Left-Center",
+    "factual": "High",
+    "credibility": "High",
+    "notes": "Left-Center bias with strong factual reporting on most topics."
+  },
+  {
+    "domain": "wsj.com",
+    "name": "Wall Street Journal",
+    "bias": "Right-Center",
+    "factual": "Mostly Factual",
+    "credibility": "High",
+    "notes": "Right-Center bias (editorial), mostly factual news reporting."
+  },
+  {
+    "domain": "npr.org",
+    "name": "NPR",
+    "bias": "Left-Center",
+    "factual": "High",
+    "credibility": "High",
+    "notes": "Left-Center with high factual standards."
+  },
+  {
+    "domain": "breitbart.com",
+    "name": "Breitbart",
+    "bias": "Right",
+    "factual": "Low",
+    "credibility": "Low",
+    "notes": "Questionable source per MBFC: extreme right bias, low factual reporting."
+  },
+  {
+    "domain": "theguardian.com",
+    "name": "The Guardian",
+    "bias": "Left-Center",
+    "factual": "Mixed",
+    "credibility": "Medium",
+    "notes": "Left-Center bias, mixed factual reporting per MBFC due to failed fact checks and one-sided coverage."
+  },
+  {
+    "domain": "cnn.com",
+    "name": "CNN",
+    "bias": "Left",
+    "factual": "Mixed",
+    "credibility": "Medium",
+    "notes": "Left bias, mixed on some political coverage."
+  }
+]
