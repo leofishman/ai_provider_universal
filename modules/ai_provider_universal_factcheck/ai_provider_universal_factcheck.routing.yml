@@ -1,5 +1,5 @@
 ai_provider_universal_factcheck.settings:
-  path: '/admin/config/ai/providers/universal/factcheck'
+  path: '/admin/config/ai/factcheck'
   defaults:
     _form: '\Drupal\ai_provider_universal_factcheck\Form\SettingsForm'
     _title: 'Fact check settings'
