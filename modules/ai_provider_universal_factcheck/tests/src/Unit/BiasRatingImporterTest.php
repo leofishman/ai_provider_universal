@@ -20,9 +20,9 @@ use GuzzleHttp\Psr7\Response;
 /**
  * MBFC API fetch path, with mocked HTTP.
  *
- * The fixture in tests/fixtures/mbfc-api-response.json stands in for a real
- * API response; once one is captured (RapidAPI free tier is 3 calls/month),
- * paste it there and this test validates our parsing against the real schema.
+ * The fixture in tests/fixtures/mbfc-api-response-mini.json is 3 rows cut
+ * from a real /ratings capture (the endpoint dumps the full ~15k dataset),
+ * so this test validates our parsing against the real schema.
  *
  * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\BiasRatingImporter
  * @group ai_provider_universal
@@ -66,22 +66,29 @@ class BiasRatingImporterTest extends UnitTestCase {
    * @covers ::fetchFromApi
    */
   public function testFetchParsesFixtureResponse(): void {
-    $fixture = (string) file_get_contents(__DIR__ . '/../../fixtures/mbfc-api-response.json');
+    $fixture = (string) file_get_contents(__DIR__ . '/../../fixtures/mbfc-api-response-mini.json');
     $importer = $this->buildImporter([new Response(200, [], $fixture)]);
 
-    $result = $importer->fetchFromApi(['foxnews.com']);
+    // Two domains, one of them stored in the dataset with a path suffix
+    // ("metapedia.org/wiki/Main_Page") — one HTTP call covers both.
+    $result = $importer->fetchFromApi(['canarymission.org', 'https://www.metapedia.org']);
 
     $this->assertSame([], $result['errors']);
-    $this->assertCount(1, $result['sites']);
-    $site = $result['sites'][0];
-    $this->assertSame('foxnews.com', $site['domain']);
-    $this->assertNotSame('', $site['bias'], 'Bias was extracted from the response.');
-    $this->assertNotSame('', $site['factual'], 'Factual rating was extracted from the response.');
+    $this->assertCount(2, $result['sites']);
+    [$canary, $metapedia] = $result['sites'];
+    $this->assertSame('canarymission.org', $canary['domain']);
+    $this->assertSame('Canary Mission', $canary['name']);
+    // "Bias" is the unmappable "Questionable"; "Political Bias" wins.
+    $this->assertSame('Right', $canary['bias']);
+    $this->assertSame('Mixed', $canary['factual']);
+    $this->assertSame('Low', $canary['credibility']);
+    $this->assertSame('metapedia.org', $metapedia['domain']);
+    $this->assertSame('Low', $metapedia['factual']);
 
-    // The request carried the RapidAPI auth headers and domain query.
+    // Exactly one request, carrying the RapidAPI auth headers.
+    $this->assertCount(1, $this->history);
     $request = $this->history[0]['request'];
     $this->assertSame('rapid-api-key', $request->getHeaderLine('X-RapidAPI-Key'));
-    $this->assertStringContainsString('domain=foxnews.com', $request->getUri()->getQuery());
   }
 
   /**
@@ -100,21 +107,35 @@ class BiasRatingImporterTest extends UnitTestCase {
   }
 
   /**
-   * A failing domain is reported but does not abort the batch.
+   * A domain missing from the dataset is reported but does not abort.
    *
    * @covers ::fetchFromApi
    */
   public function testFetchCollectsPerDomainErrors(): void {
-    $importer = $this->buildImporter([
-      new Response(500, [], 'boom'),
-      new Response(200, [], '{"name":"AP","bias":"Center","factual":"High"}'),
-    ]);
+    $fixture = (string) file_get_contents(__DIR__ . '/../../fixtures/mbfc-api-response-mini.json');
+    $importer = $this->buildImporter([new Response(200, [], $fixture)]);
 
-    $result = $importer->fetchFromApi(['down.example', 'apnews.com']);
+    $result = $importer->fetchFromApi(['down.example', 'xtramagazine.com']);
 
     $this->assertCount(1, $result['errors']);
+    $this->assertStringContainsString('down.example', $result['errors'][0]);
     $this->assertCount(1, $result['sites']);
-    $this->assertSame('apnews.com', $result['sites'][0]['domain']);
+    $this->assertSame('xtramagazine.com', $result['sites'][0]['domain']);
+    $this->assertSame('Left', $result['sites'][0]['bias']);
+  }
+
+  /**
+   * An HTTP failure yields a single batch error and no sites.
+   *
+   * @covers ::fetchFromApi
+   */
+  public function testFetchReportsHttpFailure(): void {
+    $importer = $this->buildImporter([new Response(500, [], 'boom')]);
+
+    $result = $importer->fetchFromApi(['apnews.com']);
+
+    $this->assertSame([], $result['sites']);
+    $this->assertCount(1, $result['errors']);
   }
 
 }

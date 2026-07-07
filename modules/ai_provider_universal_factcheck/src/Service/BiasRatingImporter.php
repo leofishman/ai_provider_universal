@@ -31,6 +31,8 @@ class BiasRatingImporter {
     'lean right' => 'lean_right',
     'lean_right' => 'lean_right',
     'right' => 'right',
+    'extreme left' => 'left',
+    'extreme right' => 'right',
   ];
 
   public function __construct(
@@ -126,6 +128,11 @@ class BiasRatingImporter {
    * RapidAPI key subscribed to the "Media Bias Fact Check Ratings" API
    * (https://rapidapi.com/mbfcnews/api/media-bias-fact-check-ratings-api2).
    *
+   * The /ratings endpoint returns the full dataset (~15k sources, columns
+   * "Source", "Bias", "Factual Reporting", "Source URL", "Credibility",
+   * "Political Bias"), so this makes exactly one HTTP call regardless of
+   * how many domains are requested — the free tier allows 3 calls/month.
+   *
    * @param string[] $domains
    *   Domains to look up.
    *
@@ -139,46 +146,68 @@ class BiasRatingImporter {
       return ['sites' => [], 'errors' => ['No MBFC API key configured (mbfc_key setting).']];
     }
 
+    try {
+      $response = $this->httpClient->request('GET', 'https://media-bias-fact-check-ratings-api2.p.rapidapi.com/ratings', [
+        'headers' => [
+          'X-RapidAPI-Key' => $apiKey,
+          'X-RapidAPI-Host' => 'media-bias-fact-check-ratings-api2.p.rapidapi.com',
+        ],
+        'timeout' => 60,
+      ]);
+      $data = json_decode((string) $response->getBody(), TRUE);
+    }
+    catch (\Throwable $e) {
+      return ['sites' => [], 'errors' => ['MBFC API request failed: ' . $e->getMessage()]];
+    }
+
+    if (isset($data['data']) && is_array($data['data'])) {
+      $data = $data['data'];
+    }
+    if (!is_array($data) || !$data) {
+      return ['sites' => [], 'errors' => ['Empty or unrecognized MBFC API response.']];
+    }
+
+    $index = [];
+    foreach ($data as $row) {
+      if (is_array($row) && !empty($row['Source URL'])) {
+        $index[$this->normalizeDomain((string) $row['Source URL'])] = $row;
+      }
+    }
+
     $sites = [];
     $errors = [];
     foreach ($domains as $domain) {
-      $domain = strtolower(trim($domain));
-      try {
-        $response = $this->httpClient->request('GET', 'https://media-bias-fact-check-ratings-api2.p.rapidapi.com/ratings', [
-          'headers' => [
-            'X-RapidAPI-Key' => $apiKey,
-            'X-RapidAPI-Host' => 'media-bias-fact-check-ratings-api2.p.rapidapi.com',
-          ],
-          'query' => ['domain' => $domain],
-          'timeout' => 10,
-        ]);
-        $data = json_decode((string) $response->getBody(), TRUE);
-        // Some endpoints wrap the record in a list or a "data" envelope.
-        if (isset($data[0]) && is_array($data[0])) {
-          $data = $data[0];
-        }
-        elseif (isset($data['data']) && is_array($data['data'])) {
-          $data = is_array($data['data'][0] ?? NULL) ? $data['data'][0] : $data['data'];
-        }
-        if (!is_array($data) || !$data) {
-          $errors[] = "$domain: empty or unrecognized response.";
-          continue;
-        }
-        $sites[] = [
-          'domain' => $domain,
-          'name' => $data['name'] ?? $data['source'] ?? $domain,
-          'bias' => $data['bias'] ?? $data['bias_rating'] ?? '',
-          'factual' => $data['factual'] ?? $data['factual_reporting'] ?? '',
-          'credibility' => $data['credibility'] ?? '',
-          'notes' => $data['notes'] ?? '',
-          'source' => 'MediaBiasFactCheck API',
-        ];
+      $domain = $this->normalizeDomain($domain);
+      $row = $index[$domain] ?? NULL;
+      if (!$row) {
+        $errors[] = "$domain: not found in MBFC ratings.";
+        continue;
       }
-      catch (\Throwable $e) {
-        $errors[] = "$domain: " . $e->getMessage();
+      // "Bias" can be an editorial label like "Questionable" that carries no
+      // left/right signal; fall back to "Political Bias" for placement.
+      $bias = (string) ($row['Bias'] ?? '');
+      if (!isset(self::BIAS_MAP[strtolower(trim($bias))]) && !empty($row['Political Bias'])) {
+        $bias = (string) $row['Political Bias'];
       }
+      $sites[] = [
+        'domain' => $domain,
+        'name' => $row['Source'] ?? $domain,
+        'bias' => $bias,
+        'factual' => $row['Factual Reporting'] ?? '',
+        'credibility' => $row['Credibility'] ?? '',
+        'notes' => '',
+        'source' => 'MediaBiasFactCheck API',
+      ];
     }
     return ['sites' => $sites, 'errors' => $errors];
+  }
+
+  /**
+   * Reduces a URL or hostname to its bare domain (no scheme, www or path).
+   */
+  protected function normalizeDomain(string $url): string {
+    $url = preg_replace('~^https?://(www\.)?~', '', strtolower(trim($url)));
+    return explode('/', $url)[0];
   }
 
   /**

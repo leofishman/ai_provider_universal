@@ -1,0 +1,44 @@
+[
+  {
+    "Source": "Canary Mission",
+    "MBFC URL": "https://mediabiasfactcheck.com/canary-mission-bias/",
+    "Bias": "Questionable",
+    "Country": "USA",
+    "Factual Reporting": "Mixed",
+    "Media Type": "Website",
+    "Source URL": "canarymission.org",
+    "Credibility": "Low",
+    "Source ID#": 106435,
+    "Factual Score": 6.3,
+    "Political Bias": "Right",
+    "": ""
+  },
+  {
+    "Source": "Metapedia",
+    "MBFC URL": "https://mediabiasfactcheck.com/metapedia/",
+    "Bias": "Questionable",
+    "Country": "Sweden",
+    "Factual Reporting": "Low",
+    "Media Type": "Website",
+    "Source URL": "metapedia.org/wiki/Main_Page",
+    "Credibility": "Low",
+    "Source ID#": 105908,
+    "Factual Score": 8.5,
+    "Political Bias": "Extreme Right",
+    "": ""
+  },
+  {
+    "Source": "Xtra Magazine",
+    "MBFC URL": "https://mediabiasfactcheck.com/xtra-magazine-bias-and-credibility/",
+    "Bias": "Left",
+    "Country": "Canada",
+    "Factual Reporting": "High",
+    "Media Type": "Magazine",
+    "Source URL": "xtramagazine.com",
+    "Credibility": "High",
+    "Source ID#": 102592,
+    "Factual Score": 1.8,
+    "Political Bias": "Extreme Left",
+    "": ""
+  }
+]

@@ -1,8 +1,0 @@
-{
-  "_comment": "Presumed shape of the MBFC RapidAPI /ratings response. Replace this whole file with one real captured response (see docs/factcheck.md) — the unit test parses whatever is here, so parsing bugs against the real schema surface as test failures.",
-  "name": "Fox News",
-  "bias": "Right",
-  "factual": "Mixed",
-  "credibility": "Medium Credibility",
-  "notes": "Right biased based on story selection that favors the right."
-}

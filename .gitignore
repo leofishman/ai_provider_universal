@@ -3,3 +3,6 @@
 .claude/
 .kkignore
 AGENTS.md
+
+# Full MBFC /ratings capture (~4MB); tests use mbfc-api-response-mini.json
+modules/ai_provider_universal_factcheck/tests/fixtures/mbfc-api-response.json
