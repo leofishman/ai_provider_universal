@@ -9,6 +9,8 @@ services:
       - '@key.repository'
       - '@Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository'
       - '@logger.channel.ai_provider_universal_factcheck'
+      # Optional: only present when search_api is enabled.
+      - '@?plugin.manager.search_api.parse_mode'
 
   Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository:
     class: Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository

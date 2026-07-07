@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Service;
 
+use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -50,6 +51,7 @@ class EvidenceRetriever {
     protected KeyRepositoryInterface $keyRepository,
     protected TrustedSiteRepository $trustedSites,
     protected LoggerInterface $logger,
+    protected ?PluginManagerInterface $parseModeManager = NULL,
   ) {}
 
   /**
@@ -94,9 +96,11 @@ class EvidenceRetriever {
       // a wrong year then kills the whole match). OR + relevance ranking
       // finds the passages that overlap the claim. Vector backends ignore
       // the parse mode, so this is safe for both.
-      $parse_mode = \Drupal::service('plugin.manager.search_api.parse_mode')->createInstance('terms');
-      $parse_mode->setConjunction('OR');
-      $query->setParseMode($parse_mode);
+      if ($this->parseModeManager) {
+        $parse_mode = $this->parseModeManager->createInstance('terms');
+        $parse_mode->setConjunction('OR');
+        $query->setParseMode($parse_mode);
+      }
       // Verification is a server-side concern, not a user-facing search: the
       // checker judges answers against published, indexed content regardless
       // of who triggered the request. ai_search runs entity access checks by
