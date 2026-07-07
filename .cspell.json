@@ -4,7 +4,8 @@
   "ignorePaths": [
     "translations/**",
     "*.po",
-    "LICENSE.txt"
+    "LICENSE.txt",
+    "**/tests/fixtures/**"
   ],
   "words": [
     "aeiouyáéíóúü",
@@ -147,6 +148,22 @@
     "whitelist",
     "whitelisted",
     "whitelists",
-    "xai"
+    "xai",
+    "othersite",
+    "foxnews",
+    "nytimes",
+    "breitbart",
+    "Breitbart",
+    "theguardian",
+    "fcsyncbias",
+    "lanacion",
+    "pagina",
+    "rapidapi",
+    "RapidAPI",
+    "canarymission",
+    "metapedia",
+    "Metapedia",
+    "xtra",
+    "xtramagazine"
   ]
 }
