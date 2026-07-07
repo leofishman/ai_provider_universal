@@ -6,6 +6,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -132,41 +133,53 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('detector_model'),
     ];
 
-    $key_options = [];
     if ($this->moduleHandler->moduleExists('key')) {
-      foreach ($this->entityTypeManager->getStorage('key')->loadMultiple() as $key) {
-        $key_options[$key->id()] = $key->label();
-      }
+      $form['keys'] = [
+        '#type' => 'container',
+        '#prefix' => '<div id="factcheck-key-selects">',
+        '#suffix' => '</div>',
+      ];
+      $form['keys']['tavily_key'] = [
+        '#type' => 'key_select',
+        '#title' => $this->t('Web evidence API key (Tavily)'),
+        '#key_description' => FALSE,
+        '#description' => $this->t('Key entity holding a <a href=":url" target="_blank">Tavily</a> API key. When the evidence index has nothing for a claim, the web is searched — restricted by your <em>Trusted site</em> nodes: positive-reputation domains are preferred, negative ones excluded. Leave empty to keep verification local-only.', [':url' => 'https://tavily.com']),
+        '#empty_option' => $this->t('- Disabled -'),
+        '#default_value' => $config->get('tavily_key'),
+      ];
+      $form['keys']['mbfc_key'] = [
+        '#type' => 'key_select',
+        '#title' => $this->t('Media bias ratings API key (MBFC)'),
+        '#key_description' => FALSE,
+        '#description' => $this->t('Key entity holding a RapidAPI key for the <a href=":url" target="_blank">Media Bias Fact Check Ratings API</a>. Used by <code>drush factcheck:sync-bias-ratings --fetch=domain,…</code> to pull live bias/factual ratings into Trusted sites. Leave empty to import from static JSON only.', [':url' => 'https://rapidapi.com/mbfcnews/api/media-bias-fact-check-ratings-api2']),
+        '#empty_option' => $this->t('- Disabled -'),
+        '#default_value' => $config->get('mbfc_key'),
+      ];
+      $form['keys']['plagiarism_key'] = [
+        '#type' => 'key_select',
+        '#title' => $this->t('Plagiarism search API key'),
+        '#key_description' => FALSE,
+        '#description' => $this->t('Key entity holding a <a href=":url" target="_blank">Serper.dev</a> API key. When set, the content scan searches the web for verbatim copies of the longest sentences. Leave empty to disable.', [':url' => 'https://serper.dev']),
+        '#empty_option' => $this->t('- Disabled -'),
+        '#default_value' => $config->get('plagiarism_key'),
+      ];
+      $form['keys']['help'] = [
+        '#markup' => '<p>' . $this->t('Missing a key? <a href=":url" target="_blank">Create one in a new tab</a>, then press %refresh.', [
+          ':url' => Url::fromRoute('entity.key.add_form')->toString(),
+          '%refresh' => $this->t('Refresh keys'),
+        ]) . '</p>',
+      ];
+      $form['keys']['refresh_keys'] = [
+        '#type' => 'button',
+        '#name' => 'refresh_keys',
+        '#value' => $this->t('Refresh keys'),
+        '#limit_validation_errors' => [],
+        '#ajax' => [
+          'callback' => '::refreshKeysAjax',
+          'wrapper' => 'factcheck-key-selects',
+        ],
+      ];
     }
-    $form['tavily_key'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Web evidence API key (Tavily)'),
-      '#description' => $this->t('Key entity holding a <a href=":url">Tavily</a> API key. When the evidence index has nothing for a claim, the web is searched — restricted by your <em>Trusted site</em> nodes: positive-reputation domains are preferred, negative ones excluded. Leave empty to keep verification local-only.', [':url' => 'https://tavily.com']),
-      '#options' => $key_options,
-      '#empty_option' => $this->t('- Disabled -'),
-      '#default_value' => $config->get('tavily_key'),
-      '#access' => (bool) $key_options,
-    ];
-
-    $form['mbfc_key'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Media bias ratings API key (MBFC)'),
-      '#description' => $this->t('Key entity holding a RapidAPI key for the <a href=":url">Media Bias Fact Check Ratings API</a>. Used by <code>drush factcheck:sync-bias-ratings --fetch=domain,…</code> to pull live bias/factual ratings into Trusted sites. Leave empty to import from static JSON only.', [':url' => 'https://rapidapi.com/mbfcnews/api/media-bias-fact-check-ratings-api2']),
-      '#options' => $key_options,
-      '#empty_option' => $this->t('- Disabled -'),
-      '#default_value' => $config->get('mbfc_key'),
-      '#access' => (bool) $key_options,
-    ];
-
-    $form['plagiarism_key'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Plagiarism search API key'),
-      '#description' => $this->t('Key entity holding a <a href=":url">Serper.dev</a> API key. When set, the content scan searches the web for verbatim copies of the longest sentences. Leave empty to disable.', [':url' => 'https://serper.dev']),
-      '#options' => $key_options,
-      '#empty_option' => $this->t('- Disabled -'),
-      '#default_value' => $config->get('plagiarism_key'),
-      '#access' => (bool) $key_options,
-    ];
 
     $form['max_claims'] = [
       '#type' => 'number',
@@ -179,6 +192,13 @@ class SettingsForm extends ConfigFormBase {
     ];
 
     return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * AJAX callback: re-renders the key selects with freshly created keys.
+   */
+  public function refreshKeysAjax(array &$form, FormStateInterface $form_state): array {
+    return $form['keys'];
   }
 
   /**
