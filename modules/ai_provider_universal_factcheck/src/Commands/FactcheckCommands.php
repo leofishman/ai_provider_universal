@@ -23,6 +23,10 @@ class FactcheckCommands extends DrushCommands {
    *
    * Reads JSON in MediaBiasFactCheck style (or similar raters).
    * See data/mbfc-ratings-sample.json in this module for the format.
+   * data/mbfc-ratings-full.json ships a larger, pre-cleaned bulk dataset
+   * (~8.7k domains, dead/offline entries and duplicates already filtered)
+   * for sites that want to seed trusted sites at scale instead of one
+   * domain at a time via --fetch.
    *
    * @command factcheck:sync-bias-ratings
    * @option file Path to JSON file. Defaults to the sample bundled with this module.
@@ -33,6 +37,8 @@ class FactcheckCommands extends DrushCommands {
    *   Import from the bundled sample data.
    * @usage drush factcheck:sync-bias-ratings --file=/path/to/ratings.json --no-update
    *   Import a custom file, creating new sites only.
+   * @usage drush factcheck:sync-bias-ratings --file=modules/contrib/ai_provider_universal/modules/ai_provider_universal_factcheck/data/mbfc-ratings-full.json
+   *   Bulk-import the bundled ~8.7k-domain dataset.
    * @usage drush factcheck:sync-bias-ratings --fetch=lanacion.com.ar,pagina12.com.ar
    *   Fetch fresh ratings for two domains from the MBFC API.
    */
