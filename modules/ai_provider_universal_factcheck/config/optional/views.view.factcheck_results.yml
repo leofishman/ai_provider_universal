@@ -44,50 +44,50 @@ display:
           field: url
           plugin_id: field
           label: URL
-          type: uri_link
           empty: ''
+          type: uri_link
         score:
           id: score
           table: aip_factcheck_result
           field: score
           plugin_id: field
           label: 'Support score'
+          empty: '-'
           type: number_decimal
           settings:
             thousand_separator: ''
             decimal_separator: .
             scale: 2
             prefix_suffix: true
-          empty: '-'
         ai_score:
           id: ai_score
           table: aip_factcheck_result
           field: ai_score
           plugin_id: field
           label: 'AI likelihood (%)'
-          type: number_integer
           empty: '-'
+          type: number_integer
         readability:
           id: readability
           table: aip_factcheck_result
           field: readability
           plugin_id: field
           label: Readability
+          empty: '-'
           type: number_decimal
           settings:
             thousand_separator: ''
             decimal_separator: .
             scale: 1
             prefix_suffix: true
-          empty: '-'
         plagiarism_matches:
           id: plagiarism_matches
           table: aip_factcheck_result
           field: plagiarism_matches
           plugin_id: field
           label: Plagiarism
-          type: number_integer
           empty: '-'
+          type: number_integer
         uid:
           id: uid
           table: aip_factcheck_result
@@ -101,41 +101,15 @@ display:
         type: full
         options:
           items_per_page: 25
-      sorts:
-        created:
-          id: created
-          table: aip_factcheck_result
-          field: created
-          plugin_id: date
-          order: DESC
+      exposed_form:
+        type: basic
+        options: {  }
       access:
         type: perm
         options:
           perm: 'view factcheck results'
       cache:
         type: tag
-        options: {  }
-      query:
-        type: views_query
-        options: {  }
-      exposed_form:
-        type: basic
-        options: {  }
-      style:
-        type: table
-        options:
-          grouping: {  }
-          row_class: ''
-          default_row_class: true
-          columns: {  }
-          default: created
-          info: {  }
-          override: true
-          sticky: false
-          summary: ''
-          empty_table: true
-      row:
-        type: fields
         options: {  }
       empty:
         area:
@@ -145,8 +119,118 @@ display:
           plugin_id: text
           empty: true
           content:
-            value: 'No scans stored yet. Run one from a node''s Content scan tab or the standalone Fact check page.'
+            value: "No scans stored yet. Run one from a node's Content scan tab or the standalone Fact check page."
             format: plain_text
+      sorts:
+        created:
+          id: created
+          table: aip_factcheck_result
+          field: created
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: date
+          order: DESC
+          expose:
+            label: ''
+            field_identifier: ''
+          exposed: false
+          granularity: minute
+      style:
+        type: table
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: true
+          columns:
+            created: created
+            subject: subject
+            url: url
+            score: score
+            ai_score: ai_score
+            readability: readability
+            plagiarism_matches: plagiarism_matches
+            uid: uid
+          default: created
+          info:
+            created:
+              sortable: true
+              default_sort_order: desc
+              align: ''
+              separator: ''
+              empty_column: false
+              responsive: ''
+            subject:
+              sortable: false
+              default_sort_order: asc
+              align: ''
+              separator: ''
+              empty_column: true
+              responsive: ''
+            url:
+              sortable: false
+              default_sort_order: asc
+              align: ''
+              separator: ''
+              empty_column: true
+              responsive: ''
+            score:
+              sortable: true
+              default_sort_order: desc
+              align: ''
+              separator: ''
+              empty_column: true
+              responsive: ''
+            ai_score:
+              sortable: true
+              default_sort_order: desc
+              align: ''
+              separator: ''
+              empty_column: false
+              responsive: ''
+            readability:
+              sortable: true
+              default_sort_order: desc
+              align: ''
+              separator: ''
+              empty_column: false
+              responsive: ''
+            plagiarism_matches:
+              sortable: true
+              default_sort_order: desc
+              align: ''
+              separator: ''
+              empty_column: false
+              responsive: ''
+            uid:
+              sortable: false
+              default_sort_order: asc
+              align: ''
+              separator: ''
+              empty_column: false
+              responsive: ''
+          override: true
+          sticky: false
+          summary: ''
+          empty_table: true
+          caption: ''
+          description: ''
+          class: ''
+      row:
+        type: fields
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+        - user.permissions
+      tags: {  }
   page_1:
     id: page_1
     display_title: Page
@@ -160,6 +244,14 @@ display:
         title: 'Fact check results'
         description: 'History of content scans.'
         parent: system.admin_content
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+        - user.permissions
+      tags: {  }
   block_1:
     id: block_1
     display_title: Block
@@ -169,3 +261,11 @@ display:
       display_extenders: {  }
       block_description: 'Fact check results'
       block_category: AI
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+        - user.permissions
+      tags: {  }
