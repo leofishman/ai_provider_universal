@@ -17,7 +17,6 @@ use Drupal\ai_provider_universal_factcheck\Service\PlagiarismChecker;
 use Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Per-node content scan: fact check, readability, AI likelihood, plagiarism.
@@ -75,11 +74,6 @@ class ContentScanForm extends FormBase {
   protected FloodInterface $flood;
 
   /**
-   * The request stack.
-   */
-  protected RequestStack $requestStack;
-
-  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -93,7 +87,7 @@ class ContentScanForm extends FormBase {
     $instance->currentUser = $container->get('current_user');
     $instance->tempStoreFactory = $container->get('tempstore.private');
     $instance->flood = $container->get('flood');
-    $instance->requestStack = $container->get('request_stack');
+    $instance->setRequestStack($container->get('request_stack'));
     return $instance;
   }
 
@@ -206,7 +200,7 @@ class ContentScanForm extends FormBase {
     $limit = max($applicable);
 
     $window = (int) $config->get('scan_flood_window') ?: 3600;
-    $sessionId = $this->requestStack->getCurrentRequest()->getSession()->getId();
+    $sessionId = $this->getRequest()->getSession()->getId();
     if (!$this->flood->isAllowed('ai_provider_universal_factcheck.content_scan', $limit, $window, $sessionId)) {
       $this->messenger()->addError($this->t('You have reached the scan limit for this session. Please try again later.'));
       return FALSE;
