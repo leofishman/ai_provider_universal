@@ -1,0 +1,40 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the AI Provider Universal Fact Check module.
+ */
+
+/**
+ * Implements hook_mail().
+ */
+function ai_provider_universal_factcheck_mail($key, &$message, $params) {
+  $message['subject'] = $params['subject'];
+  $message['body'][] = $params['body'];
+}
+
+/**
+ * Sends an admin alert email. Best effort — never breaks the calling flow.
+ *
+ * ponytail: email only, no Telegram — the module runs in a container on
+ * minisforum with no reachable bot; add a Telegram send here if/when
+ * Hermes exposes a webhook on that host.
+ */
+function ai_provider_universal_factcheck_notify(string $key, string $subject, string $body): void {
+  $to = \Drupal::config('ai_provider_universal_factcheck.settings')->get('notify_email');
+  if (!$to) {
+    return;
+  }
+  try {
+    \Drupal::service('plugin.manager.mail')->mail(
+      'ai_provider_universal_factcheck',
+      $key,
+      $to,
+      \Drupal::languageManager()->getDefaultLanguage()->getId(),
+      ['subject' => $subject, 'body' => $body]
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('ai_provider_universal_factcheck')->warning('Could not send notification email: @message', ['@message' => $e->getMessage()]);
+  }
+}

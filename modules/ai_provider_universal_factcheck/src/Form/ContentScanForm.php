@@ -157,10 +157,47 @@ class ContentScanForm extends FormBase {
       return;
     }
 
+    if (!$this->checkScanFlood()) {
+      return;
+    }
+
     $this->startScanBatch((string) $node->label(), $text, [
       'subject' => (string) $node->label(),
       'node' => $node->id(),
     ], 'scan_' . $node->id());
+  }
+
+  /**
+   * Flood check: each scan calls out to LLMs and web search (real cost, real
+   * latency), and this route can be open to anonymous users. Limits are set
+   * per role in Fact check settings (0 or unset = unlimited for that role);
+   * a user's effective limit is the most permissive of their roles, so
+   * granting an unlimited role always wins over a limited one.
+   *
+   * ponytail: flood keyed by session ID, not IP — fine while limits are
+   * assigned by role; add per-IP/global caps if anonymous abuse shows up
+   * from many sessions.
+   */
+  protected function checkScanFlood(): bool {
+    $config = $this->config('ai_provider_universal_factcheck.settings');
+    $limits = (array) $config->get('scan_flood_limits');
+    $applicable = array_intersect_key($limits, array_flip($this->currentUser->getRoles()));
+    if (!$applicable || in_array(0, $applicable, TRUE)) {
+      // No configured limit for any of this user's roles, or at least one
+      // of their roles is explicitly unlimited.
+      return TRUE;
+    }
+    $limit = max($applicable);
+
+    $window = (int) $config->get('scan_flood_window') ?: 3600;
+    $flood = \Drupal::flood();
+    $sessionId = \Drupal::request()->getSession()->getId();
+    if (!$flood->isAllowed('ai_provider_universal_factcheck.content_scan', $limit, $window, $sessionId)) {
+      $this->messenger()->addError($this->t('You have reached the scan limit for this session. Please try again later.'));
+      return FALSE;
+    }
+    $flood->register('ai_provider_universal_factcheck.content_scan', $window, $sessionId);
+    return TRUE;
   }
 
   /**
@@ -176,6 +213,15 @@ class ContentScanForm extends FormBase {
    *   Private tempstore key the results are stored under for display.
    */
   protected function startScanBatch(string $subject, string $text, array $meta, string $storeKey): void {
+    ai_provider_universal_factcheck_notify(
+      'scan_run',
+      (string) $this->t('[Fact check] Content scan run'),
+      (string) $this->t('@name scanned "@subject".', [
+        '@name' => $this->currentUser->getAccountName() ?: $this->t('Anonymous'),
+        '@subject' => $subject,
+      ])
+    );
+
     $builder = (new BatchBuilder())
       ->setTitle($this->t('Scanning %title', ['%title' => $subject]))
       ->setInitMessage($this->t('Starting content scan…'))

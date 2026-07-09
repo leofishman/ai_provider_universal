@@ -191,6 +191,45 @@ class SettingsForm extends ConfigFormBase {
       '#config_target' => 'ai_provider_universal_factcheck.settings:max_claims',
     ];
 
+    $form['notify_email'] = [
+      '#type' => 'email',
+      '#title' => $this->t('Notification email'),
+      '#description' => $this->t('Alerted when a content scan runs or these settings change. Leave empty to disable.'),
+      '#default_value' => $config->get('notify_email'),
+      '#config_target' => 'ai_provider_universal_factcheck.settings:notify_email',
+    ];
+
+    $flood_limits = (array) $config->get('scan_flood_limits');
+    $form['scan_flood'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Content scan rate limiting'),
+      '#open' => (bool) array_filter($flood_limits),
+    ];
+    $form['scan_flood']['scan_flood_window'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Flood window (seconds)'),
+      '#default_value' => $config->get('scan_flood_window') ?: 3600,
+      '#min' => 60,
+      '#config_target' => 'ai_provider_universal_factcheck.settings:scan_flood_window',
+    ];
+    $form['scan_flood']['limits'] = [
+      '#type' => 'table',
+      '#header' => [$this->t('Role'), $this->t('Max scans per window')],
+      '#empty' => $this->t('No roles found.'),
+    ];
+    foreach ($this->entityTypeManager->getStorage('user_role')->loadMultiple() as $role) {
+      $rid = $role->id();
+      $form['scan_flood']['limits'][$rid]['label'] = ['#markup' => $role->label()];
+      $form['scan_flood']['limits'][$rid]['limit'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Max scans per window for @role', ['@role' => $role->label()]),
+        '#title_display' => 'invisible',
+        '#default_value' => $flood_limits[$rid] ?? 0,
+        '#min' => 0,
+        '#description' => $this->t('0 = unlimited.'),
+      ];
+    }
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -226,7 +265,19 @@ class SettingsForm extends ConfigFormBase {
       ->set('plagiarism_key', $form_state->getValue('plagiarism_key') ?? '')
       ->set('tavily_key', $form_state->getValue('tavily_key') ?? '')
       ->set('mbfc_key', $form_state->getValue('mbfc_key') ?? '')
+      ->set('scan_flood_limits', array_filter(array_map(
+        static fn (array $row): int => (int) $row['limit'],
+        $form_state->getValue(['scan_flood', 'limits']) ?? []
+      )))
       ->save();
+    ai_provider_universal_factcheck_notify(
+      'settings_changed',
+      (string) $this->t('[Fact check] Settings changed'),
+      (string) $this->t('@name changed the fact check settings at @url.', [
+        '@name' => $this->currentUser()->getAccountName(),
+        '@url' => Url::fromRoute('ai_provider_universal_factcheck.settings')->setAbsolute()->toString(),
+      ])
+    );
     parent::submitForm($form, $form_state);
   }
 

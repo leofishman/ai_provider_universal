@@ -95,6 +95,10 @@ class StandaloneFactCheckForm extends ContentScanForm {
       return;
     }
 
+    if (!$this->checkScanFlood()) {
+      return;
+    }
+
     $this->startScanBatch((string) $subject, $text, [
       'subject' => (string) $subject,
       'url' => $url ?: NULL,

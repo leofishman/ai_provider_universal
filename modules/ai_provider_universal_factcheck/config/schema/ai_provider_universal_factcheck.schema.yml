@@ -29,3 +29,15 @@ ai_provider_universal_factcheck.settings:
     mbfc_key:
       type: string
       label: 'Key entity holding the MediaBiasFactCheck RapidAPI key (empty = static JSON import only)'
+    notify_email:
+      type: email
+      label: 'Admin email alerted on scans and settings changes (empty = disabled)'
+    scan_flood_limits:
+      type: sequence
+      label: 'Max content scans per session within the flood window, keyed by role ID (0 or unset = unlimited)'
+      sequence:
+        type: integer
+        label: 'Limit'
+    scan_flood_window:
+      type: integer
+      label: 'Flood window in seconds'

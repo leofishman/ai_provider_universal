@@ -7,3 +7,6 @@ detector_model: ''
 plagiarism_key: ''
 tavily_key: ''
 mbfc_key: ''
+notify_email: ''
+scan_flood_limits: {}
+scan_flood_window: 3600
