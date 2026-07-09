@@ -244,6 +244,7 @@ display:
         title: 'Fact check results'
         description: 'History of content scans.'
         parent: system.admin_content
+        menu_name: tools
     cache_metadata:
       max-age: -1
       contexts:
