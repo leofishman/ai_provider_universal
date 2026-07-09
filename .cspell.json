@@ -5,7 +5,8 @@
     "translations/**",
     "*.po",
     "LICENSE.txt",
-    "**/tests/fixtures/**"
+    "**/tests/fixtures/**",
+    "**/data/mbfc-ratings-full.json"
   ],
   "words": [
     "aeiouyáéíóúü",
