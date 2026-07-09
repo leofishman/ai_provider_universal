@@ -14,11 +14,10 @@ function ai_provider_universal_factcheck_mail($key, &$message, $params) {
 }
 
 /**
- * Sends an admin alert email. Best effort — never breaks the calling flow.
+ * Sends an admin alert email.
  *
- * ponytail: email only, no Telegram — the module runs in a container on
- * minisforum with no reachable bot; add a Telegram send here if/when
- * Hermes exposes a webhook on that host.
+ * Best effort — never breaks the calling flow. Email only, no other
+ * channels; add one here if a site needs it.
  */
 function ai_provider_universal_factcheck_notify(string $key, string $subject, string $body): void {
   $to = \Drupal::config('ai_provider_universal_factcheck.settings')->get('notify_email');

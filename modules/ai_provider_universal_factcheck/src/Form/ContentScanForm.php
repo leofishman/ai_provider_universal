@@ -4,6 +4,7 @@ namespace Drupal\ai_provider_universal_factcheck\Form;
 
 use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
@@ -16,6 +17,7 @@ use Drupal\ai_provider_universal_factcheck\Service\PlagiarismChecker;
 use Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Per-node content scan: fact check, readability, AI likelihood, plagiarism.
@@ -68,6 +70,16 @@ class ContentScanForm extends FormBase {
   protected PrivateTempStoreFactory $tempStoreFactory;
 
   /**
+   * The flood control service.
+   */
+  protected FloodInterface $flood;
+
+  /**
+   * The request stack.
+   */
+  protected RequestStack $requestStack;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -80,6 +92,8 @@ class ContentScanForm extends FormBase {
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->currentUser = $container->get('current_user');
     $instance->tempStoreFactory = $container->get('tempstore.private');
+    $instance->flood = $container->get('flood');
+    $instance->requestStack = $container->get('request_stack');
     return $instance;
   }
 
@@ -168,15 +182,17 @@ class ContentScanForm extends FormBase {
   }
 
   /**
-   * Flood check: each scan calls out to LLMs and web search (real cost, real
-   * latency), and this route can be open to anonymous users. Limits are set
-   * per role in Fact check settings (0 or unset = unlimited for that role);
-   * a user's effective limit is the most permissive of their roles, so
+   * Flood check for the current user's roles.
+   *
+   * Each scan calls out to LLMs and web search (real cost, real latency),
+   * and this route can be open to anonymous users. Limits are set per role
+   * in Fact check settings (0 or unset means unlimited for that role); a
+   * user's effective limit is the most permissive of their roles, so
    * granting an unlimited role always wins over a limited one.
    *
-   * ponytail: flood keyed by session ID, not IP — fine while limits are
-   * assigned by role; add per-IP/global caps if anonymous abuse shows up
-   * from many sessions.
+   * Flood is keyed by session ID, not IP — fine while limits are assigned
+   * by role; add per-IP/global caps if anonymous abuse shows up from many
+   * sessions.
    */
   protected function checkScanFlood(): bool {
     $config = $this->config('ai_provider_universal_factcheck.settings');
@@ -190,13 +206,12 @@ class ContentScanForm extends FormBase {
     $limit = max($applicable);
 
     $window = (int) $config->get('scan_flood_window') ?: 3600;
-    $flood = \Drupal::flood();
-    $sessionId = \Drupal::request()->getSession()->getId();
-    if (!$flood->isAllowed('ai_provider_universal_factcheck.content_scan', $limit, $window, $sessionId)) {
+    $sessionId = $this->requestStack->getCurrentRequest()->getSession()->getId();
+    if (!$this->flood->isAllowed('ai_provider_universal_factcheck.content_scan', $limit, $window, $sessionId)) {
       $this->messenger()->addError($this->t('You have reached the scan limit for this session. Please try again later.'));
       return FALSE;
     }
-    $flood->register('ai_provider_universal_factcheck.content_scan', $window, $sessionId);
+    $this->flood->register('ai_provider_universal_factcheck.content_scan', $window, $sessionId);
     return TRUE;
   }
 
