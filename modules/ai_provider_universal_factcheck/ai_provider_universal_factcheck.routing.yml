@@ -21,7 +21,7 @@ ai_provider_universal_factcheck.content_scan:
     _form: '\Drupal\ai_provider_universal_factcheck\Form\ContentScanForm'
     _title: 'Content scan'
   requirements:
-    _entity_access: 'node.update'
+    _entity_access: 'node.view'
     _permission: 'run content scan+administer nodes+administer ai providers'
   options:
     parameters:
