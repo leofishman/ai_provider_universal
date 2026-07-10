@@ -66,7 +66,8 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [x] Publish 1.0.0-alpha1: push, tag, drupal.org release node + updated
       project page.
 - [x] 1.0.0-beta1 release notes (`RELEASE_NOTES_1.0.0-beta1.html`, since
-      alpha1) and README install constraint `^1.0@beta`.
+      alpha1), project page (`PROJECT_PAGE.html`), README install
+      constraint `^1.0@beta`.
 - [X] **Docker deliverable**: pre-configured demo site image
       (`docker compose up` for judges — sanitize API keys out of the DB
       dump) + from-scratch path documented (DDEV + recipes + discovery).
@@ -157,13 +158,73 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       templates deliberately excluded: they are model protocol, editing
       them breaks the response parsers.
 - [ ] Per-field configuration on content types to enforce fact-check
-      features (plagiarism, AI-likelihood, ...) per field.
+      features (plagiarism, AI-likelihood, ...) per field — see **Content
+      governance** (scan profiles); field-level UI can refine profiles later.
 - [x] Default quality-tier list for known models: site-editable YAML
       (`definitions/model_defaults.yml`) with named-family regexes +
       parameter-count heuristic, plus optional cost defaults for backends
       that publish no pricing. Prefilled at discovery, never overwrites
       manual edits.
 - [x] Glossary of module terms: [docs/glossary.md](docs/glossary.md).
+
+## Content governance
+
+Design: [docs/content-governance.md](docs/content-governance.md).
+Branch: `feature/content-governance`.
+
+**Principles:** empty config = no behaviour change; never block `node_save`
+for detectors or Art. 50; AI core Guardrails for inference I/O safety;
+queue + events for CMS review; provenance events for known AI origin;
+ECA/Workflow own site policy (including satire/quotation exemptions).
+
+### Phase 0 — Design (this branch)
+
+- [x] Design doc: three surfaces (Guardrails attach, content review queue,
+      provenance), config map, non-goals, phases.
+- [x] ROADMAP + glossary entries for governance terms.
+
+### Phase 1 — Guardrail set attach
+
+- [ ] Optional default Guardrail set (provider / settings) applied only when
+      `ChatInput` has no set yet (`AiGuardrailHelper`; do not overwrite).
+- [ ] Optional Guardrail set on smart routes (`ai_universal_route`).
+- [ ] Kernel/unit tests: apply / skip-if-present / empty no-op.
+- [ ] Operator note: PII/topics/injection live in AI Guardrails UI; we only
+      select which set to attach.
+
+### Phase 2 — Content review queue
+
+- [ ] Scan profiles (exportable config): bundles, insert/update, status,
+      field-change or content hash, cooldown, dedupe, enabled checks +
+      alert thresholds, `event_on` (always | threshold | never).
+- [ ] Enqueue on entity insert/update (cheap filters only; no LLM in request).
+- [ ] Queue worker runs profile checks; always persist `aip_factcheck_result`
+      when a scan runs; dispatch content-review event per profile rules.
+- [ ] Default light profile guidance (e.g. AI-likelihood only on published
+      articles); full factcheck/plagiarism as heavier optional profiles.
+- [ ] Replaces/fulfills: admin UI for which types get which checks and what
+      happens on failure (reaction = event → ECA/AdminNotifier, not block save).
+
+### Phase 3 — Provenance / disclosure
+
+- [ ] Provenance event on known AI generation / association (not detector as
+      legal origin); payload without full prompt/response by default.
+- [ ] Docs: ECA examples (banner field, moderation state); optional recipe for
+      origin / disclosure / exemption fields.
+- [ ] Exemptions (satire, art, quotation, substantial human edit) are
+      human/ECA-asserted — never inferred by Guardrails or AI-likelihood.
+
+### Phase 4 — Optional AiGuardrail plugins
+
+- [ ] Post-generate **disclosure suffix** (`RewriteOutputResult`).
+- [ ] Optional light **AI-likelihood** / **factcheck** Guardrail plugins
+      reusing factcheck services (`NonDeterministic` / `NonStreamable` as
+      needed); off by default (latency/cost).
+
+### Phase 5 — Extensibility
+
+- [ ] Scan checks as plugins (shared services with optional Guardrail plugins).
+- [ ] Per-field refinements on top of scan profiles if still needed.
 
 ## Factcheck backlog
 
@@ -175,17 +236,17 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       /admin/content/factcheck/results + block).
 - [ ] PDF upload for the standalone fact check (needs a text-extraction
       library, e.g. smalot/pdfparser).
-- [ ] Admin UI (views/ECA?) to choose which content types/fields
-      support/enforce fact-check, which checks run, and what happens on
-      failure.
+- [ ] Admin UI for content types/fields/checks/failure — **superseded by
+      Content governance Phase 2** (scan profiles + events); keep this
+      line only until profiles land, then mark done.
 - [ ] Ship a default search_api index for internal content knowledge?
 - [x] Cache + invalidation for trusted-site lookups: persistent cache keyed
       by the `node_list:trusted_site` tag — zero manual invalidation.
 - [x] Permission granularity, first pass: `administer factcheck settings` +
       `run content scan` (on top of node update access). Per check type /
-      per bundle granularity can come with the enforcement admin UI.
-- [ ] Move fact-check capabilities to plugins (vs services) so they can be
-      overridden or extended — evaluate best approach.
+      per bundle granularity can come with scan profiles.
+- [ ] Move fact-check capabilities to plugins (vs services) — **Content
+      governance Phase 5** (ScanCheck plugins; evaluate with Guardrail reuse).
 - [ ] MCP integration, the Drupal AI way.
 - [x] Factcheck admin notifications: AdminNotifier + FactcheckNotificationEvent
       (ECA/Message seam) with optional default mail via notify_email.
@@ -202,6 +263,8 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       backend; catalog features field on model form.
 - [x] glossary + adding-a-backend + smart-routing: ten backends, live vs
       table pricing, supported_features vs reasoning effort.
+- [x] Content governance design: [docs/content-governance.md](docs/content-governance.md)
+      (Guardrails vs review queue vs provenance; phases 0–5 in ROADMAP).
 - [ ] Recommended patches: file the upstream issues in the AI module queue
       and link them from the README.
 - [ ] Hourly limits in README/usage-limits/servers-and-models once the

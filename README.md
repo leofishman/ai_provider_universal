@@ -119,6 +119,14 @@ Evidence comes from a cascade — your own AI Search index first, then the web v
 
 Full details — pipeline, scoring, recipes, settings reference, extension points: [docs/factcheck.md](docs/factcheck.md).
 
+### Content governance (planned)
+
+How this module will integrate with **AI Guardrails** (inference safety), an
+async **content review** queue (scan profiles, thresholds, events for ECA), and
+**provenance / disclosure** (known AI origin — not detector-as-compliance). Empty
+config stays a no-op; `node_save` is never blocked for review. Design and phases:
+[docs/content-governance.md](docs/content-governance.md).
+
 ## Relation to ai_provider_llama_cpp
 
 This module is the evolution of [ai_provider_llama_cpp](https://www.drupal.org/project/ai_provider_llama_cpp) 2.x, which is no longer maintained. Both can be installed side by side; there is no automated migration — re-create your servers here and remove the old provider when done.
