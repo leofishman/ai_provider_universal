@@ -32,5 +32,5 @@
 | **Guardrail set attach** | Optional setting (global and/or per smart route) that applies an AI core Guardrail set to `ChatInput` when none is already set. |
 | **Scan profile** | Exportable config for async content review: which bundles/ops, which checks, alert thresholds, cooldown; enqueue on save, run in queue/cron. |
 | **Content review event** | Fired after a scheduled scan when profile rules say so (e.g. threshold crossed). ECA reacts; save is never blocked. |
-| **Provenance event** | Fired when AI origin is **known** (generation/association). Disclosure and legal exemptions (satire, quotation, …) are site policy via fields/ECA — not Guardrail stops. |
+| **Provenance event** | Fired when AI origin is **known** (generation/association). Disclosure and Art. 50 exemptions (`editorial_responsibility`, `artistic_creative_satirical`, `assistive_edit`) are site policy via fields/ECA — not Guardrail stops. |
 | **Content governance** | Umbrella for Guardrail attach + content review queue + provenance. Design: [content-governance.md](content-governance.md). |

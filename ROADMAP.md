@@ -209,14 +209,21 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 
 - [ ] Provenance event on known AI generation / association (not detector as
       legal origin); payload without full prompt/response by default.
-- [ ] Docs: ECA examples (banner field, moderation state); optional recipe for
-      origin / disclosure / exemption fields.
-- [ ] Exemptions (satire, art, quotation, substantial human edit) are
-      human/ECA-asserted — never inferred by Guardrails or AI-likelihood.
+- [ ] Docs: ECA examples (banner field, moderation state, needs_review until
+      editor asserts responsibility); optional recipe for origin / disclosure
+      / exemption fields.
+- [ ] Exemption taxonomy per Art. 50: `editorial_responsibility` (text, no
+      disclosure), `artistic_creative_satirical` (adapted disclosure, not
+      none), `assistive_edit` (marking N/A) — human/ECA-asserted, never
+      inferred by Guardrails or AI-likelihood.
+- [ ] Render marking: machine-readable `<meta>` on the node page + visible
+      label at first exposure when disclosure required and no exemption.
 
 ### Phase 4 — Optional AiGuardrail plugins
 
 - [ ] Post-generate **disclosure suffix** (`RewriteOutputResult`).
+- [ ] Post-generate **machine-readable marker** (`RewriteOutputResult`) for
+      outputs destined for publication.
 - [ ] Optional light **AI-likelihood** / **factcheck** Guardrail plugins
       reusing factcheck services (`NonDeterministic` / `NonStreamable` as
       needed); off by default (latency/cost).

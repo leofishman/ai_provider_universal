@@ -18,7 +18,25 @@ separately; ECA (or Workflow / mail) can react to our events on all of them.
 |---|---|---|---|
 | **Inference safety** | Is this prompt/response allowed (PII, topics, injection, toxic output)? | **AI core Guardrails** (optional plugins from us) | Yes — on the **chat/response**, via `Stop` / rewrite |
 | **Content review** | Does this *node* look risky (AI-like, weak claims, plagiarism)? | **Scan profiles + queue + cron** (factcheck) | **No** on save; async review only |
-| **Provenance / disclosure** | Was this produced or assisted by AI? Must we tell users? Exceptions (satire, quotation)? | **Provenance event + fields + ECA** | **No** hard block; policy is site-owned |
+| **Provenance / disclosure** | Was this produced or assisted by AI? Must we tell users? Exceptions? | **Provenance event + fields + ECA** | **No** hard block; policy is site-owned |
+
+### Art. 50: who does what
+
+Division of labour, so nobody expects this module to "be" Art. 50 compliance.
+The module supplies **facts** (provenance events, marking) and **mechanisms**
+(Guardrail plugins, fields, recipes); **ECA / Workflow always takes the final
+decision** — no policy is hard-coded here.
+
+| Art. 50 | Obligation | Whose duty | Our contribution |
+|---|---|---|---|
+| **50(1)** | Tell users they are interacting with an AI system | Provider of the interactive system | **Disclosure suffix** Guardrail in a post set (chatbot UIs should also disclose in their UI) |
+| **50(2)** | Mark synthetic output as artificially generated, machine-readable, interoperable, robust | **Upstream model provider** (watermarks/metadata in the model output) | We do **not** watermark text; we **record** provenance we know and **re-expose** it machine-readable at render (see marking below) |
+| **50(4)** deepfakes (image/audio/video) | Visible disclosure; artistic/creative/satirical work → *adapted* disclosure that does not hamper the work (not a full exemption) | Deployer (the site) | Exemption fields + ECA; **media marking (C2PA etc.) is out of scope** for now — this module is text-centric |
+| **50(4)** text informing the public | Disclose AI generation **unless** the text underwent human review and a person holds **editorial responsibility** | Deployer (the site) | Provenance event + `editorial_responsibility` exemption field + ECA banner/moderation |
+
+Obligations apply from **2 August 2026**; the Commission's Code of Practice on
+marking/labelling (Art. 50(7)) is the reference for "machine-readable" and
+"first exposure" expectations below.
 
 ### What Guardrails do *not* do
 
@@ -114,9 +132,15 @@ Only when they reuse our services and fit generate-time semantics:
 
 | Plugin | Phase | Configurable | Behaviour |
 |---|---|---|---|
-| Disclosure suffix | post | Text, tags filter | `RewriteOutputResult` appends a disclaimer |
+| Disclosure suffix | post | Text, tags filter | `RewriteOutputResult` appends a disclaimer (Art. 50(1) helper) |
+| Machine-readable marker | post | Marker template | `RewriteOutputResult` embeds a machine-readable AI-origin marker (e.g. HTML comment / `data-` attribute) in outputs destined for publication — survives copy-paste into a body field, feeds render marking below |
 | AI-likelihood (light) | post | Score threshold | `StopResult` with score (opt-in; costly) |
 | Factcheck (light) | post | Min support score, max claims | `StopResult` if verification fails (opt-in; costly) |
+
+Guardrails are the **in-band** execution mechanism (touch the output while it
+exists); everything after the output lands in content is events + fields, and
+**ECA/Workflow decides**. A Guardrail never asserts an exemption and never
+encodes site policy — it disclaims, marks, or stops, per set configuration.
 
 Use `NonDeterministicGuardrailInterface` + `NonStreamableGuardrailInterface`
 when the check needs an LLM or the full non-streamed text. Site builders add
@@ -233,7 +257,9 @@ lives in **ECA / editorial**, not in a Guardrail `Stop`.
 
 - `source`: `generation` | `association` | `detector` (last only if we ever
   dual-purpose; prefer separate content_review event)
-- `model_id`, `server_id` / provider when known
+- `model_id`, `server_id` / provider — **always present** when the generation
+  went through this module (we are the provider; "unknown" is only valid for
+  `association` of externally produced content)
 - `operation` / feature (`chat`, `summarize`, …)
 - `uid`, `timestamp`
 - `entity_type`, `entity_id`, `field_name` (nullable)
@@ -249,11 +275,47 @@ Suggested content fields (names illustrative):
 |---|---|
 | `field_ai_origin` | `generated` / `assisted` / `human` / `unknown` |
 | `field_disclosure_required` | bool (default from policy) |
-| `field_exemption_reason` | `satire` / `art` / `quotation` / `human_substantial_edit` / … |
+| `field_exemption_reason` | see taxonomy below |
 | `field_exemption_asserted_by` + time | Audit trail |
 
+Exemption taxonomy — Art. 50 has **two distinct escape hatches**, do not mix
+them:
+
+| Value | Legal basis | Effect on disclosure |
+|---|---|---|
+| `editorial_responsibility` | 50(4) text: human review + a person/entity holds editorial responsibility | Disclosure **not required** for public-interest text |
+| `artistic_creative_satirical` | 50(4) deepfakes: artistic, creative, satirical, fictional work | Disclosure still required but **adapted** — must not hamper the work (e.g. credits instead of banner) |
+| `assistive_edit` | 50(2): AI performed a standard assistive/editing function without substantially altering the input | Marking obligation does not apply |
+
 **Exemptions are human- or ECA-asserted**, never inferred by a detector or by
-RestrictToTopic. Guardrails do not implement “satire ⇒ skip disclosure”.
+RestrictToTopic. Guardrails do not implement “satire ⇒ skip disclosure”, and
+note that for creative works the law asks for *adapted* disclosure, not none —
+ECA models should switch the disclosure form, not drop it silently.
+
+### Machine-readable marking at render (Art. 50(2)/(4))
+
+Internal events and fields do not travel with the content. When
+`field_ai_origin` is `generated`/`assisted` (and no `assistive_edit`
+exemption), the optional recipe/module should also emit the fact
+**machine-readable in the rendered output**, so it persists for crawlers,
+syndication and API consumers:
+
+- HTML: `<meta>` in `<head>` (e.g. schema.org-style
+  `isBasedOn`/`creativeWorkStatus` or an explicit
+  `ai-origin`/IPTC *digital source type* value) on the node's canonical page.
+- JSON:API / REST: the origin/exemption fields are ordinary fields — exposed
+  automatically; document that consumers must carry them.
+- Media (images/audio/video) with embedded C2PA/watermarks: **out of scope**
+  for now; do not strip metadata the upstream provider embedded.
+
+### Visible label at first exposure
+
+The Code of Practice expects the *human-visible* disclosure at **first
+exposure** to the content. For the recipe this is a requirement, not an
+example: when `field_disclosure_required` is true and no exemption applies,
+the label renders **on the published node itself** (extra field /
+pseudo-field in the default view mode), not only as an internal flag. ECA may
+replace *how* it looks; the recipe guarantees *that* it shows by default.
 
 ### ECA examples (documentation only unless we ship models)
 
@@ -261,7 +323,15 @@ RestrictToTopic. Guardrails do not implement “satire ⇒ skip disclosure”.
   field / show message.
 - On content_review threshold → set moderation state `needs_review`, mail
   editors (or rely on `AdminNotifier`).
-- On exemption `satire` → do not show public AI banner.
+- On exemption `editorial_responsibility` (editor took ownership after
+  review) → clear `disclosure_required`, record who asserted it.
+- On exemption `artistic_creative_satirical` → swap the banner for an
+  *adapted* disclosure (e.g. a credits line) — do not remove disclosure
+  entirely.
+- On provenance for a bundle that informs the public → force moderation state
+  `needs_review` until an editor either asserts `editorial_responsibility` or
+  publishes with the label. **This is the recommended Art. 50(4) text
+  workflow: the human decision is the compliance step, ECA just routes it.**
 
 ---
 
@@ -273,8 +343,10 @@ RestrictToTopic. Guardrails do not implement “satire ⇒ skip disclosure”.
 | Stay on-topic | Restrict to Topic + set |
 | Disclaimer on assistant replies | Our disclosure **AiGuardrail** in a **post** set |
 | Review articles when published | Scan profile (bundles, published, light checks) |
-| Public “AI-assisted” label | Provenance event + ECA + field |
-| Exempt satire from the label | Editor sets exemption field; ECA skips banner |
+| Public “AI-assisted” label | Provenance event + ECA + field (recipe renders it at first exposure) |
+| Machine-readable AI-origin mark | Marker Guardrail (in-band) + render `<meta>` from origin fields |
+| Skip the label after human editorial review | Editor asserts `editorial_responsibility`; ECA clears the flag |
+| Adapted disclosure for satire/art | Editor sets `artistic_creative_satirical`; ECA swaps banner for credits |
 | Skip LLM cost on drafts | Profile: published only + cooldown |
 | Hard verify routed answers | Smart route fact-check escalation (existing) and/or strict post Guardrail set |
 
@@ -284,11 +356,17 @@ RestrictToTopic. Guardrails do not implement “satire ⇒ skip disclosure”.
 
 1. **Block `node_save`** because a detector score is high.
 2. Treat **AI-likelihood** as Art. 50 compliance.
-3. Encode **legal exemptions** (satire, quotation) inside Guardrail plugins.
+3. Encode **legal exemptions** inside Guardrail plugins — exemptions are
+   asserted by humans/ECA on the entity, never decided at generate time.
 4. Run full factcheck + plagiarism on **every** entity update without filters.
 5. Depend on ECA or on contrib `ai_guardrails` for core paths (soft/optional
    only).
 6. Overwrite a Guardrail set already set on the input by another module.
+7. Claim **text watermarking** (Art. 50(2) robust marking is the upstream
+   model provider's duty; we record, mark at render, and never strip
+   upstream marks).
+8. Take the **final disclosure decision** — the module proposes defaults;
+   ECA/Workflow and editors decide.
 
 ---
 
@@ -301,8 +379,8 @@ Aligned with [ROADMAP.md](../ROADMAP.md) section **Content governance**.
 | **0** | This doc + ROADMAP + glossary | — |
 | **1** | Optional Guardrail set attach (global ± per route); no overwrite; tests; short operator note | AI core Guardrails API |
 | **2** | Scan profiles + enqueue + queue worker + threshold event + result entity | Factcheck services |
-| **3** | Provenance event (+ optional field recipe + ECA examples in docs) | Post-call / association hooks |
-| **4** | Optional `AiGuardrail` plugins (disclosure; light likelihood/factcheck) reusing services | Phase 1; factcheck services |
+| **3** | Provenance event + field recipe (origin/disclosure/exemption taxonomy) + render marking (`<meta>` + visible label at first exposure) + ECA examples | Post-call / association hooks |
+| **4** | Optional `AiGuardrail` plugins (disclosure; machine-readable marker; light likelihood/factcheck) reusing services | Phase 1; factcheck services |
 | **5** | Scan checks as plugins; refine per-field UI | Phase 2 |
 
 Each phase stays mergeable alone; empty config = no behaviour change.
@@ -313,8 +391,11 @@ Each phase stays mergeable alone; empty config = no behaviour change.
 
 - **Phase 1:** unit/kernel — set applied when empty; not applied when already set; empty config no-op.
 - **Phase 2:** enqueue filters (bundle, cooldown, hash); worker writes result; event only on threshold when configured.
-- **Phase 3:** event payload; no save side effects in the dispatcher.
-- **Phase 4:** plugin Pass/Stop/Rewrite with mocked detector/checker.
+- **Phase 3:** event payload; no save side effects in the dispatcher; render
+  marking present when origin set and absent when `assistive_edit` /
+  `editorial_responsibility` applies; visible label renders by default.
+- **Phase 4:** plugin Pass/Stop/Rewrite with mocked detector/checker; marker
+  plugin output contains the machine-readable marker.
 - Do not require live LLM in unit tests; kernel tests may use the existing HTTP mock traits where needed.
 
 ## Permissions (planned)
