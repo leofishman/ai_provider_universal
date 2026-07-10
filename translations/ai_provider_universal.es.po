@@ -553,3 +553,71 @@ msgstr "Enrutamiento inteligente"
 
 msgid "Auto: @label"
 msgstr "Auto: @label"
+
+# Added 2026-07-10 — missing UI strings (main)
+msgid "Capabilities are auto-detected from server metadata and HuggingFace; override them here when detection fails. Cost, quality tier and context length feed the smart router: it picks the cheapest model that satisfies a route."
+msgstr "Las capacidades se detectan automáticamente a partir de metadatos del servidor y HuggingFace; sobrescríbalas aquí si la detección falla. El costo, el nivel de calidad y la longitud de contexto alimentan el enrutador inteligente: elige el modelo más barato que satisfaga una ruta."
+
+msgid "Fireworks AI"
+msgstr "Fireworks AI"
+
+msgid "Fireworks AI serverless inference (api.fireworks.ai). OpenAI-compatible protocol with Fireworks-specific model metadata: pricing and context length are prefilled for smart routing."
+msgstr "Inferencia serverless de Fireworks AI (api.fireworks.ai). Protocolo compatible con OpenAI con metadatos de modelo específicos de Fireworks: precios y longitud de contexto se rellenan para el enrutamiento inteligente."
+
+msgid "Frequency penalty"
+msgstr "Penalización de frecuencia"
+
+msgid "Grok models from xAI (api.x.ai). OpenAI-compatible protocol."
+msgstr "Modelos Grok de xAI (api.x.ai). Protocolo compatible con OpenAI."
+
+msgid "GroqCloud (api.groq.com): very fast OpenAI-compatible inference (Llama, GPT-OSS, Qwen, Whisper, ...). Pricing, context and supported_features (tools, reasoning, json_mode, ...) are read live from the catalog. Free tier available with rate limits."
+msgstr "GroqCloud (api.groq.com): inferencia compatible con OpenAI muy rápida (Llama, GPT-OSS, Qwen, Whisper, …). Precios, contexto y supported_features (tools, reasoning, json_mode, …) se leen en vivo del catálogo. Nivel gratuito disponible con límites de tasa."
+
+msgid "Local Ollama server (default port 11434). OpenAI-compatible chat and embeddings; discovery enriches models via /api/show (context length, family, capabilities). Costs prefilled as free for smart routing."
+msgstr "Servidor Ollama local (puerto predeterminado 11434). Chat y embeddings compatibles con OpenAI; el descubrimiento enriquece los modelos vía /api/show (longitud de contexto, familia, capacidades). Costos rellenados como gratuitos para el enrutamiento inteligente."
+
+msgid "Moderation triggered for: @reasons. See https://huggingface.co/meta-llama/Llama-Guard-3-8B for details."
+msgstr "Moderación activada por: @reasons. Consulte https://huggingface.co/meta-llama/Llama-Guard-3-8B para más detalles."
+
+msgid "Ollama Cloud (ollama.com): hosted open models (DeepSeek, GLM, Gemma, ...) behind the familiar Ollama OpenAI-compatible endpoint. Requires an ollama.com API key."
+msgstr "Ollama Cloud (ollama.com): modelos abiertos alojados (DeepSeek, GLM, Gemma, …) detrás del endpoint familiar de Ollama compatible con OpenAI. Requiere una clave API de ollama.com."
+
+msgid "OpenRouter unified API (openrouter.ai): 300+ models from OpenAI, Anthropic, Google, Meta and others behind one OpenAI-compatible endpoint. Pricing and context length are prefilled for smart routing."
+msgstr "API unificada de OpenRouter (openrouter.ai): más de 300 modelos de OpenAI, Anthropic, Google, Meta y otros detrás de un endpoint compatible con OpenAI. Precios y longitud de contexto se rellenan para el enrutamiento inteligente."
+
+msgid "Presence penalty"
+msgstr "Penalización de presencia"
+
+msgid "Sampling overrides"
+msgstr "Sobrescrituras de muestreo"
+
+msgid "Self-hosted LiteLLM proxy servers. Operation types, pricing and context length are read from LiteLLM's /model/info endpoint. For amazee.ai use the dedicated amazee.ai backend."
+msgstr "Proxies LiteLLM autoalojados. Los tipos de operación, precios y longitud de contexto se leen del endpoint /model/info de LiteLLM. Para amazee.ai use el backend dedicado amazee.ai."
+
+msgid "Sent on every chat request to this model, overriding the generic provider settings. Leave empty to use the server default. Duplicate a model entity with different values to tune the same model per use case."
+msgstr "Se envía en cada solicitud de chat a este modelo, sobrescribiendo la configuración genérica del proveedor. Déjelo vacío para usar el valor predeterminado del servidor. Duplique una entidad de modelo con valores distintos para ajustar el mismo modelo por caso de uso."
+
+msgid "Server %label has been deleted."
+msgstr "El servidor %label ha sido eliminado."
+
+msgid "Temperature"
+msgstr "Temperatura"
+
+msgid "The protocol this server speaks. OpenAI-compatible covers llama.cpp, vLLM, LM Studio and any similar local or remote server. Dedicated backends improve model detection: Ollama (local), Groq, OpenRouter, Hugging Face, Fireworks, Ollama Cloud, LiteLLM/amazee.ai, Grok (xAI). Other modules can add native backends."
+msgstr "El protocolo que habla este servidor. Compatible con OpenAI cubre llama.cpp, vLLM, LM Studio y cualquier servidor local o remoto similar. Los backends dedicados mejoran la detección de modelos: Ollama (local), Groq, OpenRouter, Hugging Face, Fireworks, Ollama Cloud, LiteLLM/amazee.ai, Grok (xAI). Otros módulos pueden añadir backends nativos."
+
+msgid "This will remove the server configuration and all cached model data. Models served by this server will no longer be available as an AI provider. This action cannot be undone."
+msgstr "Esto eliminará la configuración del servidor y todos los datos de modelo en caché. Los modelos de este servidor dejarán de estar disponibles como proveedor de IA. Esta acción no se puede deshacer."
+
+msgid "Top P"
+msgstr "Top P"
+
+msgid "amazee.ai"
+msgstr "amazee.ai"
+
+msgid "amazee.ai private AI gateway (managed LiteLLM, region-pinned). Set the host to the litellm_api_url from your amazee.ai dashboard and use your amazee.ai key. Operation types, pricing and context length are read from /model/info."
+msgstr "Puerta de enlace de IA privada de amazee.ai (LiteLLM administrado, fijado a región). Configure el host con el litellm_api_url del panel de amazee.ai y use su clave. Los tipos de operación, precios y longitud de contexto se leen de /model/info."
+
+msgid "llama.cpp, vLLM, LM Studio, OpenAI and any other server speaking the OpenAI REST protocol. For local Ollama, prefer the dedicated Ollama backend."
+msgstr "llama.cpp, vLLM, LM Studio, OpenAI y cualquier otro servidor con el protocolo REST de OpenAI. Para Ollama local, prefiera el backend dedicado Ollama."
+

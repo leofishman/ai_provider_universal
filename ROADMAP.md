@@ -64,18 +64,18 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       (`RELEASE_NOTES_1.0.0-alpha1.md`) and project page draft
       (`PROJECT_PAGE.html`), breaking-vs-dev explanation, provider
       segmentation guidance.
-- [ ] Publish 1.0.0-alpha1: push, tag, drupal.org release node + updated
+- [X] Publish 1.0.0-alpha1: push, tag, drupal.org release node + updated
       project page (drafts ready; Leo reviews and pushes).
-- [ ] **Docker deliverable**: pre-configured demo site image
+- [X] **Docker deliverable**: pre-configured demo site image
       (`docker compose up` for judges — sanitize API keys out of the DB
       dump) + from-scratch path documented (DDEV + recipes + discovery).
-- [ ] Demo hardening: pre-warm the verdict cache on the demo node, remote
+- [X] Demo hardening: pre-warm the verdict cache on the demo node, remote
       fallback server with credits in the demo route (failover as a demo
       feature), lower local-server timeouts (600s → ~60s).
-- [ ] Verify Fireworks pricing table against fireworks.ai/pricing once
+- [X] Verify Fireworks pricing table against fireworks.ai/pricing once
       credits arrive (2026-07-07); live test the `fireworks` backend; live
       test OpenRouter.
-- [ ] Demo polish: savings dashboard numbers, demo script/screencast,
+- [X] Demo polish: savings dashboard numbers, demo script/screencast,
       recipe packaging ("Drupal AI Router" recipe on Drupal CMS).
 
 ## Post-hackathon

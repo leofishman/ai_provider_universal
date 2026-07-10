@@ -398,3 +398,132 @@ msgstr "Sitio de confianza"
 # From routing
 msgid "Fact check settings"
 msgstr "Configuración de verificación de hechos"
+
+# Added 2026-07-10 — missing UI strings (factcheck)
+msgid "0 = unlimited."
+msgstr "0 = ilimitado."
+
+msgid "@name changed the fact check settings at @url."
+msgstr "@name cambió la configuración de verificación de hechos en @url."
+
+msgid "@name scanned \"@subject\"."
+msgstr "@name analizó \"@subject\"."
+
+msgid "AI"
+msgstr "IA"
+
+msgid "AI likelihood (%)"
+msgstr "Probabilidad de IA (%)"
+
+msgid "Anonymous"
+msgstr "Anónimo"
+
+msgid "Auto: @label"
+msgstr "Auto: @label"
+
+msgid "Content scan rate limiting"
+msgstr "Límite de tasa de análisis de contenido"
+
+msgid "Details"
+msgstr "Detalles"
+
+msgid "Fact check result"
+msgstr "Resultado de verificación de hechos"
+
+msgid "Fact check results"
+msgstr "Resultados de verificación de hechos"
+
+msgid "Flesch reading ease."
+msgstr "Facilidad de lectura Flesch."
+
+msgid "Flood window (seconds)"
+msgstr "Ventana de flood (segundos)"
+
+msgid "Fraction of claims supported by evidence (0-1); empty when fact checking was not configured."
+msgstr "Fracción de afirmaciones respaldadas por evidencia (0-1); vacío cuando la verificación de hechos no estaba configurada."
+
+msgid "Full results (claims, verdicts, matches) as stored by the scan."
+msgstr "Resultados completos (afirmaciones, veredictos, coincidencias) tal como los almacena el análisis."
+
+msgid "Key entity holding a <a href=\":url\" target=\"_blank\">Serper.dev</a> API key. When set, the content scan searches the web for verbatim copies of the longest sentences. Leave empty to disable."
+msgstr "Entidad Key con una clave API de <a href=\":url\" target=\"_blank\">Serper.dev</a>. Si se configura, el análisis de contenido busca en la web copias literales de las oraciones más largas. Déjelo vacío para desactivar."
+
+msgid "Max scans per window"
+msgstr "Máximo de análisis por ventana"
+
+msgid "Max scans per window for @role"
+msgstr "Máximo de análisis por ventana para @role"
+
+msgid "Media bias ratings API key (MBFC)"
+msgstr "Clave API de calificaciones de sesgo mediático (MBFC)"
+
+msgid "MiniCheck cannot extract claims; pick a general chat model as extractor."
+msgstr "MiniCheck no puede extraer afirmaciones; elija un modelo de chat general como extractor."
+
+msgid "Missing a key? <a href=\":url\" target=\"_blank\">Create one in a new tab</a>, then press %refresh."
+msgstr "¿Falta una clave? <a href=\":url\" target=\"_blank\">Cree una en una pestaña nueva</a> y luego pulse %refresh."
+
+msgid "No roles found."
+msgstr "No se encontraron roles."
+
+msgid "Node"
+msgstr "Nodo"
+
+msgid "Node title, URL or \"Pasted text\"."
+msgstr "Título del nodo, URL o \"Texto pegado\"."
+
+msgid "Notification email"
+msgstr "Correo de notificación"
+
+msgid "Optional default email when a content scan runs or these settings change. Leave empty to disable mail (the FactcheckNotificationEvent still fires for ECA/other listeners). Delivery uses the site mail plugin (SMTP, Symfony Mailer, …)."
+msgstr "Correo predeterminado opcional cuando se ejecuta un análisis de contenido o cambian estos ajustes. Déjelo vacío para desactivar el correo (el FactcheckNotificationEvent sigue disparándose para ECA u otros listeners). La entrega usa el plugin de correo del sitio (SMTP, Symfony Mailer, …)."
+
+msgid "Plagiarism matches"
+msgstr "Coincidencias de plagio"
+
+msgid "Readability"
+msgstr "Legibilidad"
+
+msgid "Refresh keys"
+msgstr "Actualizar claves"
+
+msgid "Role"
+msgstr "Rol"
+
+msgid "Run by"
+msgstr "Ejecutado por"
+
+msgid "Scanned on"
+msgstr "Analizado el"
+
+msgid "Subject"
+msgstr "Asunto"
+
+msgid "Support score"
+msgstr "Puntuación de soporte"
+
+msgid "The scanned URL, when the subject was a URL."
+msgstr "La URL analizada, cuando el asunto fue una URL."
+
+msgid "The scanned node, for Content scan tab runs."
+msgstr "El nodo analizado, para ejecuciones de la pestaña Análisis de contenido."
+
+msgid "Verified @done of @total claims…"
+msgstr "Verificadas @done de @total afirmaciones…"
+
+msgid "You have reached the scan limit for this session. Please try again later."
+msgstr "Ha alcanzado el límite de análisis de esta sesión. Inténtelo de nuevo más tarde."
+
+msgid "[Fact check] Content scan run"
+msgstr "[Verificación de hechos] Análisis de contenido ejecutado"
+
+msgid "[Fact check] Settings changed"
+msgstr "[Verificación de hechos] Configuración modificada"
+
+# Remaining exact strings
+msgid "Key entity holding a <a href=\":url\" target=\"_blank\">Tavily</a> API key. When the evidence index has nothing for a claim, the web is searched — restricted by your <em>Trusted site</em> nodes: positive-reputation domains are preferred, negative ones excluded. Leave empty to keep verification local-only."
+msgstr "Entidad Key con una clave API de <a href=\":url\" target=\"_blank\">Tavily</a>. Cuando el índice de evidencia no tiene nada para una afirmación, se busca en la web — restringido por sus nodos de <em>Sitio de confianza</em>: se prefieren dominios con reputación positiva y se excluyen los negativos. Déjelo vacío para mantener la verificación solo local."
+
+msgid "Key entity holding a RapidAPI key for the <a href=\":url\" target=\"_blank\">Media Bias Fact Check Ratings API</a>. Used by <code>drush factcheck:sync-bias-ratings --fetch=domain,…</code> to pull live bias/factual ratings into Trusted sites. Leave empty to import from static JSON only."
+msgstr "Entidad Key con una clave RapidAPI para la <a href=\":url\" target=\"_blank\">Media Bias Fact Check Ratings API</a>. La usa <code>drush factcheck:sync-bias-ratings --fetch=domain,…</code> para obtener calificaciones de sesgo/factualidad en vivo en Sitios de confianza. Déjelo vacío para importar solo desde JSON estático."
+

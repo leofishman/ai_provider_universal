@@ -140,3 +140,86 @@ msgstr "AI Provider: Universal — Enrutador inteligente"
 msgid "Cost-aware smart routing: exposes virtual \"route\" models that pick the cheapest capable model (local or remote) per request, with a decision log."
 msgstr "Enrutamiento inteligente consciente del costo: expone modelos virtuales \"ruta\" que eligen el modelo más barato capaz (local o remoto) por solicitud, con un registro de decisiones."
 
+# Added 2026-07-10 — missing UI strings (router)
+msgid "- Disabled -"
+msgstr "- Desactivado -"
+
+msgid "1 — Minimal"
+msgstr "1 — Mínimo"
+
+msgid "2 — Basic"
+msgstr "2 — Básico"
+
+msgid "3 — Solid"
+msgstr "3 — Sólido"
+
+msgid "4 — Strong"
+msgstr "4 — Fuerte"
+
+msgid "5 — Frontier"
+msgstr "5 — Frontera"
+
+msgid "<strong>@count</strong> routed requests — estimated spend <strong>$@spent</strong>, estimated savings vs. always using the most expensive candidate: <strong>$@saved</strong>."
+msgstr "<strong>@count</strong> solicitudes enrutadas — gasto estimado <strong>$@spent</strong>, ahorro estimado vs. usar siempre el candidato más caro: <strong>$@saved</strong>."
+
+msgid "AI Router Log"
+msgstr "Registro del enrutador de IA"
+
+msgid "Candidates evaluated"
+msgstr "Candidatos evaluados"
+
+msgid "Est. cost (chosen)"
+msgstr "Costo est. (elegido)"
+
+msgid "Est. cost (worst case)"
+msgstr "Costo est. (peor caso)"
+
+msgid "Estimated cost if the most expensive eligible candidate had been chosen."
+msgstr "Costo estimado si se hubiera elegido el candidato elegible más caro."
+
+msgid "Estimated cost of the model that was actually used."
+msgstr "Costo estimado del modelo que se usó realmente."
+
+msgid "Estimated tokens"
+msgstr "Tokens estimados"
+
+msgid "How many models were considered for this decision."
+msgstr "Cuántos modelos se consideraron para esta decisión."
+
+msgid "ID"
+msgstr "ID"
+
+msgid "One row per smart routing decision. Shows local vs remote model selection, complexity, token estimates and cost savings."
+msgstr "Una fila por decisión de enrutamiento inteligente. Muestra selección de modelo local vs remoto, complejidad, estimaciones de tokens y ahorro de costo."
+
+msgid "Rough token count used for the decision."
+msgstr "Conteo aproximado de tokens usado para la decisión."
+
+msgid "Simple, complex or escalated."
+msgstr "Simple, complejo o escalado."
+
+msgid "The AI operation (chat, embeddings, etc.)."
+msgstr "La operación de IA (chat, embeddings, etc.)."
+
+msgid "The actual model ID that was selected (can be local or remote)."
+msgstr "El ID real del modelo seleccionado (puede ser local o remoto)."
+
+msgid "The smart route configuration that made the decision."
+msgstr "La configuración de ruta inteligente que tomó la decisión."
+
+msgid "Timestamp"
+msgstr "Marca de tiempo"
+
+msgid "Unique identifier for the log entry."
+msgstr "Identificador único de la entrada de registro."
+
+msgid "Verifier model"
+msgstr "Modelo verificador"
+
+msgid "When the routing decision happened."
+msgstr "Cuándo ocurrió la decisión de enrutamiento."
+
+# Remaining exact strings
+msgid "Before returning, this model judges whether the answer solves the prompt (one yes/no call — use a free local model). On rejection the request is retried with the best candidate. Lighter than fact-checking; leave disabled to skip."
+msgstr "Antes de devolver, este modelo juzga si la respuesta resuelve el prompt (una llamada sí/no — use un modelo local gratuito). Si se rechaza, la solicitud se reintenta con el mejor candidato. Más ligero que la verificación de hechos; déjelo desactivado para omitirlo."
+

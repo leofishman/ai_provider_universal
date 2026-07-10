@@ -5,7 +5,7 @@ A universal, multi-instance AI provider for the [Drupal AI module](https://www.d
 Unlike single-endpoint providers, this module models your AI infrastructure as **config entities**:
 
 - **Servers** (`ai_universal_server`) — each server is an independent endpoint with its own backend, host, port, API key, timeout, model filter and daily usage limits. Run as many as you want: a local llama.cpp box, an Ollama instance, a vLLM moderation server and a remote Fireworks/OpenAI account can all coexist under one provider.
-- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-speech, text-to-image) are **detected dynamically** per model. Each model also carries routing metadata (cost per 1M tokens, quality tier, context length, reasoning effort) — overridable in the UI — and optional **catalog features** (`tools`, `json_mode`, `reasoning`, …) when the server publishes them. Quality tiers for known model families (and optionally costs) are prefilled from a site-overridable YAML (`definitions/model_defaults.yml`).
+- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-speech, text-to-image) are **detected dynamically** per model. Each model also carries routing metadata (cost per 1M tokens, quality tier, context length, reasoning effort), per-model **sampling overrides** (`temperature`, `top_p`, `frequency_penalty`, `presence_penalty`, sent on every chat call — duplicate a model entity to tune the same model per use case) — all overridable in the UI — and optional **catalog features** (`tools`, `json_mode`, `reasoning`, …) when the server publishes them. Quality tiers for known model families, vendor-recommended sampling and optionally costs are prefilled from a site-overridable YAML (`definitions/model_defaults.yml`).
 
 New to the terminology? See the [glossary](docs/glossary.md).
 
@@ -69,7 +69,7 @@ Without the patches the module works, but route/model selects in the AI settings
 3. Saving the server runs model discovery; review detected models (operation types, costs, context, catalog features) and override routing metadata if needed.
 4. Select the default provider/model per operation type at **Configuration → AI → AI settings** (`/admin/config/ai/settings`).
 
-Discovery can be re-run any time with `drush aip:discover-models [server_id]` (alias `aipdm`) or by re-saving the server. Re-discovery **never overwrites** costs/tier/context/reasoning you set manually; catalog **features** are always refreshed from the server.
+Discovery can be re-run any time with `drush aip:discover-models [server_id]` (alias `aipdm`) or by re-saving the server. Re-discovery **never overwrites** costs/tier/context/reasoning/sampling you set manually; catalog **features** are always refreshed from the server. Per-model enrichment failures (Ollama `/api/show`, LiteLLM `/model/info`, …) log a notice and fall back to the plain catalog entry instead of aborting discovery.
 
 ### Authentication / API keys
 
@@ -98,7 +98,7 @@ Full details — decision algorithm, route configuration, fact-check escalation,
 
 Each **server** can carry daily request/token limits — that is where the account/budget actually lives (OpenRouter credits, amazee.ai budget, a LiteLLM master key). Usage is tracked per model per day; the day rolls over at midnight in the site's default timezone. Enforcement lives in the Smart Router submodule: over-limit servers are skipped by routes (failover to another provider) and reject direct calls until the day rolls over. A limit of `0` deliberately blocks the server for the rest of the day. An optional **alert threshold** (default 80%) and **limit grace** dispatch `UsageThresholdEvent`s you can subscribe to for mail/Slack/ECA.
 
-For rules beyond daily limits (business hours, per-role quotas), subscribe to the **pre-call gate**: `ModelPreCallEvent` fires before every inference call and lets any module block the call or swap the model.
+For rules beyond daily limits (business hours, per-role quotas), subscribe to the **pre-call gate**: `ModelPreCallEvent` fires before every inference call and lets any module block the call or swap the model. Its companions: `ModelPostCallEvent` fires after every successful chat call with token usage and latency (custom telemetry, cost alerting), and `ModelsDiscoveredEvent` lets you enrich or correct the discovered model set before it is persisted. See the events table in [docs/smart-routing.md](docs/smart-routing.md).
 
 Full details — enforcement model, thresholds, event reference, pre-call gate: [docs/usage-limits.md](docs/usage-limits.md).
 
