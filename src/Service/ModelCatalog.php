@@ -5,11 +5,13 @@ namespace Drupal\ai_provider_universal\Service;
 use Drupal\ai_provider_universal\Backend\AiServerBackendInterface;
 use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
+use Drupal\ai_provider_universal\Event\ModelsDiscoveredEvent;
 use Drupal\ai_provider_universal\Utility\ModelDefaults;
 use Drupal\ai_provider_universal\Utility\ModelFilter;
 use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Language\LanguageInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Handles model discovery, persistence and catalog queries.
@@ -25,6 +27,7 @@ class ModelCatalog {
     protected EntityTypeManagerInterface $entityTypeManager,
     protected TransliterationInterface $transliteration,
     protected AiServerBackendManager $backendManager,
+    protected EventDispatcherInterface $eventDispatcher,
   ) {}
 
   /**
@@ -69,6 +72,12 @@ class ModelCatalog {
         'metadata' => $metadata,
       ];
     }
+
+    // Let subscribers enrich or correct the set before persistence
+    // (site pricing, tier policies, dropping models).
+    $event = new ModelsDiscoveredEvent($serverId, $discovered);
+    $this->eventDispatcher->dispatch($event, ModelsDiscoveredEvent::EVENT_NAME);
+    $discovered = $event->getModels();
 
     $this->persistModelsForServer($serverId, $discovered);
 

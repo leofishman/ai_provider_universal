@@ -28,6 +28,7 @@ use Drupal\ai\OperationType\TextToImage\TextToImageOutput;
 use Drupal\ai\Traits\OperationType\ChatTrait;
 use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
+use Drupal\ai_provider_universal\Event\ModelPostCallEvent;
 use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
 use Drupal\ai_provider_universal\Models\Moderation\LlamaGuard3;
 use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
@@ -611,10 +612,15 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     }
 
     try {
+      $started = microtime(TRUE);
       $resolved = $this->getModel($model_id);
       $output = parent::chat($input, $resolved, $tags);
       $usage = $output->getTokenUsage();
       $this->usageTracker->record($model_id, $usage->input, $usage->output);
+      $this->serviceContainer->get('event_dispatcher')->dispatch(
+        new ModelPostCallEvent($model_id, 'chat', $usage->input, $usage->output, (microtime(TRUE) - $started) * 1000),
+        ModelPostCallEvent::EVENT_NAME,
+      );
       return $output;
     }
     finally {
