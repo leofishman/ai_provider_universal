@@ -68,10 +68,13 @@ final class ProvenanceRecorderTest extends KernelTestBase {
 
   /**
    * Dispatches a post-call event as the provider does after a generation.
+   *
+   * @param string[] $tags
+   *   Optional chat tags.
    */
-  protected function dispatchPostCall(): void {
+  protected function dispatchPostCall(array $tags = []): void {
     $this->container->get('event_dispatcher')->dispatch(
-      new ModelPostCallEvent('local__qwen', 'chat', 10, 20, 123.4),
+      new ModelPostCallEvent('local__qwen', 'chat', 10, 20, 123.4, $tags),
       ModelPostCallEvent::EVENT_NAME,
     );
   }
@@ -100,6 +103,22 @@ final class ProvenanceRecorderTest extends KernelTestBase {
     $this->assertSame('chat', $event->getOperationType());
     $this->assertSame('', $event->getEntityTypeId());
     $this->assertGreaterThan(0, $event->getTimestamp());
+  }
+
+  /**
+   * Internal tool tags never emit content provenance.
+   */
+  public function testInternalToolTagsSkipProvenance(): void {
+    $this->config('ai_provider_universal.settings')->set('emit_provenance', TRUE)->save();
+
+    $this->dispatchPostCall(['ai_provider_universal_factcheck']);
+    $this->assertSame([], $this->collected);
+
+    $this->dispatchPostCall(['route_verifier']);
+    $this->assertSame([], $this->collected);
+
+    $this->dispatchPostCall([]);
+    $this->assertCount(1, $this->collected);
   }
 
   /**

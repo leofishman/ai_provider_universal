@@ -158,7 +158,7 @@ submodule is disabled.
 | Event | When | Subscribers can |
 |---|---|---|
 | `ModelPreCallEvent` (`ai_provider_universal.model_pre_call`) | Before every inference call, after smart-route resolution — the model id is always a concrete `ai_universal_model` entity id. | Block the call (`block($reason)`: custom quota schemes, business hours, compliance) or swap the model (`setModelId()`). The usage-limit enforcement in this submodule is a plain service call, but your own policies belong here. |
-| `ModelPostCallEvent` (`ai_provider_universal.model_post_call`) | After every successful chat call. | Read model id, token usage and latency (ms) for custom telemetry, cost alerting or dashboards. Read-only; failed calls dispatch `AiExceptionEvent` instead. |
+| `ModelPostCallEvent` (`ai_provider_universal.model_post_call`) | After every successful chat call. | Read model id, token usage, latency (ms) and caller tags for custom telemetry, cost alerting or dashboards. Read-only; failed calls dispatch `AiExceptionEvent` instead. Provenance skips internal tool tags (`InternalChatTags`). |
 | `ModelsDiscoveredEvent` (`ai_provider_universal.models_discovered`) | During discovery, after detection and defaults, before persistence. | Enrich or correct the discovered set via `getModels()`/`setModels()` — inject site pricing, adjust tiers, drop models — without writing a backend plugin. Manual UI edits are still never clobbered. |
 | `AiExceptionEvent` (AI core) | When a provider call throws. | Implement failover: catch the failure, re-issue against another provider/model. This is the AI-core seam — the module deliberately ships no failover of its own. |
 

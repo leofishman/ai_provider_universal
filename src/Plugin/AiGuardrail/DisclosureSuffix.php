@@ -132,7 +132,9 @@ class DisclosureSuffix extends AiGuardrailPluginBase implements ConfigurableInte
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state): void {
-    $this->setConfiguration($form_state->getValues());
+    $this->setConfiguration([
+      'suffix_text' => (string) $form_state->getValue('suffix_text', ''),
+    ]);
   }
 
 }

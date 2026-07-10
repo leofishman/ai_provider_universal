@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
 use Drupal\ai_provider_universal\Event\AiContentProvenanceEvent;
 use Drupal\ai_provider_universal\Event\ModelPostCallEvent;
+use Drupal\ai_provider_universal\Utility\InternalChatTags;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -21,6 +22,8 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  *   an AiContentProvenanceEvent (source "generation") when the
  *   emit_provenance setting is on. Off by default: enabling costs one event
  *   dispatch per call and changes nothing until a subscriber reacts.
+ *   Internal tool calls (factcheck, classifier, route verifier) never emit
+ *   provenance — they are not end-user / published content generation.
  * - recordAssociation(): workflows/ECA assert that AI output was written
  *   into an entity (source "association"). Always dispatches — the caller
  *   asserting the fact is the opt-in.
@@ -50,6 +53,10 @@ class ProvenanceRecorder implements EventSubscriberInterface {
    */
   public function onModelPostCall(ModelPostCallEvent $event): void {
     if (!$this->configFactory->get('ai_provider_universal.settings')->get('emit_provenance')) {
+      return;
+    }
+    // Factcheck/classifier/verifier are not content-generation provenance.
+    if (InternalChatTags::isInternal($event->getTags())) {
       return;
     }
     $model = $this->entityTypeManager->getStorage('ai_universal_model')->load($event->getModelId());

@@ -55,8 +55,11 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
 
   /**
    * Dispatches a pre-generate event and returns the resulting input.
+   *
+   * @param string[] $tags
+   *   Optional chat tags (e.g. factcheck tool tag).
    */
-  protected function dispatch(ChatInput $input, string $provider_id = 'universal', string $model_id = 'some_model'): ChatInput {
+  protected function dispatch(ChatInput $input, string $provider_id = 'universal', string $model_id = 'some_model', array $tags = []): ChatInput {
     $event = new PreGenerateResponseEvent(
       requestThreadId: 'test-thread',
       providerId: $provider_id,
@@ -64,6 +67,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
       configuration: [],
       input: $input,
       modelId: $model_id,
+      tags: $tags,
     );
     $this->container->get('event_dispatcher')->dispatch($event, PreGenerateResponseEvent::EVENT_NAME);
     return $event->getInput();
@@ -179,6 +183,18 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
 
     $input = $this->dispatch($this->chatInput());
     $this->assertSame([], $this->attachedSetIds($input));
+  }
+
+  /**
+   * Factcheck (and other internal tool) tags never get the default set.
+   */
+  public function testInternalToolTagsSkipAttach(): void {
+    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'default_set')->save();
+
+    foreach (['ai_provider_universal_factcheck', 'complexity_classifier', 'route_verifier'] as $tag) {
+      $input = $this->dispatch($this->chatInput(), 'universal', 'some_model', ['chat', $tag]);
+      $this->assertSame([], $this->attachedSetIds($input), "Tag $tag must skip default Guardrail attach");
+    }
   }
 
 }

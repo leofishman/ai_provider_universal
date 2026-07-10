@@ -23,7 +23,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 #[QueueWorker(
   id: 'aip_content_review',
   title: new TranslatableMarkup('Scheduled content review scans'),
-  cron: ['time' => 60],
+  // Heavy profiles (factcheck + plagiarism) can exceed 60s per item; cron
+  // will resume remaining items on the next run if the budget is spent.
+  cron: ['time' => 120],
 )]
 class ContentReviewWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 

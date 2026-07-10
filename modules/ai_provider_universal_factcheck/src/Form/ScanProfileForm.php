@@ -73,7 +73,7 @@ class ScanProfileForm extends EntityForm {
       '#title' => $this->t('Cooldown (seconds)'),
       '#min' => 0,
       '#default_value' => $profile->getCooldown(),
-      '#description' => $this->t('Minimum time before the same node is enqueued again by this profile.'),
+      '#description' => $this->t('Minimum time before the same node is enqueued again by this profile. Also acts as pending-item dedupe: a re-save during the cooldown does not queue a second scan (including while the first item is still waiting on cron).'),
     ];
 
     $form['checks'] = [
@@ -81,7 +81,7 @@ class ScanProfileForm extends EntityForm {
       '#title' => $this->t('Checks'),
       '#open' => TRUE,
       '#tree' => TRUE,
-      '#description' => $this->t('Readability is free and local. AI likelihood costs one LLM call; fact check and plagiarism are the heaviest — prefer light profiles for frequent saves.'),
+      '#description' => $this->t('Readability is free and local. AI likelihood costs one LLM call; fact check and plagiarism are the heaviest — prefer light profiles for frequent saves. Heavy checks may span multiple cron runs (queue budget ~2 minutes per cron tick).'),
     ];
     $form['checks']['readability'] = [
       '#type' => 'fieldset',

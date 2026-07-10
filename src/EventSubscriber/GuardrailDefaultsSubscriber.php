@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\ai\Event\PreGenerateResponseEvent;
 use Drupal\ai\Guardrail\AiGuardrailRepository;
 use Drupal\ai\OperationType\InputInterface;
+use Drupal\ai_provider_universal\Utility\InternalChatTags;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -16,7 +17,9 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Guardrails UI; here they only pick which set applies when the caller did
  * not attach one. A caller-attached set always wins (we never overwrite),
  * and a set on the smart route being called beats the module-wide default.
- * Empty config is a no-op.
+ * Internal tool tags (factcheck, classifier, route verifier) are skipped so
+ * a chatbot Guardrail set cannot break JSON tools or append disclosures to
+ * them. Empty config is a no-op.
  */
 class GuardrailDefaultsSubscriber implements EventSubscriberInterface {
 
@@ -49,6 +52,10 @@ class GuardrailDefaultsSubscriber implements EventSubscriberInterface {
    */
   public function attachDefaultGuardrailSet(PreGenerateResponseEvent $event): void {
     if ($event->getProviderId() !== 'universal') {
+      return;
+    }
+    // Factcheck/classifier/verifier chat must not inherit chatbot Guardrails.
+    if (InternalChatTags::isInternal($event->getTags())) {
       return;
     }
     $input = $event->getInput();

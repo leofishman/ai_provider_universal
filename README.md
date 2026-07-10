@@ -33,7 +33,7 @@ Other modules can contribute more backends (e.g. native Anthropic/Gemini once in
 ## Requirements
 
 - Drupal 11.1+ / 12
-- [AI](https://www.drupal.org/project/ai) ^1.2
+- [AI](https://www.drupal.org/project/ai) ^1.3 (Guardrails API; content governance)
 - [Key](https://www.drupal.org/project/key)
 
 ## Installation

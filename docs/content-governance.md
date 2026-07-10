@@ -69,6 +69,21 @@ safety. We **integrate**, we do not reimplement those.
 | Smart route fact-check escalation | Answer quality on **routes**, not CMS disclosure |
 | AI core Guardrails | Inference I/O safety when a set is attached to the input |
 
+### Internal tool tags (do not attach Guardrails / provenance)
+
+Calls that use these chat `$tags` are **tool traffic**, not end-user generation.
+`GuardrailDefaultsSubscriber` and `ProvenanceRecorder` skip them (see
+`InternalChatTags`):
+
+| Tag | Used by |
+|---|---|
+| `ai_provider_universal_factcheck` | Factcheck extract / detect / verify |
+| `complexity_classifier` | Smart-route complexity model |
+| `route_verifier` | Smart-route lightweight answer verifier |
+
+Without this filter, a site-wide default Guardrail set (or `emit_provenance`)
+would break JSON tool responses or flood provenance with claim-checker calls.
+
 ---
 
 ## Architecture
