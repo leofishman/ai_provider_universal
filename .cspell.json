@@ -9,6 +9,7 @@
     "**/data/mbfc-ratings-full.json"
   ],
   "words": [
+    "AAAS",
     "adfontes",
     "aeiouy\u00e1\u00e9\u00ed\u00f3\u00fa\u00fc",
     "afirmaciones",
@@ -125,6 +126,7 @@
     "othersite",
     "pagina",
     "palabra",
+    "parseable",
     "pdfparser",
     "permissioned",
     "pgvector",
