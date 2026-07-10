@@ -106,9 +106,10 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       override `listModels()` in the `openrouter` backend to fetch both and
       merge. Skipped for now — local nomic-embed and Fireworks cover
       embeddings.
-- [ ] OpenRouter quality tiers: the catalog publishes no quality signal;
-      tiers stay manual per model. Evaluate deriving a default from price
-      band if manual entry becomes a burden with 300+ models.
+- [x] OpenRouter quality tiers: derived from price band as a last-resort
+      discovery fallback (`prices:` map in model_defaults.yml, site-
+      overridable) after family and size heuristics; never clobbers manual
+      edits. Verified live: 343/347 OpenRouter models rated.
 - [ ] **Verdict quorum (GenLayer-inspired, no blockchain)**: optional
       multi-model consensus in FactChecker. Default stays one checker; on
       CONTRADICTED/tainted verdicts, "appeal" by re-running the claim
@@ -197,6 +198,6 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [ ] Hourly limits in README/usage-limits/servers-and-models once the
       feature lands (see UX & platform improvements).
 - [x] smart-routing: savings dashboard moved to Views (ai_router_log view with Page + JSON/REST export displays)
-- [ ] Route filters on catalog features (e.g. require `tools` /
-      `reasoning`) — field is persisted; UI/API ready via
-      `$model->supportsFeature()`.
+- [x] Route filters on catalog features: `required_features` on the route
+      entity (checkboxes fed by discovered features); RouteDecider excludes
+      candidates missing any required feature.

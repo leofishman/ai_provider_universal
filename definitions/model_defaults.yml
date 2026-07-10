@@ -40,6 +40,16 @@ quality_tiers:
     27: 3
     7: 2
     0: 1
+  # Last-resort fallback by price band, for live-pricing catalogs
+  # (OpenRouter, Groq, ...) whose ids match no family or size pattern.
+  # Minimum cost_output in USD per 1M tokens => tier; highest met wins.
+  # Rough but useful across 300+ models; rate any model you care about.
+  prices:
+    '20': 5
+    '5': 4
+    '0.5': 3
+    '0.1': 2
+    '0': 1
 
 # Costs in USD per 1 million tokens, applied when the backend publishes no
 # pricing (plain openai_compatible servers, ollama_cloud, grok without a

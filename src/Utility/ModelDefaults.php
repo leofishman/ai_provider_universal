@@ -54,6 +54,28 @@ final class ModelDefaults {
   }
 
   /**
+   * Guesses a quality tier from the output price, NULL when unpriced.
+   *
+   * Last-resort fallback for live-pricing catalogs whose model ids match
+   * no family or size pattern: price correlates loosely with capability.
+   *
+   * @param float $cost_output
+   *   Cost in USD per 1M output tokens.
+   */
+  public static function guessTierFromPrice(float $cost_output): ?int {
+    $bands = self::table()['quality_tiers']['prices'] ?? [];
+    // Keys are quoted in the YAML (floats are invalid mapping keys), so
+    // sort numerically, not lexicographically.
+    krsort($bands, SORT_NUMERIC);
+    foreach ($bands as $min => $tier) {
+      if ($cost_output >= (float) $min) {
+        return (int) $tier;
+      }
+    }
+    return NULL;
+  }
+
+  /**
    * Guesses costs (USD per 1M tokens) from the raw model id.
    *
    * @return array
@@ -109,7 +131,7 @@ final class ModelDefaults {
       $override = Yaml::decode((string) file_get_contents($override_path)) ?: [];
       // First match wins, so prepending makes override entries take
       // precedence while shipped defaults remain as fallback.
-      foreach (['families', 'sizes'] as $key) {
+      foreach (['families', 'sizes', 'prices'] as $key) {
         $base['quality_tiers'][$key] = ($override['quality_tiers'][$key] ?? [])
           + ($base['quality_tiers'][$key] ?? []);
       }

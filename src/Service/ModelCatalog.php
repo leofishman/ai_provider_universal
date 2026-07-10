@@ -61,6 +61,13 @@ class ModelCatalog {
       if (!isset($metadata['quality_tier']) && ($tier = ModelDefaults::guessTier($rawId)) !== NULL) {
         $metadata['quality_tier'] = $tier;
       }
+      // Last resort for live-pricing catalogs (OpenRouter, Groq, ...):
+      // derive a tier from the price band so 300+ models don't all land
+      // on the unrated default.
+      if (!isset($metadata['quality_tier']) && isset($metadata['cost_output'])
+        && ($tier = ModelDefaults::guessTierFromPrice((float) $metadata['cost_output'])) !== NULL) {
+        $metadata['quality_tier'] = $tier;
+      }
       $metadata += ModelDefaults::guessCosts($rawId);
       if (($sampling = ModelDefaults::guessSampling($rawId)) !== []) {
         $metadata['sampling'] = $sampling;

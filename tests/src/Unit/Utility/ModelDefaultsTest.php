@@ -69,6 +69,17 @@ final class ModelDefaultsTest extends UnitTestCase {
   }
 
   /**
+   * Tests the price-band tier fallback for live-pricing catalogs.
+   */
+  public function testGuessTierFromPrice(): void {
+    $this->assertSame(5, ModelDefaults::guessTierFromPrice(75.0));
+    $this->assertSame(4, ModelDefaults::guessTierFromPrice(10.0));
+    $this->assertSame(3, ModelDefaults::guessTierFromPrice(0.79));
+    $this->assertSame(2, ModelDefaults::guessTierFromPrice(0.3));
+    $this->assertSame(1, ModelDefaults::guessTierFromPrice(0.0));
+  }
+
+  /**
    * Tests cost guessing (shipped table is empty; seed one via reflection).
    */
   public function testGuessCosts(): void {

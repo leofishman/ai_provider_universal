@@ -40,3 +40,9 @@ ai_provider_universal_router.route.*:
     verifier_model:
       type: string
       label: 'Model that judges answers before returning them (empty = disabled)'
+    required_features:
+      type: sequence
+      label: 'Catalog features every candidate must report (empty = no filter)'
+      sequence:
+        type: string
+        label: 'Feature'

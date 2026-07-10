@@ -12,6 +12,7 @@ A route (`ai_universal_route` config entity, `modules/ai_provider_universal_rout
 | Candidate models | Explicit model pool. Empty = every model that supports the operation type. | empty |
 | Minimum tier for simple prompts | Quality tier (1–5) a candidate must reach for a prompt classified as simple. | 2 |
 | Minimum tier for complex prompts | Quality tier a candidate must reach for a prompt classified as complex. | 4 |
+| Required catalog features | Discovered `supported_features` (e.g. `tools`, `json_mode`, `reasoning`) every candidate must report. Models on servers that publish no features (most local servers) are excluded when any feature is required, so leave unchecked unless the route genuinely needs the capability. The options offered are the features your discovered models actually report. | none |
 | Verifier model | Model that judges each answer before it is returned (one yes/no call — use a free local model). On rejection the request is retried once with the best candidate. Lighter than fact-checking and independent of the factcheck submodule; a broken verifier fails open (the answer is returned unverified, with a watchdog warning). | disabled |
 | Fact-check answers and escalate on failure | Chat-only, requires the factcheck submodule. See [Fact-check escalation](#fact-check-escalation) below. | off |
 | Minimum support score | Fraction of claims that must be SUPPORTED before accepting the answer. | 0.7 |

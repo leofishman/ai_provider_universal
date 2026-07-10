@@ -92,6 +92,25 @@ class AiUniversalRouteForm extends EntityForm {
       '#default_value' => $route->getComplexTier(),
     ];
 
+    // Offer every feature id any discovered model reports, so the options
+    // reflect what the configured servers actually publish.
+    $feature_options = [];
+    foreach ($this->entityTypeManager->getStorage('ai_universal_model')->loadMultiple() as $model) {
+      foreach ($model->getSupportedFeatures() as $feature) {
+        $feature_options[$feature] = $feature;
+      }
+    }
+    ksort($feature_options);
+    if ($feature_options || $route->getRequiredFeatures()) {
+      $form['required_features'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Required catalog features'),
+        '#description' => $this->t('Candidates must report every checked feature in their discovered catalog features. Models on servers that publish no features (most local servers) are excluded when any feature is required — leave unchecked unless the route genuinely needs the capability.'),
+        '#options' => $feature_options + array_combine($route->getRequiredFeatures(), $route->getRequiredFeatures()),
+        '#default_value' => $route->getRequiredFeatures(),
+      ];
+    }
+
     $verifier_options = [];
     foreach ($this->entityTypeManager->getStorage('ai_universal_model')->loadMultiple() as $model) {
       if (in_array('chat', $model->getEffectiveOperationTypes(), TRUE)) {
@@ -224,6 +243,7 @@ class AiUniversalRouteForm extends EntityForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $this->entity->set('candidates', array_values(array_filter($form_state->getValue('candidates', []))));
+    $this->entity->set('required_features', array_values(array_filter($form_state->getValue('required_features', []))));
     $status = $this->entity->save();
 
     $this->messenger()->addStatus($this->t('Smart route %label saved. It appears as a model option for %type operations.', [

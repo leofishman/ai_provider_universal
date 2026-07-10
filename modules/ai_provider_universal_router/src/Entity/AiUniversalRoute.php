@@ -50,6 +50,7 @@ use Drupal\ai_provider_universal_router\AiUniversalRouteListBuilder;
     'factcheck',
     'factcheck_min_score',
     'verifier_model',
+    'required_features',
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/routes/add',
@@ -126,6 +127,23 @@ class AiUniversalRoute extends ConfigEntityBase implements AiUniversalRouteInter
    * @var string
    */
   protected string $verifier_model = '';
+
+  /**
+   * Catalog features every candidate must report (empty = no filter).
+   *
+   * Matched against the model's discovered supported_features; models on
+   * servers that publish no features are excluded when this is set.
+   *
+   * @var string[]
+   */
+  protected array $required_features = [];
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRequiredFeatures(): array {
+    return $this->required_features ?? [];
+  }
 
   /**
    * {@inheritdoc}

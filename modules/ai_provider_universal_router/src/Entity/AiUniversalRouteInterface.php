@@ -53,4 +53,16 @@ interface AiUniversalRouteInterface extends ConfigEntityInterface {
    */
   public function getFactcheckMinScore(): float;
 
+  /**
+   * Catalog features every candidate must report (empty = no filter).
+   *
+   * Matched against the model's discovered supported_features (tools,
+   * json_mode, reasoning, ...). Models on servers that publish no
+   * features are excluded when this is set.
+   *
+   * @return string[]
+   *   Lowercase feature ids.
+   */
+  public function getRequiredFeatures(): array;
+
 }

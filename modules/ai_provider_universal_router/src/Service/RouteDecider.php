@@ -159,8 +159,11 @@ class RouteDecider {
         $models,
       )));
 
+    $required = $route->getRequiredFeatures();
+
     return array_filter($models, fn (AiUniversalModelInterface $m) =>
       in_array($operationType, $m->getEffectiveOperationTypes(), TRUE)
+      && !array_diff($required, $m->getSupportedFeatures())
       && (!isset($servers[$m->getServerId()])
         || !$this->limitEnforcer->isServerOverLimit($servers[$m->getServerId()])));
   }

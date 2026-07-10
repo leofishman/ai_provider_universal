@@ -65,6 +65,7 @@ final class RouteDeciderTest extends KernelTestBase {
       'cost_output' => 0.9,
       'quality_tier' => 4,
       'context_length' => 131072,
+      'supported_features' => ['json_mode', 'tools'],
     ])->save();
     // Remote: expensive frontier.
     $model_storage->create([
@@ -87,6 +88,26 @@ final class RouteDeciderTest extends KernelTestBase {
       'simple_tier' => 2,
       'complex_tier' => 4,
     ])->save();
+  }
+
+  /**
+   * Required catalog features exclude models that don't report them.
+   */
+  public function testRequiredFeaturesFilterCandidates(): void {
+    $this->container->get('entity_type.manager')->getStorage('ai_universal_route')->create([
+      'id' => 'tools_chat',
+      'label' => 'Tools chat',
+      'operation_type' => 'chat',
+      'candidates' => [],
+      'simple_tier' => 2,
+      'complex_tier' => 4,
+      'required_features' => ['tools'],
+    ])->save();
+
+    $decider = $this->container->get(RouteDecider::class);
+    // Only fw__llama70b reports the tools feature: the free local model is
+    // skipped even for a simple prompt.
+    $this->assertSame('fw__llama70b', $decider->resolve('tools_chat', 'Hola, ¿como estas?'));
   }
 
   /**
