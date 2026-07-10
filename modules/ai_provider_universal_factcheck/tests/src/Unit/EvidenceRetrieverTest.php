@@ -20,6 +20,8 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Exception\RequestException;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -28,10 +30,9 @@ use Psr\Log\LoggerInterface;
  * The local Search API path needs a booted container and is exercised in
  * kernel/manual testing; here search_api is reported missing so retrieve()
  * goes straight to the web cascade.
- *
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever
- * @group ai_provider_universal
  */
+#[CoversClass(EvidenceRetriever::class)]
+#[Group('ai_provider_universal')]
 class EvidenceRetrieverTest extends UnitTestCase {
 
   /**
@@ -105,7 +106,7 @@ class EvidenceRetrieverTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::retrieve
+   * Without a Tavily key, web evidence is skipped.
    */
   public function testNoKeyMeansNoWebEvidence(): void {
     $retriever = $this->buildRetriever([], tavilyKey: '');
@@ -114,7 +115,7 @@ class EvidenceRetrieverTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::retrieve
+   * Curated include/exclude domains are applied and sources are URL-prefixed.
    */
   public function testWebSearchAppliesCurationAndPrefixesSources(): void {
     $retriever = $this->buildRetriever(
@@ -136,8 +137,6 @@ class EvidenceRetrieverTest extends UnitTestCase {
 
   /**
    * Empty curated search retries once without the include list.
-   *
-   * @covers ::retrieve
    */
   public function testEmptyCuratedSearchRetriesUnrestricted(): void {
     $retriever = $this->buildRetriever(
@@ -159,7 +158,7 @@ class EvidenceRetrieverTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::retrieveDistrusted
+   * Distrusted search targets negative domains only.
    */
   public function testDistrustedSearchTargetsNegativeDomainsOnly(): void {
     $retriever = $this->buildRetriever(
@@ -178,8 +177,6 @@ class EvidenceRetrieverTest extends UnitTestCase {
 
   /**
    * No distrusted domains configured: no search at all.
-   *
-   * @covers ::retrieveDistrusted
    */
   public function testDistrustedSearchSkippedWithoutNegativeDomains(): void {
     $retriever = $this->buildRetriever([], exclude: []);
@@ -189,8 +186,6 @@ class EvidenceRetrieverTest extends UnitTestCase {
 
   /**
    * HTTP failure degrades to no evidence instead of throwing.
-   *
-   * @covers ::retrieve
    */
   public function testHttpFailureReturnsNoEvidence(): void {
     $retriever = $this->buildRetriever([

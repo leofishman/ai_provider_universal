@@ -15,12 +15,15 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LoggerInterface;
 
 /**
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\PlagiarismChecker
- * @group ai_provider_universal
+ * Tests PlagiarismChecker Serper lookups with mocked HTTP.
  */
+#[CoversClass(PlagiarismChecker::class)]
+#[Group('ai_provider_universal')]
 class PlagiarismCheckerTest extends UnitTestCase {
 
   /**
@@ -57,8 +60,7 @@ class PlagiarismCheckerTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::check
-   * @covers ::isConfigured
+   * Without a Serper key, plagiarism checking is unavailable.
    */
   public function testNoKeyMeansUnavailable(): void {
     $checker = $this->buildChecker([], keyId: '');
@@ -67,7 +69,7 @@ class PlagiarismCheckerTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::check
+   * Long sentences are searched as exact phrases.
    */
   public function testLongSentencesAreSearchedAsExactPhrases(): void {
     $sentence = 'This exceptionally distinctive sentence about pgvector-backed evidence retrieval is long enough to be searched.';
@@ -94,8 +96,6 @@ class PlagiarismCheckerTest extends UnitTestCase {
 
   /**
    * Texts with only short sentences trigger no searches at all.
-   *
-   * @covers ::check
    */
   public function testShortSentencesAreNotSearched(): void {
     $checker = $this->buildChecker([]);

@@ -12,12 +12,15 @@ use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever;
 use Drupal\ai_provider_universal_factcheck\Service\FactChecker;
 use Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LoggerInterface;
 
 /**
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\FactChecker
- * @group ai_provider_universal
+ * Tests FactChecker claim extraction, profiles, caching and coverage.
  */
+#[CoversClass(FactChecker::class)]
+#[Group('ai_provider_universal')]
 class FactCheckerTest extends UnitTestCase {
 
   /**
@@ -113,8 +116,7 @@ class FactCheckerTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::verify
-   * @covers ::extractClaims
+   * Unextractable claims produce a perfect score and no claim rows.
    */
   public function testNoExtractableClaimsScoresPerfect(): void {
     $checker = $this->buildChecker(['profile' => 'balanced'], ['I have no idea what you mean.']);
@@ -125,7 +127,7 @@ class FactCheckerTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::extractClaims
+   * Fenced JSON claims are parsed and the max_claims budget is respected.
    */
   public function testExtractClaimsParsesFencedJsonAndRespectsBudget(): void {
     $checker = $this->buildChecker(
@@ -136,7 +138,7 @@ class FactCheckerTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::extractClaims
+   * Claim extraction falls back from JSON objects to bullet lists.
    */
   public function testExtractClaimsFallbacks(): void {
     // JSON array of objects: the 'claim' key is used.
@@ -156,10 +158,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * Balanced profile: one batched verdict call, one answer-level taint call.
-   *
-   * @covers ::verify
-   * @covers ::batchVerify
-   * @covers ::taintedForAnswer
    */
   public function testBalancedProfileBatchesVerdictsAndTaint(): void {
     $evidence = $this->createMock(EvidenceRetriever::class);
@@ -187,9 +185,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * Unparseable batch output falls back to per-claim verification.
-   *
-   * @covers ::verify
-   * @covers ::batchVerify
    */
   public function testBatchFailureFallsBackToPerClaim(): void {
     $evidence = $this->createMock(EvidenceRetriever::class);
@@ -214,8 +209,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * Fast profile skips distrusted checks and discrepancy analysis.
-   *
-   * @covers ::verify
    */
   public function testFastProfileSkipsDistrustedAndAnalysis(): void {
     $evidence = $this->createMock(EvidenceRetriever::class);
@@ -241,9 +234,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * Thorough profile: per-claim verdicts, per-claim taint, analysis.
-   *
-   * @covers ::verify
-   * @covers ::analyzeDiscrepancy
    */
   public function testThoroughProfileAnalyzesDiscrepancies(): void {
     $evidence = $this->createMock(EvidenceRetriever::class);
@@ -282,8 +272,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * Cached verdicts skip everything but extraction on a re-scan.
-   *
-   * @covers ::verify
    */
   public function testVerdictsAreCachedAcrossScans(): void {
     $evidence = $this->createMock(EvidenceRetriever::class);
@@ -305,9 +293,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * MiniCheck checkers use the Document/Claim interface, never batching.
-   *
-   * @covers ::verify
-   * @covers ::verifyClaim
    */
   public function testMiniCheckUsesGroundedInterfacePerClaim(): void {
     $evidence = $this->createMock(EvidenceRetriever::class);
@@ -333,8 +318,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * Coverage summarizes source count, ownership independence and blindspot.
-   *
-   * @covers ::coverage
    */
   public function testCoverageSummarizesIndependenceAndBlindspot(): void {
     $passages = [
@@ -363,8 +346,6 @@ class FactCheckerTest extends UnitTestCase {
 
   /**
    * Leaning sources on both sides of the spectrum: no blindspot.
-   *
-   * @covers ::coverage
    */
   public function testCoverageWithMixedBiasHasNoBlindspot(): void {
     $profiles = [

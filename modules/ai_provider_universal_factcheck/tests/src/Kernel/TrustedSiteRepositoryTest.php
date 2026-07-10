@@ -10,6 +10,8 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -17,10 +19,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * The repository is instantiated directly (it only needs the entity type
  * manager), so the factcheck module and its AI dependencies stay disabled.
- *
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\TrustedSiteRepository
- * @group ai_provider_universal
  */
+#[CoversClass(TrustedSiteRepository::class)]
+#[Group('ai_provider_universal')]
 #[RunTestsInSeparateProcesses]
 class TrustedSiteRepositoryTest extends KernelTestBase {
 
@@ -72,11 +73,7 @@ class TrustedSiteRepositoryTest extends KernelTestBase {
   }
 
   /**
-   * @covers ::profileMap
-   * @covers ::includeDomains
-   * @covers ::excludeDomains
-   * @covers ::reputation
-   * @covers ::profile
+   * Curated include/exclude lists and profiles come from published nodes.
    */
   public function testCurationMapFromNodes(): void {
     // Full URL with mixed case normalizes to a bare lowercase host.
@@ -111,8 +108,6 @@ class TrustedSiteRepositoryTest extends KernelTestBase {
 
   /**
    * Without any trusted_site nodes curation is simply off.
-   *
-   * @covers ::profileMap
    */
   public function testNoCurationMeansEmptyLists(): void {
     $repository = new TrustedSiteRepository($this->container->get('entity_type.manager'), $this->container->get('cache.default'));
@@ -123,8 +118,6 @@ class TrustedSiteRepositoryTest extends KernelTestBase {
 
   /**
    * The persistent cache is invalidated when trusted_site nodes change.
-   *
-   * @covers ::profileMap
    */
   public function testPersistentCacheInvalidation(): void {
     $etm = $this->container->get('entity_type.manager');

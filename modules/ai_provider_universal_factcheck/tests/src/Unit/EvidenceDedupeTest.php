@@ -6,17 +6,18 @@ namespace Drupal\Tests\ai_provider_universal_factcheck\Unit;
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\EvidenceRetriever
- * @group ai_provider_universal
+ * Tests EvidenceRetriever::dedupe for wire-copy collapse.
  */
+#[CoversClass(EvidenceRetriever::class)]
+#[Group('ai_provider_universal')]
 class EvidenceDedupeTest extends UnitTestCase {
 
   /**
    * Republished wire copy collapses to one passage; distinct writing stays.
-   *
-   * @covers ::dedupe
    */
   public function testDedupeCollapsesEchoesButKeepsIndependentSources(): void {
     $wire = 'The health ministry confirmed on Tuesday that the new screening '
@@ -41,8 +42,6 @@ class EvidenceDedupeTest extends UnitTestCase {
 
   /**
    * Non-overlapping passages are all kept.
-   *
-   * @covers ::dedupe
    */
   public function testDedupeKeepsAllDistinctPassages(): void {
     $passages = [

@@ -7,12 +7,15 @@ namespace Drupal\Tests\ai_provider_universal_factcheck\Unit;
 use Drupal\Tests\UnitTestCase;
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai_provider_universal_factcheck\Service\AiDetector;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LoggerInterface;
 
 /**
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\AiDetector
- * @group ai_provider_universal
+ * Tests AiDetector score parsing and configuration gates.
  */
+#[CoversClass(AiDetector::class)]
+#[Group('ai_provider_universal')]
 class AiDetectorTest extends UnitTestCase {
 
   /**
@@ -44,8 +47,7 @@ class AiDetectorTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::isConfigured
-   * @covers ::detect
+   * Without a configured model, detect() is unavailable.
    */
   public function testNoModelMeansUnavailable(): void {
     $detector = $this->buildDetector('irrelevant', []);
@@ -54,7 +56,7 @@ class AiDetectorTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::detect
+   * Score and rationale are parsed from free-form model prose.
    */
   public function testParsesScoreAndRationaleFromProse(): void {
     $detector = $this->buildDetector('Sure! {"score": 72, "rationale": "Uniform rhythm."} Hope that helps.');
@@ -62,7 +64,7 @@ class AiDetectorTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::detect
+   * Out-of-range scores are clamped to 0..100.
    */
   public function testScoreIsClampedTo0100(): void {
     $this->assertSame(100, $this->buildDetector('{"score": 250, "rationale": "r"}')->detect('t')['score']);
@@ -70,7 +72,7 @@ class AiDetectorTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::detect
+   * Unparseable model output returns NULL rather than a partial result.
    */
   public function testUnparseableModelOutputReturnsNull(): void {
     $this->assertNull($this->buildDetector('It feels very human to me.')->detect('Some text.'));

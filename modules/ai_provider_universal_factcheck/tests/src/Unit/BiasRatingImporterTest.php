@@ -16,6 +16,8 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * MBFC API fetch path, with mocked HTTP.
@@ -23,10 +25,9 @@ use GuzzleHttp\Psr7\Response;
  * The fixture in tests/fixtures/mbfc-api-response-mini.json is 3 rows cut
  * from a real /fetch-data capture (the endpoint dumps the full ~15k dataset),
  * so this test validates our parsing against the real schema.
- *
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\BiasRatingImporter
- * @group ai_provider_universal
  */
+#[CoversClass(BiasRatingImporter::class)]
+#[Group('ai_provider_universal')]
 class BiasRatingImporterTest extends UnitTestCase {
 
   /**
@@ -62,8 +63,6 @@ class BiasRatingImporterTest extends UnitTestCase {
 
   /**
    * The fixture response parses into an importable site record.
-   *
-   * @covers ::fetchFromApi
    */
   public function testFetchParsesFixtureResponse(): void {
     $fixture = (string) file_get_contents(__DIR__ . '/../../fixtures/mbfc-api-response-mini.json');
@@ -94,8 +93,6 @@ class BiasRatingImporterTest extends UnitTestCase {
 
   /**
    * Missing key short-circuits without any HTTP call.
-   *
-   * @covers ::fetchFromApi
    */
   public function testFetchWithoutKeyMakesNoRequest(): void {
     $importer = $this->buildImporter([], '');
@@ -109,8 +106,6 @@ class BiasRatingImporterTest extends UnitTestCase {
 
   /**
    * A domain missing from the dataset is reported but does not abort.
-   *
-   * @covers ::fetchFromApi
    */
   public function testFetchCollectsPerDomainErrors(): void {
     $fixture = (string) file_get_contents(__DIR__ . '/../../fixtures/mbfc-api-response-mini.json');
@@ -127,8 +122,6 @@ class BiasRatingImporterTest extends UnitTestCase {
 
   /**
    * An HTTP failure yields a single batch error and no sites.
-   *
-   * @covers ::fetchFromApi
    */
   public function testFetchReportsHttpFailure(): void {
     $importer = $this->buildImporter([new Response(500, [], 'boom')]);

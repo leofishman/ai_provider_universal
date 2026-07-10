@@ -6,22 +6,25 @@ namespace Drupal\Tests\ai_provider_universal_factcheck\Unit;
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @coversDefaultClass \Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer
- * @group ai_provider_universal
+ * Tests ReadabilityScorer Flesch-based scoring.
  */
+#[CoversClass(ReadabilityScorer::class)]
+#[Group('ai_provider_universal')]
 class ReadabilityScorerTest extends UnitTestCase {
 
   /**
-   * @covers ::score
+   * Very short input cannot be scored.
    */
   public function testShortTextReturnsNull(): void {
     $this->assertNull((new ReadabilityScorer())->score('Too short.'));
   }
 
   /**
-   * @covers ::score
+   * Simple prose scores easier than dense technical prose.
    */
   public function testSimpleTextScoresEasierThanDenseText(): void {
     $scorer = new ReadabilityScorer();
