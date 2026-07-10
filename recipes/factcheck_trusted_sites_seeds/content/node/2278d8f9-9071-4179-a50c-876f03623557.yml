@@ -1,0 +1,17 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 2278d8f9-9071-4179-a50c-876f03623557
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'Science (peer-reviewed journal, AAAS)'
+  field_domain:
+    - value: science.org
+  field_reputation:
+    - value: 9
+  field_owner:
+    - value: 'American Association for the Advancement of Science'

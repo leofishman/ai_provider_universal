@@ -1,0 +1,17 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 13d19ed6-3a31-428c-bc5e-14dd50da62ca
+  bundle: trusted_site
+  default_langcode: en
+default:
+  status:
+    - value: false
+  title:
+    - value: 'arXiv (preprints — not peer-reviewed)'
+  field_domain:
+    - value: arxiv.org
+  field_reputation:
+    - value: 7
+  field_assessments:
+    - value: 'Moderated repository, but preprints are NOT peer-reviewed: strong for "a paper claims X", weaker for "X is established"'

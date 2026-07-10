@@ -66,7 +66,7 @@ Each entry also takes three **optional profile fields**:
 - **Owner / parent organization**: domains sharing an owner count as *one* independent source — a wire story republished by sibling outlets is not independent confirmation (near-duplicate passages are also collapsed automatically before verification).
 - **External assessments**: what media watchdogs say about the outlet, one per item, **with the rater named and linked**. Watchdogs have viewpoints too — recording *who* said it keeps the assessment auditable instead of laundering it into the reputation number. These notes are shown to the discrepancy-analysis model when sources disagree.
 
-Reputation is an **editorial decision** — the module ships no opinion about which sites to trust. The optional `recipes/factcheck_trusted_sites_seeds` recipe creates a few example entries (WHO, UN, Wikipedia, one distrusted placeholder), all **unpublished**: review each one, set the reputation *you* assign to that source, and publish it.
+Reputation is an **editorial decision** — the module ships no opinion about which sites to trust. The optional `recipes/factcheck_trusted_sites_seeds` recipe creates example entries — institutions (WHO, UN), wire services (Reuters, AP), scientific sources (PubMed, Nature, Science, and arXiv, flagged as *not peer-reviewed*: preprints support "a paper claims X" more than "X is established"), Wikipedia, and one distrusted placeholder — all **unpublished**: review each one, set the reputation *you* assign to that source, and publish it.
 
 ```bash
 # Content type (required for curation):

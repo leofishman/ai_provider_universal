@@ -39,11 +39,18 @@ Other modules can contribute more backends (e.g. native Anthropic/Gemini once in
 ## Installation
 
 ```bash
-composer require drupal/ai_provider_universal:1.0.x-dev
+# Recommended (beta):
+composer require 'drupal/ai_provider_universal:^1.0@beta'
+
+# Or track the development branch:
+# composer require drupal/ai_provider_universal:1.0.x-dev
+
 drush pm:enable ai_provider_universal
 # optional submodules:
 drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck
 ```
+
+Release notes for **1.0.0-beta1** (changes since alpha1): [RELEASE_NOTES_1.0.0-beta1.html](RELEASE_NOTES_1.0.0-beta1.html).
 
 ### Recommended core AI patches
 

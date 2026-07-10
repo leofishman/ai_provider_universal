@@ -61,11 +61,12 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [x] Spanish interface translation for all three modules (.po files +
       interface translation keys).
 - [x] First-release prep: 1.0.0-alpha1 release notes draft
-      (`RELEASE_NOTES_1.0.0-alpha1.md`) and project page draft
-      (`PROJECT_PAGE.html`), breaking-vs-dev explanation, provider
+      and project page draft, breaking-vs-dev explanation, provider
       segmentation guidance.
-- [X] Publish 1.0.0-alpha1: push, tag, drupal.org release node + updated
-      project page (drafts ready; Leo reviews and pushes).
+- [x] Publish 1.0.0-alpha1: push, tag, drupal.org release node + updated
+      project page.
+- [x] 1.0.0-beta1 release notes (`RELEASE_NOTES_1.0.0-beta1.html`, since
+      alpha1) and README install constraint `^1.0@beta`.
 - [X] **Docker deliverable**: pre-configured demo site image
       (`docker compose up` for judges — sanitize API keys out of the DB
       dump) + from-scratch path documented (DDEV + recipes + discovery).

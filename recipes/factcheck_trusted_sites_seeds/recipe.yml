@@ -1,5 +1,5 @@
 name: 'Fact check: trusted sites — example seeds'
-description: 'Optional example Trusted site entries (WHO, UN, Wikipedia, one distrusted placeholder). All are created UNPUBLISHED: reputation is an editorial decision, so review each entry, set the reputation you actually assign to the source, and publish it. Apply the factcheck_trusted_sites recipe first.'
+description: 'Optional example Trusted site entries: institutions (WHO, UN), wire services (Reuters, AP), scientific sources (PubMed, Nature, Science, arXiv), Wikipedia, and one distrusted placeholder. All are created UNPUBLISHED: reputation is an editorial decision, so review each entry, set the reputation you actually assign to the source, and publish it. Apply the factcheck_trusted_sites recipe first.'
 type: 'Content'
 install:
   - node
