@@ -223,3 +223,40 @@ msgstr "Cuándo ocurrió la decisión de enrutamiento."
 msgid "Before returning, this model judges whether the answer solves the prompt (one yes/no call — use a free local model). On rejection the request is retried with the best candidate. Lighter than fact-checking; leave disabled to skip."
 msgstr "Antes de devolver, este modelo juzga si la respuesta resuelve el prompt (una llamada sí/no — use un modelo local gratuito). Si se rechaza, la solicitud se reintenta con el mejor candidato. Más ligero que la verificación de hechos; déjelo desactivado para omitirlo."
 
+# Added 2026-07-10 — classifier / catalog features / prompts
+msgid "- Heuristics only -"
+msgstr "- Solo heurísticas -"
+
+msgid "Candidates must report every checked feature in their discovered catalog features. Models on servers that publish no features (most local servers) are excluded when any feature is required — leave unchecked unless the route genuinely needs the capability."
+msgstr "Los candidatos deben reportar cada función marcada en sus funciones de catálogo descubiertas. Los modelos de servidores que no publican funciones (la mayoría de los locales) se excluyen si se exige alguna función — déjelas sin marcar salvo que la ruta necesite realmente esa capacidad."
+
+msgid "Classifier system prompt"
+msgstr "Prompt de sistema del clasificador"
+
+msgid "Complexity classifier model"
+msgstr "Modelo clasificador de complejidad"
+
+msgid "Optional model that classifies prompts the heuristics consider simple (use a tiny, free local model). Leave disabled for heuristics only; any classifier failure falls back to heuristics."
+msgstr "Modelo opcional que clasifica los prompts que las heurísticas consideran simples (use un modelo local pequeño y gratuito). Déjelo desactivado para solo heurísticas; cualquier fallo del clasificador vuelve a las heurísticas."
+
+msgid "Override the routing prompt templates. Leave a field empty to use the shipped default (shown greyed out). Runtime values are substituted into the sprintf tokens, which must be kept in the same order."
+msgstr "Sobrescriba las plantillas de prompt de enrutamiento. Deje un campo vacío para usar el valor predeterminado del módulo (mostrado en gris). Los valores en tiempo de ejecución se sustituyen en los tokens de sprintf, que deben mantenerse en el mismo orden."
+
+msgid "Prompts"
+msgstr "Prompts"
+
+msgid "Required catalog features"
+msgstr "Funciones de catálogo requeridas"
+
+msgid "Route verifier prompt"
+msgstr "Prompt del verificador de ruta"
+
+msgid "The model must answer with one word: simple or complex. No tokens."
+msgstr "El modelo debe responder con una palabra: simple o complex. Sin tokens."
+
+msgid "The prompt must keep the default sprintf tokens in the same order: @tokens."
+msgstr "El prompt debe conservar los tokens sprintf predeterminados en el mismo orden: @tokens."
+
+msgid "Tokens, in order: the task, the answer. The model must answer yes or no."
+msgstr "Tokens, en orden: la tarea, la respuesta. El modelo debe responder yes o no."
+

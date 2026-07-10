@@ -3,3 +3,9 @@ entity.ai_universal_route.add_form:
   title: 'Add smart route'
   appears_on:
     - entity.ai_universal_route.collection
+
+ai_provider_universal_router.report_action:
+  route_name: ai_provider_universal_router.report
+  title: 'Routing decisions report'
+  appears_on:
+    - entity.ai_universal_route.collection

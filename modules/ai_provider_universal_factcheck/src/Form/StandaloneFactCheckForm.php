@@ -107,8 +107,28 @@ class StandaloneFactCheckForm extends ContentScanForm {
 
   /**
    * Fetches a URL, NULL on failure (with a message shown to the user).
+   *
+   * Guards against SSRF: only http/https, and the host must not resolve
+   * to a loopback, private or link-local address (blocks cloud metadata
+   * endpoints and internal services).
    */
   protected function fetchUrl(string $url): ?string {
+    $parts = parse_url($url);
+    $host = $parts['host'] ?? '';
+    if (!filter_var($url, FILTER_VALIDATE_URL)
+      || !in_array($parts['scheme'] ?? '', ['http', 'https'], TRUE)
+      || $host === '') {
+      $this->messenger()->addError($this->t('Only public http(s) URLs can be scanned.'));
+      return NULL;
+    }
+    // ponytail: resolve-then-fetch leaves a DNS-rebinding window; a
+    // pinning HTTP middleware is the upgrade if this ever guards more
+    // than a permissioned admin form.
+    $ip = gethostbyname($host);
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+      $this->messenger()->addError($this->t('The URL resolves to a private or reserved address and cannot be scanned.'));
+      return NULL;
+    }
     try {
       $response = $this->httpClient->request('GET', $url, ['timeout' => 30]);
       return (string) $response->getBody();

@@ -527,3 +527,58 @@ msgstr "Entidad Key con una clave API de <a href=\":url\" target=\"_blank\">Tavi
 msgid "Key entity holding a RapidAPI key for the <a href=\":url\" target=\"_blank\">Media Bias Fact Check Ratings API</a>. Used by <code>drush factcheck:sync-bias-ratings --fetch=domain,…</code> to pull live bias/factual ratings into Trusted sites. Leave empty to import from static JSON only."
 msgstr "Entidad Key con una clave RapidAPI para la <a href=\":url\" target=\"_blank\">Media Bias Fact Check Ratings API</a>. La usa <code>drush factcheck:sync-bias-ratings --fetch=domain,…</code> para obtener calificaciones de sesgo/factualidad en vivo en Sitios de confianza. Déjelo vacío para importar solo desde JSON estático."
 
+# Added 2026-07-10 — prompts / SSRF / detector labels
+msgid "@description Required tokens, in order: @tokens."
+msgstr "@description Tokens requeridos, en orden: @tokens."
+
+msgid "AI-likelihood detector"
+msgstr "Detector de probabilidad de IA"
+
+msgid "Batched verdicts"
+msgstr "Veredictos en lote"
+
+msgid "Claim extraction"
+msgstr "Extracción de afirmaciones"
+
+msgid "Distrusted-site echo check"
+msgstr "Comprobación de eco en sitios no confiables"
+
+msgid "Only public http(s) URLs can be scanned."
+msgstr "Solo se pueden analizar URL http(s) públicas."
+
+msgid "Override the LLM prompt templates. Leave a field empty to use the shipped default (shown greyed out). Runtime values are substituted into the sprintf tokens (@tokens), which must be kept in the same order as the default."
+msgstr "Sobrescriba las plantillas de prompt del LLM. Deje un campo vacío para usar el valor predeterminado del módulo (mostrado en gris). Los valores en tiempo de ejecución se sustituyen en los tokens de sprintf (@tokens), que deben mantenerse en el mismo orden que el predeterminado."
+
+msgid "Per-claim verdict"
+msgstr "Veredicto por afirmación"
+
+msgid "Prompts"
+msgstr "Prompts"
+
+msgid "The @title prompt must keep the default sprintf tokens in the same order: @tokens."
+msgstr "El prompt @title debe conservar los tokens sprintf predeterminados en el mismo orden: @tokens."
+
+msgid "The URL resolves to a private or reserved address and cannot be scanned."
+msgstr "La URL resuelve a una dirección privada o reservada y no se puede analizar."
+
+msgid "Token: the text. The model must answer with the JSON score object."
+msgstr "Token: el texto. El modelo debe responder con el objeto JSON de puntuación."
+
+msgid "Tokens: evidence block, evidence suffix, the claim. The model must answer SUPPORTED / CONTRADICTED / UNSUPPORTED."
+msgstr "Tokens: bloque de evidencia, sufijo de evidencia, la afirmación. El modelo debe responder SUPPORTED / CONTRADICTED / UNSUPPORTED."
+
+msgid "Tokens: evidence suffix, numbered claim blocks. The model must answer with the JSON verdict array."
+msgstr "Tokens: sufijo de evidencia, bloques de afirmaciones numeradas. El modelo debe responder con el array JSON de veredictos."
+
+msgid "Tokens: max claims (number), the text."
+msgstr "Tokens: máximo de afirmaciones (número), el texto."
+
+msgid "Tokens: numbered claims, distrusted evidence. The model must answer with a JSON array of claim numbers."
+msgstr "Tokens: afirmaciones numeradas, evidencia no confiable. El modelo debe responder con un array JSON de números de afirmación."
+
+msgid "Tokens: the claim, annotated evidence."
+msgstr "Tokens: la afirmación, evidencia anotada."
+
+msgid "none"
+msgstr "ninguno"
+
