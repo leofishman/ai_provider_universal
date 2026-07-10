@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
  */
 class AiDetector {
 
-  protected const DETECT_PROMPT = <<<PROMPT
+  public const DETECT_PROMPT = <<<PROMPT
 You are an AI-generated-text detector. Estimate the probability (0-100) that
 the TEXT below was written by an AI language model rather than a human.
 Consider repetitive phrasing, generic hedging, uniform sentence rhythm and
@@ -65,7 +65,8 @@ PROMPT;
     }
 
     // ponytail: 6000 chars is plenty for a style judgement and caps tokens.
-    $raw = $this->ask(sprintf(self::DETECT_PROMPT, mb_substr($text, 0, 6000)), $model);
+    $template = trim((string) $settings->get('prompts.detect')) ?: self::DETECT_PROMPT;
+    $raw = $this->ask(sprintf($template, mb_substr($text, 0, 6000)), $model);
 
     if (!preg_match('/\{.*\}/s', $raw, $match)) {
       return NULL;

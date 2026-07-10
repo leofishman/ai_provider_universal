@@ -147,6 +147,14 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       (see docs/usage-limits.md).
 - [ ] Set limits via Rules/ECA (the pre-call gate + UsageThresholdEvent are
       the seams; ship an ECA example or dedicated actions).
+- [x] **Prompt configurator**: all 8 tunable LLM prompts editable from the
+      admin UI (empty = shipped default; sprintf token order validated by
+      `PromptPlaceholders`). Six factcheck prompts in the Fact check
+      settings form ("Prompts" section); classifier + route-verifier
+      prompts in the new Smart routing settings form, which also exposes
+      `classifier_model` (previously drush-only). LlamaGuard3/ShieldGemma
+      templates deliberately excluded: they are model protocol, editing
+      them breaks the response parsers.
 - [ ] Per-field configuration on content types to enforce fact-check
       features (plagiarism, AI-likelihood, ...) per field.
 - [x] Default quality-tier list for known models: site-editable YAML

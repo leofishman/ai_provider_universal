@@ -30,6 +30,13 @@ class RouteDecider {
    */
   protected const ASSUMED_OUTPUT_TOKENS = 512;
 
+  /**
+   * The last resolve() decision (route id + complexity), for call tagging.
+   *
+   * @var array{route_id: string, complexity: string}|null
+   */
+  protected ?array $lastDecision = NULL;
+
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected Connection $database,
@@ -103,8 +110,22 @@ class RouteDecider {
     $worst = max(array_map(fn ($m) => $this->costOf($m, $estTokens), $candidates));
 
     $this->log($route, $operationType, $complexity, $estTokens, $chosen, count($candidates), $this->costOf($chosen, $estTokens), $worst);
+    $this->lastDecision = [
+      'route_id' => (string) $route->id(),
+      'complexity' => $complexity,
+    ];
 
     return $chosen->id();
+  }
+
+  /**
+   * The last resolve() decision, for tagging the resulting AI call.
+   *
+   * @return array{route_id: string, complexity: string}|null
+   *   Route id and complexity class, or NULL before any resolution.
+   */
+  public function getLastDecision(): ?array {
+    return $this->lastDecision;
   }
 
   /**

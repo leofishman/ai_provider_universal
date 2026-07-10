@@ -1,3 +1,11 @@
+ai_provider_universal_router.settings:
+  path: '/admin/config/ai/providers/universal/routes/settings'
+  defaults:
+    _form: '\Drupal\ai_provider_universal_router\Form\RouterSettingsForm'
+    _title: 'Smart routing settings'
+  requirements:
+    _permission: 'administer ai providers'
+
 ai_provider_universal_router.report:
   path: '/admin/config/ai/providers/universal/routes/log'
   defaults:

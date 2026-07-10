@@ -2,8 +2,11 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Form;
 
+use Drupal\ai_provider_universal\Utility\PromptPlaceholders;
 use Drupal\ai_provider_universal_factcheck\Event\FactcheckNotificationEvent;
 use Drupal\ai_provider_universal_factcheck\Service\AdminNotifier;
+use Drupal\ai_provider_universal_factcheck\Service\AiDetector;
+use Drupal\ai_provider_universal_factcheck\Service\FactChecker;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\ConfigFormBase;
@@ -238,7 +241,73 @@ class SettingsForm extends ConfigFormBase {
       ];
     }
 
+    $saved_prompts = (array) $config->get('prompts');
+    $form['prompts'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Prompts'),
+      '#open' => (bool) array_filter($saved_prompts),
+      '#description' => $this->t('Override the LLM prompt templates. Leave a field empty to use the shipped default (shown greyed out). Runtime values are substituted into the sprintf tokens (@tokens), which must be kept in the same order as the default.', ['@tokens' => '%s, %d']),
+      '#tree' => TRUE,
+    ];
+    foreach ($this->promptDefinitions() as $key => $definition) {
+      $tokens = PromptPlaceholders::describe($definition['default']);
+      $form['prompts'][$key] = [
+        '#type' => 'textarea',
+        '#title' => $definition['title'],
+        '#description' => $tokens === ''
+          ? $definition['description']
+          : $this->t('@description Required tokens, in order: @tokens.', [
+            '@description' => $definition['description'],
+            '@tokens' => $tokens,
+          ]),
+        '#default_value' => $saved_prompts[$key] ?? '',
+        '#attributes' => ['placeholder' => $definition['default']],
+        '#rows' => 5,
+      ];
+    }
+
     return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * The overridable prompts: shipped default and UI texts per key.
+   *
+   * @return array<string, array{title: \Drupal\Core\StringTranslation\TranslatableMarkup, description: \Drupal\Core\StringTranslation\TranslatableMarkup, default: string}>
+   *   Keyed by the config key under "prompts".
+   */
+  protected function promptDefinitions(): array {
+    return [
+      'extract' => [
+        'title' => $this->t('Claim extraction'),
+        'description' => $this->t('Tokens: max claims (number), the text.'),
+        'default' => FactChecker::EXTRACT_PROMPT,
+      ],
+      'verify' => [
+        'title' => $this->t('Per-claim verdict'),
+        'description' => $this->t('Tokens: evidence block, evidence suffix, the claim. The model must answer SUPPORTED / CONTRADICTED / UNSUPPORTED.'),
+        'default' => FactChecker::VERIFY_PROMPT,
+      ],
+      'batch_verify' => [
+        'title' => $this->t('Batched verdicts'),
+        'description' => $this->t('Tokens: evidence suffix, numbered claim blocks. The model must answer with the JSON verdict array.'),
+        'default' => FactChecker::BATCH_VERIFY_PROMPT,
+      ],
+      'taint' => [
+        'title' => $this->t('Distrusted-site echo check'),
+        'description' => $this->t('Tokens: numbered claims, distrusted evidence. The model must answer with a JSON array of claim numbers.'),
+        'default' => FactChecker::TAINT_PROMPT,
+      ],
+      'analyze' => [
+        'title' => $this->t('Discrepancy analysis'),
+        'description' => $this->t('Tokens: the claim, annotated evidence.'),
+        'default' => FactChecker::ANALYZE_PROMPT,
+      ],
+      'detect' => [
+        'title' => $this->t('AI-likelihood detector'),
+        'description' => $this->t('Token: the text. The model must answer with the JSON score object.'),
+        'default' => AiDetector::DETECT_PROMPT,
+      ],
+    ];
   }
 
   /**
@@ -256,6 +325,16 @@ class SettingsForm extends ConfigFormBase {
     $checker = (string) $form_state->getValue('checker_model');
     if (str_contains(strtolower($checker), 'minicheck') && !$form_state->getValue('extractor_model')) {
       $form_state->setErrorByName('extractor_model', $this->t('MiniCheck cannot extract claims; pick a general chat model as extractor.'));
+    }
+
+    foreach ($this->promptDefinitions() as $key => $definition) {
+      $custom = trim((string) $form_state->getValue(['prompts', $key], ''));
+      if ($custom !== '' && !PromptPlaceholders::matches($definition['default'], $custom)) {
+        $form_state->setErrorByName("prompts][$key", $this->t('The @title prompt must keep the default sprintf tokens in the same order: @tokens.', [
+          '@title' => $definition['title'],
+          '@tokens' => PromptPlaceholders::describe($definition['default']) ?: $this->t('none'),
+        ]));
+      }
     }
   }
 
@@ -276,6 +355,13 @@ class SettingsForm extends ConfigFormBase {
       ->set('scan_flood_limits', array_filter(array_map(
         static fn (array $row): int => (int) $row['limit'],
         $form_state->getValue(['scan_flood', 'limits']) ?? []
+      )))
+      // Prompts are plain text sent to the LLM, never rendered as markup:
+      // trim and drop empties so unset fields fall back to the shipped
+      // defaults. Placeholder order is enforced in validateForm().
+      ->set('prompts', array_filter(array_map(
+        static fn ($value): string => trim((string) $value),
+        $form_state->getValue('prompts', []),
       )))
       ->save();
     $this->adminNotifier->notify(

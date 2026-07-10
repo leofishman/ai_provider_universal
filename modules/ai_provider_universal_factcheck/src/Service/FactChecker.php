@@ -72,7 +72,7 @@ class FactChecker {
     ],
   ];
 
-  protected const EXTRACT_PROMPT = <<<PROMPT
+  public const EXTRACT_PROMPT = <<<PROMPT
 Extract up to %d atomic factual claims from the text below.
 
 Rules:
@@ -85,7 +85,7 @@ TEXT:
 %s
 PROMPT;
 
-  protected const VERIFY_PROMPT = <<<PROMPT
+  public const VERIFY_PROMPT = <<<PROMPT
 You are a strict fact checker. Judge the CLAIM below.%s
 Respond with exactly one word:
 - SUPPORTED: the claim is correct%s
@@ -95,7 +95,7 @@ Respond with exactly one word:
 CLAIM: %s
 PROMPT;
 
-  protected const BATCH_VERIFY_PROMPT = <<<PROMPT
+  public const BATCH_VERIFY_PROMPT = <<<PROMPT
 You are a strict fact checker. Judge every numbered CLAIM below
 independently. For each claim pick exactly one verdict:
 - SUPPORTED: the claim is correct%s
@@ -108,7 +108,7 @@ Respond ONLY with a JSON array of objects like
 %s
 PROMPT;
 
-  protected const TAINT_PROMPT = <<<PROMPT
+  public const TAINT_PROMPT = <<<PROMPT
 The EVIDENCE below comes from low-reputation (distrusted) sites. For each
 numbered CLAIM, decide whether the evidence asserts the claim. Respond ONLY
 with a JSON array of the numbers of the asserted claims, e.g. [1,3].
@@ -120,7 +120,7 @@ EVIDENCE:
 %s
 PROMPT;
 
-  protected const ANALYZE_PROMPT = <<<PROMPT
+  public const ANALYZE_PROMPT = <<<PROMPT
 The evidence below did not settle the CLAIM. Each source is annotated with
 its curated reputation (-10 to 10, higher is more trustworthy) and, when
 available, notes from media watchdogs about the outlet itself. For each
@@ -144,6 +144,18 @@ PROMPT;
     protected CacheBackendInterface $cache,
     protected LoggerInterface $logger,
   ) {}
+
+  /**
+   * A prompt template: the admin override when set, else the shipped one.
+   *
+   * @param string $key
+   *   Key under the settings' "prompts" mapping (extract, verify, ...).
+   * @param string $default
+   *   The shipped template constant.
+   */
+  protected function prompt(string $key, string $default): string {
+    return trim((string) $this->settings()->get("prompts.$key")) ?: $default;
+  }
 
   /**
    * Whether a checker model is configured and fact checking can run.
@@ -283,7 +295,7 @@ PROMPT;
     if ($context) {
       $promptText = "Context / question: {$context}\n\nText to analyze:\n{$answer}";
     }
-    $raw = $this->ask(sprintf(self::EXTRACT_PROMPT, $max, $promptText), $extractor);
+    $raw = $this->ask(sprintf($this->prompt('extract', self::EXTRACT_PROMPT), $max, $promptText), $extractor);
 
     $claims = [];
 
@@ -382,7 +394,7 @@ PROMPT;
       $supportedSuffix = ' to the best of your knowledge';
     }
 
-    $raw = strtoupper($this->ask(sprintf(self::VERIFY_PROMPT, $evidenceBlock, $supportedSuffix, $claim), $checker));
+    $raw = strtoupper($this->ask(sprintf($this->prompt('verify', self::VERIFY_PROMPT), $evidenceBlock, $supportedSuffix, $claim), $checker));
 
     foreach (['SUPPORTED', 'CONTRADICTED', 'UNSUPPORTED'] as $verdict) {
       // Order matters: check SUPPORTED before UNSUPPORTED would match inside
@@ -424,7 +436,7 @@ PROMPT;
     }
 
     $prompt = sprintf(
-      self::BATCH_VERIFY_PROMPT,
+      $this->prompt('batch_verify', self::BATCH_VERIFY_PROMPT),
       $hasEvidence ? ' according to its evidence' : ' to the best of your knowledge',
       implode("\n\n", $blocks),
     );
@@ -475,7 +487,7 @@ PROMPT;
       $passages,
     ));
     $raw = $this->ask(
-      sprintf(self::TAINT_PROMPT, implode("\n", $list), $evidenceBlock),
+      sprintf($this->prompt('taint', self::TAINT_PROMPT), implode("\n", $list), $evidenceBlock),
       (string) $this->settings()->get('checker_model'),
     );
 
@@ -521,7 +533,7 @@ PROMPT;
       return sprintf('- (reputation %+d%s) %s', $profile['reputation'], $notes, mb_substr($p, 0, 500));
     }, $passages);
 
-    $raw = trim($this->ask(sprintf(self::ANALYZE_PROMPT, $claim, implode("\n", $lines)), $model));
+    $raw = trim($this->ask(sprintf($this->prompt('analyze', self::ANALYZE_PROMPT), $claim, implode("\n", $lines)), $model));
     return strtoupper($raw) === 'NONE' ? '' : $raw;
   }
 
@@ -612,7 +624,7 @@ PROMPT;
       static fn ($p) => mb_substr($p, 0, 500),
       $passages,
     ));
-    $raw = strtoupper($this->ask(sprintf(self::VERIFY_PROMPT, $evidenceBlock, ' according to the evidence', $claim), $checker));
+    $raw = strtoupper($this->ask(sprintf($this->prompt('verify', self::VERIFY_PROMPT), $evidenceBlock, ' according to the evidence', $claim), $checker));
     return (bool) preg_match('/\bSUPPORTED\b/', $raw);
   }
 

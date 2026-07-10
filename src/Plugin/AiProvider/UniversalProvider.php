@@ -531,6 +531,13 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     if (str_starts_with($model_id, 'route__')) {
       $route_id = substr($model_id, 7);
       $model_id = $this->resolveRoutedModel($model_id, $input, 'chat');
+      // Tag the call with the routing decision so observability tooling
+      // (e.g. the AI core's ai_observability logs) can attribute it.
+      $decision = $this->serviceContainer->get('ai_provider_universal_router.decider')->getLastDecision();
+      if ($decision !== NULL) {
+        $tags[] = 'smart_route:' . $decision['route_id'];
+        $tags[] = 'route_complexity:' . $decision['complexity'];
+      }
     }
 
     $output = $this->doChat($input, $model_id, $tags);
@@ -712,14 +719,24 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   }
 
   /**
+   * Shipped route-verifier prompt; %s = task, %s = answer.
+   *
+   * Overridable per site in ai_provider_universal_router.settings
+   * prompts.verifier (the router's settings form).
+   */
+  public const VERIFIER_PROMPT = "Task:\n%s\n\nAnswer:\n%s\n\nDoes the answer correctly and completely solve the task? Reply with exactly one word: yes or no.";
+
+  /**
    * Asks the verifier model whether the answer solves the prompt.
    *
    * Fails open: a broken or unreachable verifier never sinks an answer.
    */
   protected function verifyAnswer(string $question, string $answer, string $verifier): bool {
     try {
+      $template = trim((string) $this->serviceContainer->get('config.factory')
+        ->get('ai_provider_universal_router.settings')->get('prompts.verifier')) ?: self::VERIFIER_PROMPT;
       $input = new ChatInput([
-        new ChatMessage('user', "Task:\n$question\n\nAnswer:\n$answer\n\nDoes the answer correctly and completely solve the task? Reply with exactly one word: yes or no."),
+        new ChatMessage('user', sprintf($template, $question, $answer)),
       ]);
       $reply = $this->doChat($input, $verifier, ['route_verifier'])
         ->getNormalized()->getText();

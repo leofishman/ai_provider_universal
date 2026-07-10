@@ -31,10 +31,13 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    `strlen / 4` estimate (`estimateTokens()`), not an exact tokenizer.
 
    Optionally a **local model** can adjudicate the prompts the heuristics
-   consider simple: set `classifier_model` in
-   `ai_provider_universal_router.settings` to a model entity id
-   (`drush config:set ai_provider_universal_router.settings
-   classifier_model my_server__my_model -y`; empty = heuristics only).
+   consider simple: pick it at **Smart routing settings**
+   (`/admin/config/ai/providers/universal/routes/settings`, or
+   `classifier_model` in `ai_provider_universal_router.settings`;
+   empty = heuristics only). The same form overrides the two routing
+   prompts — classifier system prompt and route-verifier prompt (empty =
+   shipped default; `sprintf` token order is validated, and the one-word
+   reply contracts `simple`/`complex` and `yes`/`no` must be kept).
    The cheap signals still run first — length/cue hits return `complex`
    without a call — and any classifier failure falls back to the
    heuristics, so classification can never break routing. Routes
@@ -119,6 +122,20 @@ Backing table `ai_universal_router_log` (one row per decision):
 
 Logging failures never break inference — write errors are caught and
 logged to the `ai_provider_universal_router` channel.
+
+**Why a dedicated log, when the AI core has `ai_observability`?** They
+answer different questions and complement each other. `ai_observability`
+records the call that *happened* (provider, model, real token usage,
+duration) — use it for actual usage and spend. The decision log records
+the *counterfactual* that only exists inside the RouteDecider at decision
+time: which candidates were considered, how the prompt was classified, and
+what the most expensive candidate would have cost — the data behind
+"estimated savings". Neither can be derived from the other.
+
+Routed chat calls are additionally tagged `smart_route:<route_id>` and
+`route_complexity:<simple|complex>`, so `ai_observability` log entries
+(which record tags) can be attributed to the route and correlated with
+the decision log.
 
 ## Services and extension points
 

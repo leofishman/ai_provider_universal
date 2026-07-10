@@ -221,6 +221,26 @@ At **Configuration → AI → Providers → Universal → Fact check settings** 
 | `detector_model` | AI-likelihood judge (also called AI-detection model); `none` disables the check | use the checker model |
 | `plagiarism_key` | Key entity with the Serper.dev API key | plagiarism check disabled |
 | `tavily_key` | Key entity with the Tavily API key | no web evidence fallback |
+| `prompts.*` | overrides for the six LLM prompt templates (see below) | shipped defaults |
+
+### Prompt overrides
+
+The **Prompts** section of the settings form exposes every LLM prompt the
+submodule sends: claim extraction, per-claim verdict, batched verdicts,
+distrusted-site echo check, discrepancy analysis, and the AI-likelihood
+detector. Each textarea shows the shipped default greyed out; leave it
+empty to keep using that default (upgrades then pick up improved shipped
+prompts automatically — an override freezes your wording).
+
+Prompts are `sprintf` templates: runtime values (the text, the claims,
+the evidence) are substituted into the `%s` / `%d` tokens, and the form
+rejects an override whose token sequence differs from the default. Keep
+the machine-readable reply contract (the exact verdict words, the JSON
+shapes) intact — the parsers depend on it. Rewording, translating, or
+adding domain guidance is the intended use.
+
+The routing prompts (complexity classifier, route verifier) live on the
+router's own settings form — see [docs/smart-routing.md](smart-routing.md).
 
 ### Verification profiles
 

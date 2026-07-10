@@ -41,3 +41,25 @@ ai_provider_universal_factcheck.settings:
     scan_flood_window:
       type: integer
       label: 'Flood window in seconds'
+    prompts:
+      type: mapping
+      label: 'Prompt template overrides (empty = shipped default; sprintf placeholders must be kept)'
+      mapping:
+        extract:
+          type: text
+          label: 'Claim extraction prompt (%d max claims, %s text)'
+        verify:
+          type: text
+          label: 'Per-claim verdict prompt (%s evidence, %s suffix, %s claim)'
+        batch_verify:
+          type: text
+          label: 'Batched verdict prompt (%s suffix, %s claim blocks)'
+        taint:
+          type: text
+          label: 'Distrusted-echo prompt (%s claims, %s evidence)'
+        analyze:
+          type: text
+          label: 'Discrepancy analysis prompt (%s claim, %s evidence)'
+        detect:
+          type: text
+          label: 'AI-likelihood detector prompt (%s text)'

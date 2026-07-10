@@ -13,8 +13,7 @@ class AiProviderUniversalFactcheckHooks {
    * Implements hook_mail().
    *
    * Builds subject/body for AdminNotifier deliveries. Keys today:
-   * - scan_run
-   * - settings_changed
+   * scan_run and settings_changed.
    */
   #[Hook('mail')]
   public function mail(string $key, array &$message, array $params): void {

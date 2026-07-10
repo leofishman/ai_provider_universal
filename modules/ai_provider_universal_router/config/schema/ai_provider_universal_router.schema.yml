@@ -5,6 +5,16 @@ ai_provider_universal_router.settings:
     classifier_model:
       type: string
       label: 'Model entity id used to classify prompt complexity (empty = heuristics)'
+    prompts:
+      type: mapping
+      label: 'Prompt template overrides (empty = shipped default)'
+      mapping:
+        classifier:
+          type: text
+          label: 'Complexity classifier system prompt (no placeholders)'
+        verifier:
+          type: text
+          label: 'Route verifier prompt (%s task, %s answer)'
 
 ai_provider_universal_router.route.*:
   type: config_entity
