@@ -16,16 +16,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * OpenAI-compatible server backend.
  *
- * Covers llama.cpp, Ollama, vLLM, LM Studio, LiteLLM, Fireworks, OpenAI and
- * any other server exposing the OpenAI REST protocol. Capability detection
- * uses llama.cpp's per-model "status.args" when present (router mode), then
- * the HuggingFace pipeline_tag of the model's --hf-repo, then model-name
- * heuristics, and finally defaults to chat.
+ * Covers llama.cpp, vLLM, LM Studio, OpenAI and any other server exposing
+ * the OpenAI REST protocol. Capability detection uses llama.cpp's per-model
+ * "status.args" when present (router mode), then the HuggingFace pipeline_tag
+ * of the model's --hf-repo, then model-name heuristics, and finally defaults
+ * to chat. Prefer the dedicated Ollama backend for local Ollama instances.
  */
 #[AiServerBackend(
   id: 'openai_compatible',
   label: new TranslatableMarkup('OpenAI-compatible'),
-  description: new TranslatableMarkup('llama.cpp, Ollama, vLLM, LM Studio, LiteLLM, Fireworks, OpenAI and any other server speaking the OpenAI REST protocol.'),
+  description: new TranslatableMarkup('llama.cpp, vLLM, LM Studio, OpenAI and any other server speaking the OpenAI REST protocol. For local Ollama, prefer the dedicated Ollama backend.'),
 )]
 class OpenAiCompatible extends AiServerBackendPluginBase implements ContainerFactoryPluginInterface {
 

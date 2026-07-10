@@ -25,7 +25,8 @@ Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBacken
 
 | Backend id | Service | Default endpoint | Needs host/port | Discovery source | Capability detection | Pricing/context source |
 |---|---|---|---|---|---|---|
-| `openai_compatible` | llama.cpp, Ollama, vLLM, LM Studio and any OpenAI-protocol server | none (required) | yes | `/v1/models` | llama.cpp `status.args` (`--embeddings`, `--reranking`) → HF `pipeline_tag` of `--hf-repo` → name heuristics → `chat` | `--ctx-size` (router mode) → `meta.n_ctx_train` → `max_model_len` (vLLM); cost stays unset |
+| `openai_compatible` | llama.cpp, vLLM, LM Studio and any OpenAI-protocol server | none (required) | yes | `/v1/models` | llama.cpp `status.args` (`--embeddings`, `--reranking`) → HF `pipeline_tag` of `--hf-repo` → name heuristics → `chat` | `--ctx-size` (router mode) → `meta.n_ctx_train` → `max_model_len` (vLLM); cost stays unset |
+| `ollama` | Local Ollama | none (required; typical host `http://127.0.0.1`, port `11434`) | yes | `/v1/models` enriched per model with native `POST /api/show` | Ollama `capabilities` / `details.family` → generic heuristics | Free costs (`0`); context from Modelfile `num_ctx` or `model_info.*.context_length` |
 | `fireworks` | Fireworks AI serverless | `api.fireworks.ai/inference/v1` | optional | `/v1/models` | Name heuristics tuned to `accounts/fireworks/models/*` ids | Hardcoded table of published serverless prices by model-family substring (`src/Plugin/AiServerBackend/Fireworks.php::MODEL_METADATA`) |
 | `openrouter` | OpenRouter unified API | `openrouter.ai/api/v1` | optional | `/v1/models` | `architecture.output_modalities` (image → `text_to_image`) → generic heuristics | Live from the catalog payload (`pricing.prompt`/`completion`, `context_length`) — no hardcoded table |
 | `litellm` | Self-hosted LiteLLM proxy | none (required) | yes | `/model/info` (proxy root, not `/v1`); falls back to `/v1/models` if the key can't read it | Structured `model_info.mode` field → generic heuristics on fallback | `model_info.input_cost_per_token`/`output_cost_per_token` (× 1M) and `max_input_tokens` |
@@ -39,6 +40,7 @@ Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBacken
 Notes:
 - **LiteLLM discovery degrades gracefully**: if the configured key cannot read `/model/info` (common with scoped virtual keys), the backend falls back to the plain `/v1/models` catalog with name-based detection instead of failing discovery outright.
 - **amazee.ai** is a thin subclass of `litellm` purely so it shows up as its own option in the backend select with amazee-specific description text — there is no protocol difference.
+- **Ollama vs Ollama Cloud**: use `ollama` for a self-hosted daemon (LAN/Docker/host.docker.internal); use `ollama_cloud` for ollama.com. Local Ollama still works under `openai_compatible`, but you lose `/api/show` context enrichment and free-cost prefill.
 - Two core AI-module patches are recommended for optgrouped model selects and `ai_search` compatibility — see the README's "Recommended core AI patches" section.
 
 ## Model discovery

@@ -107,7 +107,7 @@ class AiUniversalServerForm extends EntityForm {
     $form['connection']['backend'] = [
       '#type' => 'select',
       '#title' => $this->t('Backend'),
-      '#description' => $this->t('The protocol this server speaks. OpenAI-compatible covers llama.cpp, Ollama, vLLM, LM Studio and any similar local or remote server. Hosted services (OpenRouter, Hugging Face, Fireworks, Ollama Cloud, LiteLLM/amazee.ai) have dedicated backends with better model detection. Other modules can add native backends.'),
+      '#description' => $this->t('The protocol this server speaks. OpenAI-compatible covers llama.cpp, vLLM, LM Studio and any similar local or remote server. Dedicated backends improve model detection: Ollama (local), OpenRouter, Hugging Face, Fireworks, Ollama Cloud, LiteLLM/amazee.ai, Grok. Other modules can add native backends.'),
       '#options' => $backendOptions,
       '#default_value' => $server->getBackend(),
       '#required' => TRUE,

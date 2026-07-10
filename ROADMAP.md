@@ -90,8 +90,11 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       detection from `architecture.input_modalities`, `/props`
       health/timings, capability detection that today lives in the generic
       backend moves here.
-- [ ] **`ollama` backend**: context length + family metadata via
-      `/api/show`, keep-alive handling.
+- [x] **`ollama` backend**: discovery enriches `/v1/models` via native
+      `/api/show` (context length from `num_ctx` or `model_info.*.context_length`,
+      family/capabilities for operation types); costs prefilled as free for
+      smart routing. Keep-alive remains Ollama server-side (Modelfile /
+      daemon defaults) until inference dispatch can pass per-request options.
 - [ ] **`anthropic` backend** (native, needs inference dispatch): Messages
       API mapping, discovery via GET /v1/models, static capabilities.
 - [ ] OpenRouter embeddings discovery: embedding models are not in
@@ -173,7 +176,7 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 
 ## Documentation backlog
 
-- [x] README: server limits, all seven backends listed, per-model routing
+- [x] README: server limits, all backends listed, per-model routing
       metadata, "this module's provider" wording, setup steps (AI settings
       path, detect button), local servers don't need a key, Tavily key.
 - [x] usage-limits: daily reset time/timezone; 0 = pause server; events
