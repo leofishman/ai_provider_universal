@@ -132,6 +132,13 @@ Both aliases exist so `ai_provider_universal` degrades gracefully
 (everything works, just without routing/limit enforcement) when this
 submodule is disabled.
 
+### Events
+
+| Event | When | Subscribers can |
+|---|---|---|
+| `ModelPreCallEvent` (`ai_provider_universal.model_pre_call`) | Before every inference call, after smart-route resolution — the model id is always a concrete `ai_universal_model` entity id. | Block the call (`setBlocked($reason)`: custom quota schemes, business hours, compliance) or swap the model (`setModelId()`). The usage-limit enforcement in this submodule is a plain service call, but your own policies belong here. |
+| `AiExceptionEvent` (AI core) | When a provider call throws. | Implement failover: catch the failure, re-issue against another provider/model. This is the AI-core seam — the module deliberately ships no failover of its own. |
+
 ## Recommended model mix for cost / benefit (2026)
 
 Smart routing shines when you have a **tiered pool** of models. The goal is to

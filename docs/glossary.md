@@ -23,3 +23,4 @@
 | **Claim / verdict** | Fact-check units: an answer is split into claims, each verified against evidence to SUPPORTED / CONTRADICTED / NO_EVIDENCE. |
 | **Trusted site** | Optional content type with per-domain reputation (−10 to 10) curating web evidence: positive preferred, negative excluded/tainting. |
 | **Content scan** | Node tab (factcheck submodule) with four on-demand checks: fact check, readability, AI likelihood, plagiarism. |
+| **Factcheck notification** | `FactcheckNotificationEvent` fired by `AdminNotifier` on scan run / settings change. Optional default mail via `notify_email`; subscribers (ECA, Message Notify, …) can add channels or suppress mail. |

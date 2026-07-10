@@ -109,14 +109,42 @@ Every node gets a **Content scan** local task (visible to users who can edit the
 
 The AI-likelihood score is a heuristic LLM judgement, not a trained detector — treat it as a hint. Plagiarism matches list the URL and snippet of every page containing a sentence verbatim.
 
-### Admin email notifications
+### Admin notifications
 
-Optional **Notification email** in Fact check settings (`notify_email`). When set, Drupal's mail system notifies that address when:
+Whenever factcheck wants to alert operators (a content scan starts, or settings are saved), `AdminNotifier` runs in this order:
 
-- a content scan starts, or
-- fact-check settings are saved.
+1. **Dispatch** `FactcheckNotificationEvent`  
+   (`ai_provider_universal_factcheck.notification`) — always, even with no email configured.  
+2. **Optional default mail** — if `notify_email` is set in Fact check settings and no subscriber called `$event->suppressMail()`.
 
-Implementation: `AdminNotifier` → `plugin.manager.mail` + OOP `hook_mail` (`AiProviderUniversalFactcheckHooks`). Empty address disables sending; delivery failures are logged and never break the scan/settings form. Use any site mail plugin (default PHP mail, SMTP, Symfony Mailer, …).
+| Piece | Detail |
+|---|---|
+| Event class | `Drupal\ai_provider_universal_factcheck\Event\FactcheckNotificationEvent` |
+| Event name | `ai_provider_universal_factcheck.notification` |
+| Keys | `scan_run`, `settings_changed` (constants on the event class) |
+| Payload | `getKey()`, `getSubject()`, `getBody()`, `getContext()` (e.g. `uid`, `scan_subject`) |
+| Default mail | `plugin.manager.mail` + OOP `hook_mail` (`AiProviderUniversalFactcheckHooks`) |
+
+Delivery failures are logged and never break the scan/settings form. Use any site mail plugin (PHP mail, SMTP, Symfony Mailer, …).
+
+#### Extending (ECA, Message Notify, Slack, …)
+
+No hard dependency on a notification contrib module. Subscribe to the event:
+
+- **ECA**: “Drupal core → Dispatch event” / event plugin for Symfony events → action: send email, create Message, HTTP webhook, etc.  
+- **Custom subscriber**: `EventSubscriberInterface` on `FactcheckNotificationEvent::EVENT_NAME`.  
+- **Replace mail only**: call `$event->suppressMail()` in the subscriber and handle delivery yourself.
+
+```php
+// Example subscriber skeleton.
+public static function getSubscribedEvents(): array {
+  return [FactcheckNotificationEvent::EVENT_NAME => 'onNotify'];
+}
+public function onNotify(FactcheckNotificationEvent $event): void {
+  // e.g. post to Slack using $event->getSubject() / getBody() / getContext().
+  // $event->suppressMail(); // optional: skip AdminNotifier mail.
+}
+```
 
 ## Recommended models (cost / benefit)
 

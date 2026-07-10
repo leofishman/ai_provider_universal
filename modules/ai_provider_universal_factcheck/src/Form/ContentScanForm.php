@@ -11,6 +11,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
+use Drupal\ai_provider_universal_factcheck\Event\FactcheckNotificationEvent;
 use Drupal\ai_provider_universal_factcheck\Service\AdminNotifier;
 use Drupal\ai_provider_universal_factcheck\Service\AiDetector;
 use Drupal\ai_provider_universal_factcheck\Service\FactChecker;
@@ -230,12 +231,17 @@ class ContentScanForm extends FormBase {
    */
   protected function startScanBatch(string $subject, string $text, array $meta, string $storeKey): void {
     $this->adminNotifier->notify(
-      'scan_run',
+      FactcheckNotificationEvent::KEY_SCAN_RUN,
       (string) $this->t('[Fact check] Content scan run'),
       (string) $this->t('@name scanned "@subject".', [
         '@name' => $this->currentUser->getAccountName() ?: $this->t('Anonymous'),
         '@subject' => $subject,
-      ])
+      ]),
+      [
+        'uid' => (int) $this->currentUser->id(),
+        'account_name' => $this->currentUser->getAccountName() ?: '',
+        'scan_subject' => $subject,
+      ],
     );
 
     $builder = (new BatchBuilder())

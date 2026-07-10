@@ -47,7 +47,8 @@ class Groq extends OpenAiCompatible {
    * {@inheritdoc}
    *
    * Prefer structured catalog fields:
-   * - output_modalities: transcription → speech_to_text, speech → text_to_speech
+   * - output_modalities: transcription → speech_to_text, speech →
+   *   text_to_speech
    * - id heuristics: prompt-guard / safeguard → moderation
    * - else generic name heuristics (whisper, embed, chat, ...)
    */

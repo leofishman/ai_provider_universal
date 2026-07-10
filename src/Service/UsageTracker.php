@@ -5,6 +5,7 @@ namespace Drupal\ai_provider_universal\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
 /**
  * Tracks per-model daily usage counters.
@@ -20,6 +21,7 @@ class UsageTracker {
     protected Connection $database,
     protected TimeInterface $time,
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected ?LoggerChannelFactoryInterface $loggerFactory = NULL,
   ) {}
 
   /**
@@ -46,8 +48,13 @@ class UsageTracker {
         ->expression('output_tokens', 'output_tokens + :out', [':out' => (int) $output_tokens])
         ->execute();
     }
-    catch (\Throwable) {
-      // Usage accounting must never break inference.
+    catch (\Throwable $e) {
+      // Usage accounting must never break inference, but a persistent
+      // failure means limits silently stop counting: leave a trace.
+      $this->loggerFactory?->get('ai_provider_universal')->error(
+        'Failed to record usage for model @model: @message',
+        ['@model' => $model_id, '@message' => $e->getMessage()],
+      );
     }
   }
 

@@ -69,6 +69,7 @@ services:
       - '@plugin.manager.mail'
       - '@language_manager'
       - '@logger.channel.ai_provider_universal_factcheck'
+      - '@event_dispatcher'
 
   Drupal\ai_provider_universal_factcheck\Hook\AiProviderUniversalFactcheckHooks:
     class: Drupal\ai_provider_universal_factcheck\Hook\AiProviderUniversalFactcheckHooks

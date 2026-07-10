@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Form;
 
+use Drupal\ai_provider_universal_factcheck\Event\FactcheckNotificationEvent;
 use Drupal\ai_provider_universal_factcheck\Service\AdminNotifier;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -201,7 +202,7 @@ class SettingsForm extends ConfigFormBase {
     $form['notify_email'] = [
       '#type' => 'email',
       '#title' => $this->t('Notification email'),
-      '#description' => $this->t('Admin address notified via Drupal mail when a content scan runs or these settings change. Leave empty to disable. Delivery uses the site mail plugin (SMTP, Symfony Mailer, …).'),
+      '#description' => $this->t('Optional default email when a content scan runs or these settings change. Leave empty to disable mail (the FactcheckNotificationEvent still fires for ECA/other listeners). Delivery uses the site mail plugin (SMTP, Symfony Mailer, …).'),
       '#default_value' => $config->get('notify_email'),
       '#config_target' => 'ai_provider_universal_factcheck.settings:notify_email',
     ];
@@ -278,12 +279,16 @@ class SettingsForm extends ConfigFormBase {
       )))
       ->save();
     $this->adminNotifier->notify(
-      'settings_changed',
+      FactcheckNotificationEvent::KEY_SETTINGS_CHANGED,
       (string) $this->t('[Fact check] Settings changed'),
       (string) $this->t('@name changed the fact check settings at @url.', [
         '@name' => $this->currentUser()->getAccountName(),
         '@url' => Url::fromRoute('ai_provider_universal_factcheck.settings')->setAbsolute()->toString(),
-      ])
+      ]),
+      [
+        'uid' => (int) $this->currentUser()->id(),
+        'account_name' => $this->currentUser()->getAccountName(),
+      ],
     );
     parent::submitForm($form, $form_state);
   }

@@ -60,7 +60,11 @@ class LiteLlm extends OpenAiCompatible {
       ]);
       $data = json_decode($response->getBody()->getContents(), TRUE);
     }
-    catch (\Throwable) {
+    catch (\Throwable $e) {
+      $this->log('notice', 'LiteLLM /model/info failed for server @server (@message); using the plain OpenAI catalog without pricing.', [
+        '@server' => $server->id(),
+        '@message' => $e->getMessage(),
+      ]);
       return parent::listModels($server);
     }
 

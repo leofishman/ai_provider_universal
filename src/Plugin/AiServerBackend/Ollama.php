@@ -97,8 +97,12 @@ class Ollama extends OpenAiCompatible {
           }
         }
       }
-      catch (\Throwable) {
+      catch (\Throwable $e) {
         // Discovery still succeeds with bare OpenAI catalog entries.
+        $this->log('notice', 'Ollama /api/show failed for model @model (@message); context length and capabilities fall back to name heuristics.', [
+          '@model' => $id,
+          '@message' => $e->getMessage(),
+        ]);
       }
     }
     unset($entry);

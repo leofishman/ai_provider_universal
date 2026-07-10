@@ -7,6 +7,7 @@ use Drupal\ai_provider_universal\Attribute\AiServerBackend;
 use Drupal\ai_provider_universal\Backend\AiServerBackendPluginBase;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\Core\Http\ClientFactory;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -50,6 +51,7 @@ class OpenAiCompatible extends AiServerBackendPluginBase implements ContainerFac
     protected ClientFactory $httpClientFactory,
     protected StateInterface $state,
     protected ?KeyRepositoryInterface $keyRepository = NULL,
+    protected ?LoggerChannelFactoryInterface $loggerFactory = NULL,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -65,7 +67,22 @@ class OpenAiCompatible extends AiServerBackendPluginBase implements ContainerFac
       $container->get('http_client_factory'),
       $container->get('state'),
       $container->has('key.repository') ? $container->get('key.repository') : NULL,
+      $container->get('logger.factory'),
     );
+  }
+
+  /**
+   * Logs a discovery-time message, silently skipped in unit tests.
+   *
+   * @param string $level
+   *   PSR-3 level (notice, warning, ...).
+   * @param string $message
+   *   Message with placeholders.
+   * @param array $context
+   *   Placeholder values.
+   */
+  protected function log(string $level, string $message, array $context = []): void {
+    $this->loggerFactory?->get('ai_provider_universal')->log($level, $message, $context);
   }
 
   /**
@@ -230,7 +247,11 @@ class OpenAiCompatible extends AiServerBackendPluginBase implements ContainerFac
       $data = json_decode($response->getBody()->getContents(), TRUE);
       $tag = $data['pipeline_tag'] ?? NULL;
     }
-    catch (\Throwable) {
+    catch (\Throwable $e) {
+      $this->log('notice', 'Hugging Face pipeline tag lookup failed for @repo (@message); falling back to name heuristics.', [
+        '@repo' => $repo,
+        '@message' => $e->getMessage(),
+      ]);
       $tag = NULL;
     }
 

@@ -2,18 +2,23 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Service;
 
+use Drupal\ai_provider_universal_factcheck\Event\FactcheckNotificationEvent;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Sends optional admin alert emails for fact-check events.
+ * Notifies operators about fact-check admin events.
  *
- * Uses Drupal core's mail system (plugin.manager.mail + hook_mail). Sites can
- * route delivery through any Mail plugin (PHP mail, SMTP, Symfony Mailer,
- * …). Empty notify_email disables sending. Failures are logged and never
- * break the calling form/batch flow.
+ * Order of operations:
+ * 1. Dispatch FactcheckNotificationEvent (always) so ECA / custom modules /
+ *    Message Notify can react without depending on mail.
+ * 2. Unless a subscriber called suppressMail(), optionally send the default
+ *    admin email via Drupal's mail system when notify_email is configured.
+ *
+ * Failures are logged and never break the calling form/batch flow.
  */
 class AdminNotifier {
 
@@ -22,19 +27,29 @@ class AdminNotifier {
     protected MailManagerInterface $mailManager,
     protected LanguageManagerInterface $languageManager,
     protected LoggerInterface $logger,
+    protected EventDispatcherInterface $eventDispatcher,
   ) {}
 
   /**
-   * Sends a notification if a recipient is configured.
+   * Notifies about an admin event (event bus + optional default mail).
    *
    * @param string $key
-   *   Mail key (scan_run, settings_changed, …); used by hook_mail and themes.
+   *   Stable key (FactcheckNotificationEvent::KEY_*).
    * @param string $subject
-   *   Email subject line.
+   *   Short human title / mail subject.
    * @param string $body
    *   Plain-text body.
+   * @param array $context
+   *   Optional structured context for event subscribers.
    */
-  public function notify(string $key, string $subject, string $body): void {
+  public function notify(string $key, string $subject, string $body, array $context = []): void {
+    $event = new FactcheckNotificationEvent($key, $subject, $body, $context);
+    $this->eventDispatcher->dispatch($event, FactcheckNotificationEvent::EVENT_NAME);
+
+    if ($event->isMailSuppressed()) {
+      return;
+    }
+
     $to = (string) ($this->configFactory->get('ai_provider_universal_factcheck.settings')->get('notify_email') ?? '');
     if ($to === '') {
       return;

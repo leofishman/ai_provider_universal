@@ -76,7 +76,8 @@ Notes:
 - **Streaming, whitelisting/model filters, the admin UI** are not backend concerns — do not reimplement them.
 - If models live on more than one catalog endpoint, override `listModels()`, fetch all of them and merge (each entry still needs `id`).
 - **`supported_features`**: pass lowercase feature ids when the API exposes them. They land on `ai_universal_model` and show as “Catalog features” in the server form. Do not confuse catalog `reasoning` with the model’s **reasoning effort** select (`reasoning_effort` request param).
-- Dependency injection: `OpenAiCompatible` already injects `http_client_factory`, `state` and `key.repository`. Add a constructor + `create()` override only if you need more services.
+- Dependency injection: `OpenAiCompatible` already injects `http_client_factory`, `state`, `key.repository` and `logger.factory`. Add a constructor + `create()` override only if you need more services.
+- **Logging**: never swallow an enrichment failure silently. Catch, call `$this->log('notice', '...', [...])` (no-op in unit tests, `ai_provider_universal` channel at runtime) and fall back gracefully — see the `catch` blocks in `Ollama::listModels()` and `LiteLlm::listModels()`. Only the main `/models` fetch may throw: the form and the Drush command catch and report it.
 
 ## Checklist before opening an MR
 

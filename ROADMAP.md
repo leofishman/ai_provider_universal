@@ -177,6 +177,8 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [ ] Move fact-check capabilities to plugins (vs services) so they can be
       overridden or extended — evaluate best approach.
 - [ ] MCP integration, the Drupal AI way.
+- [x] Factcheck admin notifications: AdminNotifier + FactcheckNotificationEvent
+      (ECA/Message seam) with optional default mail via notify_email.
 
 ## Documentation backlog
 

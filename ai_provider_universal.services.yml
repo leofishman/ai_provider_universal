@@ -18,6 +18,7 @@ services:
       - '@database'
       - '@datetime.time'
       - '@entity_type.manager'
+      - '@logger.factory'
 
   Drupal\ai_provider_universal\Service\ModelCatalog:
     class: Drupal\ai_provider_universal\Service\ModelCatalog
