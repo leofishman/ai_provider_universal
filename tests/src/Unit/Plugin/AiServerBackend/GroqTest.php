@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * Tests Groq endpoint, capability and metadata detection.
+ * Tests Groq endpoint, capability and live-catalog metadata detection.
  */
 #[CoversClass(Groq::class)]
 #[Group('ai_provider_universal')]
@@ -45,84 +45,102 @@ final class GroqTest extends UnitTestCase {
   }
 
   /**
-   * Operation types: whisper, prompt-guard, and chat fallbacks.
+   * Operation types from modalities and guard-id heuristics.
    */
   public function testDetectOperationTypes(): void {
     $backend = $this->backend();
 
     $this->assertSame(
       ['speech_to_text'],
-      $backend->detectOperationTypes(['id' => 'whisper-large-v3-turbo']),
+      $backend->detectOperationTypes([
+        'id' => 'whisper-large-v3',
+        'output_modalities' => ['transcription'],
+        'input_modalities' => ['audio'],
+      ]),
+    );
+    $this->assertSame(
+      ['text_to_speech'],
+      $backend->detectOperationTypes([
+        'id' => 'canopylabs/orpheus-v1-english',
+        'output_modalities' => ['speech'],
+        'input_modalities' => ['text'],
+      ]),
     );
     $this->assertSame(
       ['moderation'],
-      $backend->detectOperationTypes(['id' => 'meta-llama/llama-prompt-guard-2-86m']),
+      $backend->detectOperationTypes([
+        'id' => 'meta-llama/llama-prompt-guard-2-86m',
+        'output_modalities' => ['text'],
+      ]),
     );
     $this->assertSame(
       ['moderation'],
-      $backend->detectOperationTypes(['id' => 'openai/gpt-oss-safeguard-20b']),
+      $backend->detectOperationTypes([
+        'id' => 'openai/gpt-oss-safeguard-20b',
+        'output_modalities' => ['text'],
+      ]),
     );
     $this->assertSame(
       ['chat'],
-      $backend->detectOperationTypes(['id' => 'llama-3.3-70b-versatile']),
+      $backend->detectOperationTypes([
+        'id' => 'llama-3.3-70b-versatile',
+        'output_modalities' => ['text'],
+        'supported_features' => ['tools', 'json_mode'],
+      ]),
     );
   }
 
   /**
-   * Metadata: specific patterns, no false match of gpt-oss-20b on safeguard.
+   * Metadata: live USD/token pricing × 1M and context_length.
    */
   public function testDetectModelMetadata(): void {
     $backend = $this->backend();
 
+    // Shape captured from GET https://api.groq.com/openai/v1/models.
+    $entry = [
+      'id' => 'llama-3.1-8b-instant',
+      'context_length' => 131072,
+      'context_window' => 131072,
+      'pricing' => [
+        'prompt' => '0.00000005',
+        'completion' => '0.00000008',
+        'input_cache_read' => '0.000000025',
+      ],
+      'supported_features' => ['tools', 'json_mode'],
+    ];
     $this->assertSame(
       [
         'cost_input' => 0.05,
         'cost_output' => 0.08,
-        'quality_tier' => 3,
         'context_length' => 131072,
       ],
-      $backend->detectModelMetadata(['id' => 'llama-3.1-8b-instant']),
+      $backend->detectModelMetadata($entry),
     );
 
+    // TTS models may only publish a prompt (per-character) rate.
+    $tts = [
+      'id' => 'canopylabs/orpheus-v1-english',
+      'context_length' => 4000,
+      'pricing' => ['prompt' => '0.000022'],
+    ];
     $this->assertSame(
       [
-        'cost_input' => 0.59,
-        'cost_output' => 0.79,
-        'quality_tier' => 4,
-        'context_length' => 131072,
+        'cost_input' => 22.0,
+        'context_length' => 4000,
       ],
-      $backend->detectModelMetadata(['id' => 'llama-3.3-70b-versatile']),
+      $backend->detectModelMetadata($tts),
     );
 
-    // Safeguard must not pick up the plain gpt-oss-20b row.
+    // No pricing (e.g. compound systems): still get context.
     $this->assertSame(
-      [
-        'cost_input' => 0.075,
-        'cost_output' => 0.30,
-        'quality_tier' => 3,
-        'context_length' => 131072,
-      ],
-      $backend->detectModelMetadata(['id' => 'openai/gpt-oss-safeguard-20b']),
+      ['context_length' => 131072],
+      $backend->detectModelMetadata([
+        'id' => 'groq/compound',
+        'context_window' => 131072,
+      ]),
     );
 
-    $this->assertSame(
-      [
-        'cost_input' => 0.075,
-        'cost_output' => 0.30,
-        'quality_tier' => 3,
-        'context_length' => 131072,
-      ],
-      $backend->detectModelMetadata(['id' => 'openai/gpt-oss-20b']),
-    );
-
-    // Whisper is audio-hour priced — only tier is prefilled.
-    $this->assertSame(
-      ['quality_tier' => 3],
-      $backend->detectModelMetadata(['id' => 'whisper-large-v3']),
-    );
-
-    // Unknown id: empty (parent has nothing for bare catalog rows).
-    $this->assertSame([], $backend->detectModelMetadata(['id' => 'future-model-xyz']));
+    $this->assertSame([], $backend->detectModelMetadata(['id' => 'x']));
   }
 
 }

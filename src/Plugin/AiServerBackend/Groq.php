@@ -10,18 +10,23 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * Groq Cloud server backend.
  *
  * Groq speaks the OpenAI protocol at a fixed base URI
- * (https://api.groq.com/openai/v1). This backend only overrides the endpoint
- * and prefills routing metadata from Groq's published list prices so smart
- * routing can compare Groq vs local/paid candidates without manual entry.
+ * (https://api.groq.com/openai/v1). Discovery uses /v1/models, which already
+ * carries rich per-model metadata: pricing (USD per token), context_length,
+ * input/output modalities, and supported_features (tools, json_mode,
+ * reasoning, ...). This backend reads those live fields for routing costs
+ * and operation types — no hardcoded price table.
  *
- * Pricing is a maintained lookup table (USD per 1M tokens), not live data —
- * verify against https://console.groq.com/docs/models when Groq changes the
- * catalog. Free-tier API keys work for discovery and light chat (rate-limited).
+ * Note on "reasoning": Groq flags models that support reasoning in
+ * supported_features, but the catalog does not publish effort levels
+ * (low/medium/high). Those stay manual on the model entity
+ * (reasoning_effort) when the provider supports the parameter.
+ *
+ * Free-tier API keys work for discovery and light chat (rate-limited).
  */
 #[AiServerBackend(
   id: 'groq',
   label: new TranslatableMarkup('Groq'),
-  description: new TranslatableMarkup('GroqCloud (api.groq.com): very fast OpenAI-compatible inference (Llama, GPT-OSS, Qwen, Whisper, ...). Pricing and context length are prefilled for smart routing. Free tier available with rate limits.'),
+  description: new TranslatableMarkup('GroqCloud (api.groq.com): very fast OpenAI-compatible inference (Llama, GPT-OSS, Qwen, Whisper, ...). Pricing and context length are read live from the catalog for smart routing. Free tier available with rate limits.'),
 )]
 class Groq extends OpenAiCompatible {
 
@@ -29,78 +34,6 @@ class Groq extends OpenAiCompatible {
    * Fixed OpenAI-compatible base URI for GroqCloud.
    */
   protected const DEFAULT_BASE_URI = 'https://api.groq.com/openai/v1';
-
-  /**
-   * Routing metadata by raw-model-id substring, first match wins.
-   *
-   * Values: cost_input / cost_output in USD per 1M tokens (on-demand list
-   * prices from Groq docs), quality_tier 1-5, context_length in tokens.
-   * Whisper is billed per hour of audio, not tokens — only tier is set.
-   *
-   * Longer / more specific patterns must appear before shorter ones.
-   */
-  protected const MODEL_METADATA = [
-    'llama-3.1-8b-instant' => [
-      'cost_input' => 0.05,
-      'cost_output' => 0.08,
-      'quality_tier' => 3,
-      'context_length' => 131072,
-    ],
-    'llama-3.3-70b-versatile' => [
-      'cost_input' => 0.59,
-      'cost_output' => 0.79,
-      'quality_tier' => 4,
-      'context_length' => 131072,
-    ],
-    'llama-4-scout' => [
-      'cost_input' => 0.11,
-      'cost_output' => 0.34,
-      'quality_tier' => 4,
-      'context_length' => 131072,
-    ],
-    'gpt-oss-120b' => [
-      'cost_input' => 0.15,
-      'cost_output' => 0.60,
-      'quality_tier' => 4,
-      'context_length' => 131072,
-    ],
-    'gpt-oss-safeguard-20b' => [
-      'cost_input' => 0.075,
-      'cost_output' => 0.30,
-      'quality_tier' => 3,
-      'context_length' => 131072,
-    ],
-    'gpt-oss-20b' => [
-      'cost_input' => 0.075,
-      'cost_output' => 0.30,
-      'quality_tier' => 3,
-      'context_length' => 131072,
-    ],
-    'qwen3.6-27b' => [
-      'cost_input' => 0.60,
-      'cost_output' => 3.00,
-      'quality_tier' => 4,
-      'context_length' => 131072,
-    ],
-    'qwen3-32b' => [
-      'cost_input' => 0.29,
-      'cost_output' => 0.59,
-      'quality_tier' => 4,
-      'context_length' => 131072,
-    ],
-    'llama-prompt-guard' => [
-      'cost_input' => 0.03,
-      'cost_output' => 0.03,
-      'quality_tier' => 2,
-      'context_length' => 512,
-    ],
-    'whisper-large-v3-turbo' => [
-      'quality_tier' => 3,
-    ],
-    'whisper-large-v3' => [
-      'quality_tier' => 3,
-    ],
-  ];
 
   /**
    * {@inheritdoc}
@@ -113,30 +46,60 @@ class Groq extends OpenAiCompatible {
   /**
    * {@inheritdoc}
    *
-   * Prompt-guard style models are moderation even when the id does not match
-   * the generic llama-guard / shieldgemma heuristics.
+   * Prefer structured catalog fields:
+   * - output_modalities: transcription → speech_to_text, speech → text_to_speech
+   * - id heuristics: prompt-guard / safeguard → moderation
+   * - else generic name heuristics (whisper, embed, chat, ...)
    */
   public function detectOperationTypes(array $modelEntry): array {
+    $outputs = $modelEntry['output_modalities'] ?? [];
+    if (is_array($outputs)) {
+      if (in_array('transcription', $outputs, TRUE)) {
+        return ['speech_to_text'];
+      }
+      if (in_array('speech', $outputs, TRUE) || in_array('audio', $outputs, TRUE)) {
+        return ['text_to_speech'];
+      }
+      if (in_array('image', $outputs, TRUE)) {
+        return ['text_to_image'];
+      }
+    }
+
     $id = strtolower($modelEntry['id'] ?? '');
     if (str_contains($id, 'prompt-guard') || str_contains($id, 'safeguard')) {
       return ['moderation'];
     }
+
     return parent::detectOperationTypes($modelEntry);
   }
 
   /**
    * {@inheritdoc}
+   *
+   * Pricing is published as USD-per-token strings (same shape as OpenRouter);
+   * the router works in USD per 1M tokens. Context prefers context_length,
+   * then context_window. Quality tier is left unset so model_defaults.yml
+   * can fill family/size guesses.
    */
   public function detectModelMetadata(array $modelEntry): array {
-    $id = strtolower($modelEntry['id'] ?? '');
+    $metadata = [];
 
-    foreach (self::MODEL_METADATA as $pattern => $meta) {
-      if (str_contains($id, $pattern)) {
-        return $meta;
-      }
+    $prompt = $modelEntry['pricing']['prompt'] ?? NULL;
+    if (is_numeric($prompt)) {
+      // Round to avoid IEEE float noise (e.g. 5e-8 * 1e6 → 0.049999...).
+      $metadata['cost_input'] = round((float) $prompt * 1000000, 6);
+    }
+    $completion = $modelEntry['pricing']['completion'] ?? NULL;
+    if (is_numeric($completion)) {
+      $metadata['cost_output'] = round((float) $completion * 1000000, 6);
     }
 
-    return parent::detectModelMetadata($modelEntry);
+    $ctx = $modelEntry['context_length'] ?? $modelEntry['context_window'] ?? NULL;
+    if (is_numeric($ctx) && $ctx > 0) {
+      $metadata['context_length'] = (int) $ctx;
+    }
+
+    return $metadata;
   }
 
 }

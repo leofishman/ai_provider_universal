@@ -109,6 +109,10 @@ final class OllamaTest extends UnitTestCase {
       ['cost_input' => 0.0, 'cost_output' => 0.0],
       $backend->detectModelMetadata(['id' => 'mystery']),
     );
+
+    // Cloud models proxied through local Ollama are metered on ollama.com:
+    // costs stay unset for the user to fill in.
+    $this->assertSame([], $backend->detectModelMetadata(['id' => 'gpt-oss:120b-cloud']));
   }
 
   /**
@@ -169,6 +173,12 @@ final class OllamaTest extends UnitTestCase {
 
     $method = new \ReflectionMethod(Ollama::class, 'getNativeBaseUri');
     $this->assertSame('http://127.0.0.1:11434', $method->invoke($backend, $server));
+
+    // Empty port defaults to Ollama's 11434.
+    $noPort = $this->createMock(AiUniversalServerInterface::class);
+    $noPort->method('getHostName')->willReturn('http://127.0.0.1');
+    $noPort->method('getPort')->willReturn('');
+    $this->assertSame('http://127.0.0.1:11434/v1', $backend->getBaseUri($noPort));
   }
 
 }

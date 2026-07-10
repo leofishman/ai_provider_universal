@@ -28,6 +28,26 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 class Ollama extends OpenAiCompatible {
 
   /**
+   * Ollama's default port, used when the server entity leaves it empty.
+   */
+  protected const DEFAULT_PORT = '11434';
+
+  /**
+   * {@inheritdoc}
+   *
+   * An empty port falls back to Ollama's default 11434, so the form's
+   * "leave empty for default" hint holds for this backend.
+   */
+  public function getBaseUri(AiUniversalServerInterface $server): string {
+    $host = rtrim($server->getHostName(), '/');
+    if ($host === '') {
+      return '';
+    }
+    $port = $server->getPort() ?: self::DEFAULT_PORT;
+    return $host . ':' . $port . '/v1';
+  }
+
+  /**
    * {@inheritdoc}
    *
    * After the OpenAI /v1/models catalog, each entry is enriched with the
@@ -133,9 +153,14 @@ class Ollama extends OpenAiCompatible {
     }
 
     // Local = free. Zero costs let the smart router prefer Ollama over paid
-    // candidates when quality tier is enough.
-    $metadata['cost_input'] = 0.0;
-    $metadata['cost_output'] = 0.0;
+    // candidates when quality tier is enough. Models ending in -cloud are
+    // proxied to ollama.com and metered there, so their costs stay unset for
+    // the user to fill in.
+    $id = strtolower((string) ($modelEntry['id'] ?? ''));
+    if (!str_ends_with($id, '-cloud')) {
+      $metadata['cost_input'] = 0.0;
+      $metadata['cost_output'] = 0.0;
+    }
 
     return $metadata;
   }
