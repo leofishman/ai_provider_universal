@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests capability detection in the openai_compatible backend and catalog.
@@ -24,6 +25,7 @@ use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 #[CoversClass(ModelCatalog::class)]
 #[Group('ai_provider_universal')]
 #[IgnoreDeprecations]
+#[RunTestsInSeparateProcesses]
 final class ModelCatalogTest extends KernelTestBase {
 
   /**

@@ -11,6 +11,7 @@ use Drupal\Tests\ai_provider_universal\Kernel\Traits\HttpClientMockTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
@@ -21,6 +22,7 @@ use Symfony\Component\Console\Output\BufferedOutput;
 #[CoversClass(UniversalCommands::class)]
 #[Group('ai_provider_universal')]
 #[IgnoreDeprecations]
+#[RunTestsInSeparateProcesses]
 final class UniversalCommandsTest extends KernelTestBase {
 
   use HttpClientMockTrait;

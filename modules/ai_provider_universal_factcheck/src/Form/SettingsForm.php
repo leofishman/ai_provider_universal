@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Form;
 
+use Drupal\ai_provider_universal_factcheck\Service\AdminNotifier;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\ConfigFormBase;
@@ -25,12 +26,18 @@ class SettingsForm extends ConfigFormBase {
   protected ModuleHandlerInterface $moduleHandler;
 
   /**
+   * Admin email notifier.
+   */
+  protected AdminNotifier $adminNotifier;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     $instance = parent::create($container);
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->moduleHandler = $container->get('module_handler');
+    $instance->adminNotifier = $container->get(AdminNotifier::class);
     return $instance;
   }
 
@@ -194,7 +201,7 @@ class SettingsForm extends ConfigFormBase {
     $form['notify_email'] = [
       '#type' => 'email',
       '#title' => $this->t('Notification email'),
-      '#description' => $this->t('Alerted when a content scan runs or these settings change. Leave empty to disable.'),
+      '#description' => $this->t('Admin address notified via Drupal mail when a content scan runs or these settings change. Leave empty to disable. Delivery uses the site mail plugin (SMTP, Symfony Mailer, …).'),
       '#default_value' => $config->get('notify_email'),
       '#config_target' => 'ai_provider_universal_factcheck.settings:notify_email',
     ];
@@ -270,7 +277,7 @@ class SettingsForm extends ConfigFormBase {
         $form_state->getValue(['scan_flood', 'limits']) ?? []
       )))
       ->save();
-    ai_provider_universal_factcheck_notify(
+    $this->adminNotifier->notify(
       'settings_changed',
       (string) $this->t('[Fact check] Settings changed'),
       (string) $this->t('@name changed the fact check settings at @url.', [

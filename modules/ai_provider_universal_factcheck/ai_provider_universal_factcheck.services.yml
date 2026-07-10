@@ -61,3 +61,15 @@ services:
       - '@config.factory'
       - '@key.repository'
       - '@http_client'
+
+  Drupal\ai_provider_universal_factcheck\Service\AdminNotifier:
+    class: Drupal\ai_provider_universal_factcheck\Service\AdminNotifier
+    arguments:
+      - '@config.factory'
+      - '@plugin.manager.mail'
+      - '@language_manager'
+      - '@logger.channel.ai_provider_universal_factcheck'
+
+  Drupal\ai_provider_universal_factcheck\Hook\AiProviderUniversalFactcheckHooks:
+    class: Drupal\ai_provider_universal_factcheck\Hook\AiProviderUniversalFactcheckHooks
+    autowire: true

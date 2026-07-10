@@ -9,6 +9,7 @@ use Drupal\ai_provider_universal_router\Service\RouteDecider;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests cost-aware candidate selection in RouteDecider.
@@ -18,6 +19,7 @@ use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 #[CoversClass(RouteDecider::class)]
 #[Group('ai_provider_universal')]
 #[IgnoreDeprecations]
+#[RunTestsInSeparateProcesses]
 final class RouteDeciderTest extends KernelTestBase {
 
   /**

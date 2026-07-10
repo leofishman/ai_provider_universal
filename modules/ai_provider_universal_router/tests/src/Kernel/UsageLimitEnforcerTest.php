@@ -11,6 +11,7 @@ use Drupal\ai_provider_universal\Service\UsageTracker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests usage limit enforcement, grace periods, alerts and events.
@@ -20,6 +21,7 @@ use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 #[CoversClass(UsageLimitEnforcer::class)]
 #[Group('ai_provider_universal')]
 #[IgnoreDeprecations]
+#[RunTestsInSeparateProcesses]
 final class UsageLimitEnforcerTest extends KernelTestBase {
 
   /**

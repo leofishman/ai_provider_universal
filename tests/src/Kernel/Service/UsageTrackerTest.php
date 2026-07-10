@@ -9,6 +9,7 @@ use Drupal\ai_provider_universal\Service\UsageTracker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests daily usage tracking for models and servers.
@@ -18,6 +19,7 @@ use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 #[CoversClass(UsageTracker::class)]
 #[Group('ai_provider_universal')]
 #[IgnoreDeprecations]
+#[RunTestsInSeparateProcesses]
 final class UsageTrackerTest extends KernelTestBase {
 
   /**

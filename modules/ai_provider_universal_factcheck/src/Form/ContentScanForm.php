@@ -11,6 +11,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
+use Drupal\ai_provider_universal_factcheck\Service\AdminNotifier;
 use Drupal\ai_provider_universal_factcheck\Service\AiDetector;
 use Drupal\ai_provider_universal_factcheck\Service\FactChecker;
 use Drupal\ai_provider_universal_factcheck\Service\PlagiarismChecker;
@@ -74,6 +75,11 @@ class ContentScanForm extends FormBase {
   protected FloodInterface $flood;
 
   /**
+   * Admin email notifier.
+   */
+  protected AdminNotifier $adminNotifier;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -87,6 +93,7 @@ class ContentScanForm extends FormBase {
     $instance->currentUser = $container->get('current_user');
     $instance->tempStoreFactory = $container->get('tempstore.private');
     $instance->flood = $container->get('flood');
+    $instance->adminNotifier = $container->get(AdminNotifier::class);
     $instance->setRequestStack($container->get('request_stack'));
     return $instance;
   }
@@ -222,7 +229,7 @@ class ContentScanForm extends FormBase {
    *   Private tempstore key the results are stored under for display.
    */
   protected function startScanBatch(string $subject, string $text, array $meta, string $storeKey): void {
-    ai_provider_universal_factcheck_notify(
+    $this->adminNotifier->notify(
       'scan_run',
       (string) $this->t('[Fact check] Content scan run'),
       (string) $this->t('@name scanned "@subject".', [

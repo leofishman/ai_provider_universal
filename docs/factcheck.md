@@ -109,6 +109,15 @@ Every node gets a **Content scan** local task (visible to users who can edit the
 
 The AI-likelihood score is a heuristic LLM judgement, not a trained detector — treat it as a hint. Plagiarism matches list the URL and snippet of every page containing a sentence verbatim.
 
+### Admin email notifications
+
+Optional **Notification email** in Fact check settings (`notify_email`). When set, Drupal's mail system notifies that address when:
+
+- a content scan starts, or
+- fact-check settings are saved.
+
+Implementation: `AdminNotifier` → `plugin.manager.mail` + OOP `hook_mail` (`AiProviderUniversalFactcheckHooks`). Empty address disables sending; delivery failures are logged and never break the scan/settings form. Use any site mail plugin (default PHP mail, SMTP, Symfony Mailer, …).
+
 ## Recommended models (cost / benefit)
 
 For fact-checking the key is **specialization + low per-claim cost**, because you may run 5–20 LLM calls per scan.
