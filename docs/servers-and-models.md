@@ -21,13 +21,13 @@ The **Test connection & list models** button previews the server's model catalog
 
 ## Backend catalog
 
-Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBackend/`), auto-discovered via the `#[AiServerBackend]` attribute. They share one execution path (`OpenAiBasedProviderClientBase` — all speak the OpenAI REST protocol) and differ only in: default endpoint, how models are listed, how capabilities are detected, and how routing metadata (cost/tier/context) is prefilled.
+Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBackend/`), auto-discovered via the `#[AiServerBackend]` attribute. They share one execution path (`OpenAiBasedProviderClientBase` — all speak the OpenAI REST protocol) and differ only in: default endpoint, how models are listed, how capabilities are detected, and how routing metadata (cost/tier/context) and optional catalog features are prefilled.
 
 | Backend id | Service | Default endpoint | Needs host/port | Discovery source | Capability detection | Pricing/context source |
 |---|---|---|---|---|---|---|
 | `openai_compatible` | llama.cpp, vLLM, LM Studio and any OpenAI-protocol server | none (required) | yes | `/v1/models` | llama.cpp `status.args` (`--embeddings`, `--reranking`) → HF `pipeline_tag` of `--hf-repo` → name heuristics → `chat` | `--ctx-size` (router mode) → `meta.n_ctx_train` → `max_model_len` (vLLM); cost stays unset |
 | `ollama` | Local Ollama | none (required; typical host `http://127.0.0.1`, port `11434`) | yes | `/v1/models` enriched per model with native `POST /api/show` | Ollama `capabilities` / `details.family` → generic heuristics | Free costs (`0`); context from Modelfile `num_ctx` or `model_info.*.context_length` |
-| `groq` | GroqCloud | `api.groq.com/openai/v1` | no (fixed) | `/v1/models` (rich catalog) | `output_modalities` (transcription → STT, speech → TTS) → prompt-guard/safeguard → generic heuristics | Live from catalog (`pricing.prompt`/`completion` USD/token × 1M, `context_length` / `context_window`). Quality tier via `model_defaults.yml`. `supported_features` includes `reasoning` as a flag only — not effort levels |
+| `groq` | GroqCloud | `api.groq.com/openai/v1` | no (fixed) | `/v1/models` (rich catalog) | `output_modalities` (transcription → STT, speech → TTS) → prompt-guard/safeguard → generic heuristics | Live: costs, context, and `supported_features` (tools / json_mode / structured_outputs / reasoning) persisted on the model entity. Quality tier via `model_defaults.yml`. Reasoning *effort* stays manual |
 | `fireworks` | Fireworks AI serverless | `api.fireworks.ai/inference/v1` | optional | `/v1/models` | Name heuristics tuned to `accounts/fireworks/models/*` ids | Hardcoded table of published serverless prices by model-family substring (`src/Plugin/AiServerBackend/Fireworks.php::MODEL_METADATA`) |
 | `openrouter` | OpenRouter unified API | `openrouter.ai/api/v1` | optional | `/v1/models` | `architecture.output_modalities` (image → `text_to_image`) → generic heuristics | Live from the catalog payload (`pricing.prompt`/`completion`, `context_length`) — no hardcoded table |
 | `litellm` | Self-hosted LiteLLM proxy | none (required) | yes | `/model/info` (proxy root, not `/v1`); falls back to `/v1/models` if the key can't read it | Structured `model_info.mode` field → generic heuristics on fallback | `model_info.input_cost_per_token`/`output_cost_per_token` (× 1M) and `max_input_tokens` |
@@ -51,7 +51,8 @@ Discovery is the **write path**: it calls the backend's `listModels()`, runs the
 - **Entity id**: `<server_id>__<sanitized_raw_model_id>`, so ids stay unique across servers even when two servers expose a model with the same raw id (e.g. `local__llama3` vs `openrouter__llama3`).
 - **Label**: `<Server label> / <raw model id>`, only set automatically while it still matches the auto-generated pattern — a manually renamed model label survives re-discovery.
 - **Removed models are deleted**: any `ai_universal_model` for the server that discovery no longer sees is removed (`hook_entity_delete` also cascades: deleting a server deletes all its models).
-- **Manual edits are never clobbered**: `applyDetectedMetadata()` only writes a detected value (cost, quality tier, context length) into a field that is still `NULL`. Once you set a value in the UI, re-discovery leaves it alone.
+- **Manual edits are never clobbered** for cost, quality tier, context length and reasoning effort: `applyDetectedMetadata()` only writes a detected value into a field that is still `NULL`. Once you set a value in the UI, re-discovery leaves it alone.
+- **Catalog features always refresh**: `supported_features` (when the backend reports them) is rewritten on every discovery — there is no manual override. Empty when the backend does not publish features.
 - **Site-editable defaults**: when the backend detects no quality tier (and optionally no costs), `definitions/model_defaults.yml` fills the gap — named-family regexes (claude-opus → 5, mixtral → 3, ...), a parameter-count fallback (70b → 3, 7b → 2, ...), and a `costs:` map shipped empty for you to maintain (USD per 1M tokens). Same never-clobber rule applies. Don't edit the module file (it is replaced on updates): put site entries in an override file with the same format — its entries win — and declare it in settings.php: `$settings['ai_provider_universal_model_defaults'] = 'sites/default/model_defaults.yml';`.
 
 Trigger discovery with:
@@ -70,13 +71,14 @@ Each server's edit form has a **"Models: capabilities and routing metadata"** se
 
 | Field | Effect |
 |---|---|
+| Catalog features | Read-only list from discovery (`supported_features`: e.g. `tools`, `json_mode`, `structured_outputs`, `reasoning`). Refreshed every re-discovery; no manual override. Empty when the backend does not publish features. |
 | Operation types | Override the auto-detected types (chat, embeddings, speech to text, rerank, moderation, text to image). Leave unchecked to keep auto-detection. |
 | Cost per 1M input/output tokens (USD) | Feeds smart routing's cost comparison. Use `0` for local/self-hosted models — unknown cost also counts as 0, which naturally favors local models, so set explicit costs on remote ones to compare correctly. |
 | Quality tier (1–5) | Subjective capability rating used by smart routing (1 Minimal → 5 Frontier). Unrated models default to tier 3 when a route checks eligibility. |
 | Context length (tokens) | Auto-detected when the server exposes it; smart routing rejects a candidate whose context can't fit the estimated prompt + 512 assumed output tokens. |
-| Reasoning effort | Sent as the OpenAI-compatible `reasoning_effort` request parameter on every chat call to this model (`none`/`low`/`medium`/`high`). Leave as "Server default" to send nothing. Servers that don't support the parameter simply ignore it. |
+| Reasoning effort | Sent as the OpenAI-compatible `reasoning_effort` request parameter on every chat call to this model (`none`/`low`/`medium`/`high`). Leave as "Server default" to send nothing. Servers that don't support the parameter simply ignore it. Distinct from the catalog `reasoning` *feature* flag (capability, not effort level). |
 
-These are the exact fields `RouteDecider` reads — see [docs/smart-routing.md](smart-routing.md) for how they're used to pick a model per request.
+**Smart routing** (`RouteDecider`) uses cost, quality tier and context length — see [docs/smart-routing.md](smart-routing.md). Catalog features are stored for UI/API consumers (`$model->supportsFeature('tools')`, etc.) and are not yet a route filter. Reasoning effort is applied by the provider on chat calls, not by the route decider.
 
 ## Model filtering
 
@@ -107,4 +109,4 @@ Any other model falls back to a generic chat-completions call, flagged by a lite
 
 ## Extending: adding a backend
 
-Backends are plugins — other modules can contribute one for a service this module doesn't cover natively (Anthropic, Gemini, Groq, Together, ...) without touching the catalog, the provider, or the multi-server UI. See [docs/adding-a-backend.md](adding-a-backend.md) for the contributor guide and interface walkthrough.
+Backends are plugins — other modules can contribute one for a service this module doesn't cover natively (e.g. Together, or native Anthropic/Gemini once inference dispatch lands) without touching the catalog, the provider, or the multi-server UI. See [docs/adding-a-backend.md](adding-a-backend.md) for the contributor guide and interface walkthrough.

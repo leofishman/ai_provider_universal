@@ -38,8 +38,8 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    without a call — and any classifier failure falls back to the
    heuristics, so classification can never break routing. Routes
    (`route__*`) are refused as classifier to avoid recursion. Point this
-   at a small local model (e.g. a fine-tuned Gemma served by Ollama) for
-   a learned router at zero cost.
+   at a small local model (e.g. a fine-tuned Gemma on the dedicated
+   `ollama` backend) for a learned router at zero cost.
 2. **Pick the required tier**: the route's simple or complex tier,
    depending on step 1.
 3. **Load candidates** (`candidateModels()`): the route's explicit list, or
@@ -156,10 +156,10 @@ complex/reasoning work.
 If you want higher quality at still-reasonable cost without managing GPUs:
 
 - **Fireworks.ai** or **Together.ai** — excellent Qwen/Llama/Mixtral hosting, very competitive per-token pricing, fast.
-- **Groq** — extreme speed on Llama-3.1 models (great for extractor/checker when latency matters).
-- **OpenRouter** — easy access to many providers + automatic fallback.
+- **Groq** — extreme speed (Llama, GPT-OSS, Qwen, …); dedicated `groq` backend with live catalog pricing + `supported_features`.
+- **OpenRouter** — easy access to many providers + automatic fallback; live pricing.
 
-All are supported out of the box via the `openai_compatible`, `fireworks`, `litellm` or `openrouter` backends.
+Dedicated backends that feed routing metadata out of the box: `groq`, `fireworks`, `openrouter`, `huggingface`, `litellm`/`amazee`, local `ollama` (costs prefilled as free). Generic `openai_compatible` still works for any OpenAI REST endpoint (fill costs/tier manually or via `model_defaults.yml`).
 
 ## Known limitations
 

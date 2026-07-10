@@ -17,16 +17,16 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * and operation types — no hardcoded price table.
  *
  * Note on "reasoning": Groq flags models that support reasoning in
- * supported_features, but the catalog does not publish effort levels
- * (low/medium/high). Those stay manual on the model entity
- * (reasoning_effort) when the provider supports the parameter.
+ * supported_features (persisted on the model entity), but the catalog does
+ * not publish effort levels (low/medium/high). Those stay manual on the
+ * model entity (reasoning_effort) when the provider supports the parameter.
  *
  * Free-tier API keys work for discovery and light chat (rate-limited).
  */
 #[AiServerBackend(
   id: 'groq',
   label: new TranslatableMarkup('Groq'),
-  description: new TranslatableMarkup('GroqCloud (api.groq.com): very fast OpenAI-compatible inference (Llama, GPT-OSS, Qwen, Whisper, ...). Pricing and context length are read live from the catalog for smart routing. Free tier available with rate limits.'),
+  description: new TranslatableMarkup('GroqCloud (api.groq.com): very fast OpenAI-compatible inference (Llama, GPT-OSS, Qwen, Whisper, ...). Pricing, context and supported_features (tools, reasoning, json_mode, ...) are read live from the catalog. Free tier available with rate limits.'),
 )]
 class Groq extends OpenAiCompatible {
 
@@ -79,7 +79,8 @@ class Groq extends OpenAiCompatible {
    * Pricing is published as USD-per-token strings (same shape as OpenRouter);
    * the router works in USD per 1M tokens. Context prefers context_length,
    * then context_window. Quality tier is left unset so model_defaults.yml
-   * can fill family/size guesses.
+   * can fill family/size guesses. supported_features is copied from the
+   * catalog when present (tools, json_mode, structured_outputs, reasoning).
    */
   public function detectModelMetadata(array $modelEntry): array {
     $metadata = [];
@@ -97,6 +98,19 @@ class Groq extends OpenAiCompatible {
     $ctx = $modelEntry['context_length'] ?? $modelEntry['context_window'] ?? NULL;
     if (is_numeric($ctx) && $ctx > 0) {
       $metadata['context_length'] = (int) $ctx;
+    }
+
+    $features = $modelEntry['supported_features'] ?? NULL;
+    if (is_array($features) && $features !== []) {
+      $normalized = [];
+      foreach ($features as $feature) {
+        if (is_string($feature) && $feature !== '') {
+          $normalized[] = strtolower($feature);
+        }
+      }
+      if ($normalized !== []) {
+        $metadata['supported_features'] = array_values(array_unique($normalized));
+      }
     }
 
     return $metadata;

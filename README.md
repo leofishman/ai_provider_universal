@@ -5,28 +5,30 @@ A universal, multi-instance AI provider for the [Drupal AI module](https://www.d
 Unlike single-endpoint providers, this module models your AI infrastructure as **config entities**:
 
 - **Servers** (`ai_universal_server`) — each server is an independent endpoint with its own backend, host, port, API key, timeout, model filter and daily usage limits. Run as many as you want: a local llama.cpp box, an Ollama instance, a vLLM moderation server and a remote Fireworks/OpenAI account can all coexist under one provider.
-- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-image) are **detected dynamically** per model, and each model carries routing metadata (cost per 1M tokens, quality tier, context length, reasoning effort) — all overridable per model in the UI. Quality tiers for known model families (and optionally costs) are prefilled from a site-overridable YAML (`definitions/model_defaults.yml`).
+- **Models** (`ai_universal_model`) — discovered automatically from each server and persisted as config entities, so they are exportable, deployable and overridable. Operation types (chat, embeddings, moderation, rerank, speech-to-text, text-to-speech, text-to-image) are **detected dynamically** per model. Each model also carries routing metadata (cost per 1M tokens, quality tier, context length, reasoning effort) — overridable in the UI — and optional **catalog features** (`tools`, `json_mode`, `reasoning`, …) when the server publishes them. Quality tiers for known model families (and optionally costs) are prefilled from a site-overridable YAML (`definitions/model_defaults.yml`).
 
 New to the terminology? See the [glossary](docs/glossary.md).
 
 ## Backends
 
-Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with ten backends:
+Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with **ten** backends:
 
-- `fireworks` — Fireworks AI serverless inference: fixed default endpoint, Fireworks-specific capability detection, and published pricing + context lengths prefilled at discovery for smart routing.
-- `openai_compatible` — llama.cpp, vLLM, LM Studio, OpenAI, and anything else speaking the OpenAI REST protocol. Capability detection uses llama.cpp's per-model `status.args` (router mode), HuggingFace `pipeline_tag` lookup for `--hf-repo` models, and model-name heuristics. Prefer the dedicated `ollama` backend for local Ollama.
-- `ollama` — Local Ollama (typical port 11434): OpenAI-compatible chat/embeddings; discovery enriches each model via native `/api/show` (context length, family, capabilities) and prefills costs as free for smart routing.
-- `groq` — GroqCloud (api.groq.com): very fast OpenAI-compatible inference; fixed endpoint; pricing + context read live from the catalog for smart routing (free tier works with rate limits).
-- `litellm` — LiteLLM proxy servers. Discovery uses LiteLLM's `/model/info` endpoint: operation types from the structured `mode` field, per-token costs and context window read live — falling back to the plain OpenAI catalog when the key cannot read `/model/info`.
-- `amazee` — **amazee.ai** (managed, region-pinned LiteLLM): same protocol as `litellm`, shipped as its own backend so it appears with amazee-specific guidance in the server form. Point the host at your private `litellm_api_url` and use your amazee.ai key.
-- `openrouter` — OpenRouter unified API (openrouter.ai): 300+ models from OpenAI, Anthropic, Google, Meta and others behind one endpoint. Fixed default endpoint, capability detection from the catalog's `architecture.output_modalities`, and pricing + context length prefilled from the live catalog for smart routing (no hardcoded price table). OpenRouter's embedding models live on a separate catalog endpoint and are not discovered yet — see ROADMAP.
-- `huggingface` — Hugging Face Inference Providers (router.huggingface.co): capability detection from the catalog's output modalities, pricing prefilled from the cheapest live provider offer per model.
-- `ollama_cloud` — Ollama Cloud (ollama.com): plain catalog with bare model ids; routing metadata is filled in manually.
-- `grok` — Grok by xAI: fixed endpoint, basic metadata for grok-2 family.
+| Backend | Typical use | Host/port | Metadata at discovery |
+|---|---|---|---|
+| `openai_compatible` | llama.cpp, vLLM, LM Studio, OpenAI, generic OpenAI REST | required | Context from llama.cpp/vLLM fields; costs usually empty (use `model_defaults` or the UI) |
+| `ollama` | Local Ollama daemon | required (e.g. `http://127.0.0.1:11434`) | `/api/show` enrichment: context, family/capabilities; costs prefilled as **free** |
+| `ollama_cloud` | ollama.com hosted | optional (fixed default) | Bare catalog; fill routing metadata manually |
+| `groq` | GroqCloud (very fast inference) | fixed `api.groq.com/openai/v1` | **Live** pricing + context + `supported_features` from `/v1/models` |
+| `openrouter` | 300+ models, one key | optional (fixed default) | **Live** pricing + context from catalog |
+| `fireworks` | Fireworks serverless | optional (fixed default) | Hardcoded price/context table (not live) |
+| `huggingface` | HF Inference Providers | optional (fixed default) | Live cheapest-provider offer + modalities |
+| `litellm` | Self-hosted LiteLLM proxy | required | `/model/info` mode + costs (fallback: `/v1/models`) |
+| `amazee` | amazee.ai managed LiteLLM | required (`litellm_api_url`) | Same as `litellm` (dedicated UX only) |
+| `grok` | Grok / xAI | fixed `api.x.ai/v1` | Small hardcoded table for grok-2 family |
 
-Full catalog — default endpoints, capability detection sources, pricing/context prefill — and the server configuration reference: [docs/servers-and-models.md](docs/servers-and-models.md).
+Full reference (capability detection, forms, filters, moderation parsers): [docs/servers-and-models.md](docs/servers-and-models.md).
 
-Other modules can contribute native backends (e.g. Anthropic or Gemini) by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — model discovery, capability detection and the multi-instance UI come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md) for a contributor guide with a full walkthrough.
+Other modules can contribute more backends (e.g. native Anthropic/Gemini once inference dispatch lands) by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — multi-server UI and discovery come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md).
 
 ## Requirements
 
@@ -63,17 +65,17 @@ Without the patches the module works, but route/model selects in the AI settings
 ## Setup
 
 1. Enable the module (if you haven't already — see Installation above).
-2. Go to **Configuration → AI → Providers → Universal** and add a server: backend, host/port (local servers) or just the API key (hosted services), timeout, optional model filter and daily usage limits. The **Test connection & list models** button previews what the server reports before you save.
-3. Saving the server runs model discovery; review detected models and adjust per-model operation types and routing metadata if needed.
+2. Go to **Configuration → AI → Providers → Universal** and add a server: backend, host/port (local servers) or just the API key (hosted services with fixed endpoints: OpenRouter, Groq, Fireworks, Hugging Face, Ollama Cloud, Grok/xAI), timeout, optional model filter and daily usage limits. The **Test connection & list models** button previews what the server reports before you save.
+3. Saving the server runs model discovery; review detected models (operation types, costs, context, catalog features) and override routing metadata if needed.
 4. Select the default provider/model per operation type at **Configuration → AI → AI settings** (`/admin/config/ai/settings`).
 
-Discovery can be re-run any time with `drush aip:discover-models [server_id]` (alias `aipdm`) or by re-saving the server.
+Discovery can be re-run any time with `drush aip:discover-models [server_id]` (alias `aipdm`) or by re-saving the server. Re-discovery **never overwrites** costs/tier/context/reasoning you set manually; catalog **features** are always refreshed from the server.
 
 ### Authentication / API keys
 
 Servers authenticate through the [Key](https://www.drupal.org/project/key) module: create a Key entity holding the token and select it on the server. It is sent as an `Authorization: Bearer` header on every request.
 
-- Hosted services (OpenRouter, Hugging Face, Ollama Cloud, Fireworks, amazee.ai) always require a key.
+- Hosted services (OpenRouter, Groq, Hugging Face, Ollama Cloud, Fireworks, Grok/xAI, amazee.ai) always require a key.
 - A LiteLLM proxy started with a `master_key` requires a key for *everything*, including listing models — the connection test on the server form will fail with 401 until a valid key is selected.
 - Plain local servers (llama.cpp, Ollama, LM Studio) usually **don't need a key** — leave the field empty.
 - The fact check submodule needs one extra key for web evidence: a [Tavily](https://tavily.com) API key (also a Key entity), selected in the Fact Check settings — not on a server. Leave it empty to keep verification local-only.

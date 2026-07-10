@@ -186,9 +186,15 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [x] usage-limits: daily reset time/timezone; 0 = pause server; events
       fire once per server per day (not per call); token metric wording.
 - [x] servers-and-models: warning box under Fireworks costs (lookup table,
-      not live).
+      not live); Groq live catalog + supported_features; Ollama dedicated
+      backend; catalog features field on model form.
+- [x] glossary + adding-a-backend + smart-routing: ten backends, live vs
+      table pricing, supported_features vs reasoning effort.
 - [ ] Recommended patches: file the upstream issues in the AI module queue
       and link them from the README.
 - [ ] Hourly limits in README/usage-limits/servers-and-models once the
       feature lands (see UX & platform improvements).
 - [x] smart-routing: savings dashboard moved to Views (ai_router_log view with Page + JSON/REST export displays)
+- [ ] Route filters on catalog features (e.g. require `tools` /
+      `reasoning`) — field is persisted; UI/API ready via
+      `$model->supportsFeature()`.

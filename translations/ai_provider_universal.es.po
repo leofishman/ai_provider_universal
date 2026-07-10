@@ -457,14 +457,54 @@ msgstr "Fireworks"
 msgid "LiteLLM"
 msgstr "LiteLLM"
 
+msgid "Ollama"
+msgstr "Ollama"
+
 msgid "Ollama Cloud"
 msgstr "Ollama Cloud"
+
+msgid "Groq"
+msgstr "Groq"
 
 msgid "Grok"
 msgstr "Grok"
 
+msgid "Grok (xAI)"
+msgstr "Grok (xAI)"
+
 msgid "Amazee"
 msgstr "Amazee"
+
+msgid "Hugging Face"
+msgstr "Hugging Face"
+
+msgid "OpenAI-compatible"
+msgstr "Compatible con OpenAI"
+
+msgid "Catalog features: <em>@features</em>."
+msgstr "Funciones del catálogo: <em>@features</em>."
+
+msgid "none reported"
+msgstr "ninguna reportada"
+
+msgid ""
+"This model reports a <em>reasoning</em> catalog feature. Effort is sent as "
+"<code>reasoning_effort</code> on chat requests when set; leave as default to "
+"use the server-side setting."
+msgstr ""
+"Este modelo reporta la función de catálogo <em>reasoning</em>. El esfuerzo se "
+"envía como <code>reasoning_effort</code> en las solicitudes de chat cuando se "
+"configura; deje el valor predeterminado para usar el ajuste del servidor."
+
+msgid ""
+"Sent as <code>reasoning_effort</code> on chat requests. Leave as default for "
+"non-reasoning models or to keep the server-side setting. (Catalog did not "
+"report a reasoning feature for this model.)"
+msgstr ""
+"Se envía como <code>reasoning_effort</code> en las solicitudes de chat. Deje "
+"el valor predeterminado para modelos sin razonamiento o para mantener el "
+"ajuste del servidor. (El catálogo no reportó la función reasoning para este "
+"modelo.)"
 
 # Commands output
 msgid "aip:discover-models"
@@ -503,9 +543,9 @@ msgid ""
 msgstr ""
 "Proveedor de IA multi-instancia universal. Servidores y modelos como "
 "entidades de configuración, detección dinámica de tipos de operación, "
-"sobrescrituras de capacidades por modelo. Incluye un backend compatible con "
-"OpenAI (llama.cpp, Ollama, vLLM, Fireworks, OpenAI...); otros protocolos "
-"mediante plugins de backend."
+"sobrescrituras de capacidades por modelo. Incluye backends OpenAI-compatible "
+"(llama.cpp, Ollama, Groq, OpenRouter, Fireworks, vLLM, …) y más mediante "
+"plugins de backend."
 
 # From UniversalProvider (Smart Routing grouping)
 msgid "Smart Routing"

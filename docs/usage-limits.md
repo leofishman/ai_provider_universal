@@ -2,7 +2,7 @@
 
 ## Where limits live and why
 
-Each **server** can carry a **daily request limit** and a **daily token limit** (input + output, all its models combined) — that is where the account/budget actually lives (OpenRouter credits, amazee.ai budget, a LiteLLM master key). Set them on the server form under "Usage limits". Leave a limit empty for unlimited; a limit of `0` deliberately blocks the server until the next day (useful to pause a server without deleting it).
+Each **server** can carry a **daily request limit** and a **daily token limit** (input + output, all its models combined) — that is where the account/budget actually lives (OpenRouter credits, Groq free-tier/developer caps, amazee.ai budget, a LiteLLM master key). Set them on the server form under "Usage limits". Leave a limit empty for unlimited; a limit of `0` deliberately blocks the server until the next day (useful to pause a server without deleting it).
 
 Counters stay **per model** per day in the `ai_provider_universal_usage` table; the per-model breakdown is shown in the model overrides section of the server form, the server total in the "Usage limits" section.
 

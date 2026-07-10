@@ -113,9 +113,19 @@ final class GroqTest extends UnitTestCase {
         'cost_input' => 0.05,
         'cost_output' => 0.08,
         'context_length' => 131072,
+        'supported_features' => ['tools', 'json_mode'],
       ],
       $backend->detectModelMetadata($entry),
     );
+
+    $reasoningModel = [
+      'id' => 'openai/gpt-oss-120b',
+      'context_length' => 131072,
+      'pricing' => ['prompt' => '0.00000015', 'completion' => '0.0000006'],
+      'supported_features' => ['tools', 'json_mode', 'structured_outputs', 'reasoning'],
+    ];
+    $meta = $backend->detectModelMetadata($reasoningModel);
+    $this->assertSame(['tools', 'json_mode', 'structured_outputs', 'reasoning'], $meta['supported_features']);
 
     // TTS models may only publish a prompt (per-character) rate.
     $tts = [

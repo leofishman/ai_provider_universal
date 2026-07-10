@@ -19,7 +19,7 @@ Backends can live in this module or in any other module: the plugin discovery pi
 | `getBaseUri($server)` | Absolute base URI, e.g. `https://api.example.com/v1`. Return a constant default when the host field is empty if the service has a fixed endpoint. |
 | `listModels($server)` | One array per model. Each entry MUST have an `id` key (raw model id); include any extra protocol-specific fields — they are passed verbatim to the two detect methods. Throw on connection/auth errors; the discovery UI reports them. |
 | `detectOperationTypes($entry)` | Operation type ids: `chat`, `embeddings`, `moderation`, `rerank`, `speech_to_text`, `text_to_speech`, `text_to_image`. Prefer structured catalog fields over model-name regexes; fall back to `parent::detectOperationTypes()` for the generic name heuristics. |
-| `detectModelMetadata($entry)` | Any subset of `cost_input` / `cost_output` (USD per **million** tokens), `quality_tier` (1–5), `context_length` (tokens). Empty array when nothing can be inferred — the generic defaults in `definitions/model_defaults.yml` (family/size tier guesses, site-maintained costs) then fill the gaps. Values only fill fields that are still unset — re-discovery never clobbers manual edits, so prefilling is always safe. |
+| `detectModelMetadata($entry)` | Any subset of `cost_input` / `cost_output` (USD per **million** tokens), `quality_tier` (1–5), `context_length` (tokens), `supported_features` (string list of catalog flags such as `tools`, `json_mode`, `reasoning`). Empty array when nothing can be inferred — the generic defaults in `definitions/model_defaults.yml` (family/size tier guesses, site-maintained costs) then fill tier/cost gaps. **Costs / tier / context** only fill fields that are still unset (re-discovery never clobbers manual edits). **`supported_features` is always rewritten** on discovery (read-only catalog flags, no UI override). |
 | `getHttpHeaders($server)` | Extra headers for every request to the server (e.g. OpenRouter's attribution headers). Default: none. Not for authentication — that comes from the Key entity. |
 
 ## Walkthrough: the OpenRouter backend
@@ -53,25 +53,36 @@ class MyService extends OpenAiCompatible {
   public function detectModelMetadata(array $modelEntry): array {
     // Read pricing/context from the catalog payload when available: it
     // stays current automatically. Hardcode a table (see Fireworks) only
-    // when the API publishes nothing.
+    // when the API publishes nothing. Optionally pass supported_features
+    // when the catalog lists capability flags (see Groq).
     return [...];
   }
 
 }
 ```
 
+Reference implementations in this module:
+
+| Pattern | Example |
+|---|---|
+| Live catalog pricing + modalities | `OpenRouter`, `Groq` |
+| Fixed endpoint + hardcoded price table | `Fireworks`, `Grok` |
+| Native side-channel enrichment (`/api/show`) | `Ollama` |
+| Proxy structured `/model/info` | `LiteLlm` / `Amazee` |
+
 Notes:
 
 - **Authentication** is inherited: the server entity references a Key entity and `OpenAiCompatible::listModels()` sends it as a Bearer token. Only override if your service uses a different auth scheme.
 - **Streaming, whitelisting/model filters, the admin UI** are not backend concerns — do not reimplement them.
 - If models live on more than one catalog endpoint, override `listModels()`, fetch all of them and merge (each entry still needs `id`).
+- **`supported_features`**: pass lowercase feature ids when the API exposes them. They land on `ai_universal_model` and show as “Catalog features” in the server form. Do not confuse catalog `reasoning` with the model’s **reasoning effort** select (`reasoning_effort` request param).
 - Dependency injection: `OpenAiCompatible` already injects `http_client_factory`, `state` and `key.repository`. Add a constructor + `create()` override only if you need more services.
 
 ## Checklist before opening an MR
 
 - [ ] Plugin class in `src/Plugin/AiServerBackend/`, `#[AiServerBackend]` attribute with translatable label/description.
-- [ ] `detectModelMetadata()` costs are USD per 1M tokens (convert if the API reports per-token prices).
-- [ ] Unit test for the two detect methods (see `tests/src/Unit/Plugin/AiServerBackend/OpenRouterTest.php` — the detect methods are pure, so mocked services suffice).
+- [ ] `detectModelMetadata()` costs are USD per 1M tokens (convert if the API reports per-token prices); optional `supported_features` list when the catalog has flags.
+- [ ] Unit test for the two detect methods (see `tests/src/Unit/Plugin/AiServerBackend/OpenRouterTest.php` or `GroqTest.php` — the detect methods are pure, so mocked services suffice).
 - [ ] Verified against the live API at least once: create a server with the new backend and run `drush aip:discover-models <server_id>`.
 - [ ] `phpstan` (module's `phpstan.neon`), `phpcs --standard=Drupal,DrupalPractice` and `cspell` pass (add product names to `.cspell.json`).
-- [ ] README backend list and ROADMAP updated.
+- [ ] README backend list, [docs/servers-and-models.md](servers-and-models.md) catalog row, glossary if needed, and ROADMAP updated.

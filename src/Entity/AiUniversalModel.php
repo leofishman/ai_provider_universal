@@ -43,6 +43,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'quality_tier',
     'context_length',
     'reasoning',
+    'supported_features',
   ],
   links: [
     'collection' => '/admin/config/ai/providers/universal/models',
@@ -129,10 +130,19 @@ class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInter
    *
    * Translated to the OpenAI-compatible reasoning_effort request parameter
    * by the provider; NULL sends nothing so the server/model default applies.
+   * Distinct from the "reasoning" entry in supported_features, which only
+   * means the catalog says the model can reason.
    *
    * @var string|null
    */
   protected ?string $reasoning = NULL;
+
+  /**
+   * Catalog-reported capability flags (tools, json_mode, reasoning, ...).
+   *
+   * @var string[]
+   */
+  protected array $supported_features = [];
 
   /**
    * {@inheritdoc}
@@ -279,6 +289,39 @@ class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInter
     $allowed = ['none', 'low', 'medium', 'high'];
     $this->reasoning = in_array($reasoning, $allowed, TRUE) ? $reasoning : NULL;
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSupportedFeatures(): array {
+    return $this->supported_features ?? [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSupportedFeatures(array $features): self {
+    $normalized = [];
+    foreach ($features as $feature) {
+      if (!is_string($feature)) {
+        continue;
+      }
+      $feature = strtolower(trim($feature));
+      if ($feature !== '') {
+        $normalized[$feature] = $feature;
+      }
+    }
+    ksort($normalized);
+    $this->supported_features = array_values($normalized);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function supportsFeature(string $feature): bool {
+    return in_array(strtolower($feature), $this->getSupportedFeatures(), TRUE);
   }
 
 }

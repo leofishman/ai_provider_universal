@@ -65,10 +65,12 @@ interface AiServerBackendInterface {
    * @param array $modelEntry
    *   A single entry as returned by listModels().
    *
-   * @return array{cost_input?: float, cost_output?: float, quality_tier?: int, context_length?: int}
+   * @return array{cost_input?: float, cost_output?: float, quality_tier?: int, context_length?: int, supported_features?: string[]}
    *   Any subset of: cost_input / cost_output (USD per million tokens),
-   *   quality_tier (1-5), context_length (tokens). Empty array when the
-   *   backend cannot infer anything.
+   *   quality_tier (1-5), context_length (tokens), supported_features
+   *   (catalog capability flags such as tools, reasoning, json_mode). Empty
+   *   array when the backend cannot infer anything. Features are always
+   *   overwritten on re-discovery (unlike costs/tier/context).
    */
   public function detectModelMetadata(array $modelEntry): array;
 

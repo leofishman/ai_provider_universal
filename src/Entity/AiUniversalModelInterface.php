@@ -126,4 +126,29 @@ interface AiUniversalModelInterface extends ConfigEntityInterface {
    */
   public function setReasoning(?string $reasoning): self;
 
+  /**
+   * Gets catalog-reported capability flags (tools, reasoning, json_mode, ...).
+   *
+   * Populated at discovery from the backend (e.g. Groq supported_features).
+   * Empty when the server does not publish features. Re-discovery refreshes
+   * the list; there is no manual override field.
+   *
+   * @return string[]
+   *   Normalized feature ids (lowercase).
+   */
+  public function getSupportedFeatures(): array;
+
+  /**
+   * Sets the supported feature flags (internal, from discovery).
+   *
+   * @param string[] $features
+   *   Feature ids as reported by the backend catalog.
+   */
+  public function setSupportedFeatures(array $features): self;
+
+  /**
+   * Whether discovery reported a given capability flag.
+   */
+  public function supportsFeature(string $feature): bool;
+
 }

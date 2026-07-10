@@ -188,10 +188,11 @@ class ModelCatalog {
   }
 
   /**
-   * Applies backend-detected metadata to fields the user has not set.
+   * Applies backend-detected metadata to the model entity.
    *
-   * Re-discovery must never clobber manual cost/quality/context edits, so
-   * each value is only written while the entity field is still NULL.
+   * Cost / quality / context are only written while still NULL so re-discovery
+   * never clobbers manual edits. Supported features are always refreshed:
+   * they are pure catalog flags with no UI override.
    */
   protected function applyDetectedMetadata($model, array $metadata): void {
     if ($model->getCostInput() === NULL && isset($metadata['cost_input'])) {
@@ -206,6 +207,8 @@ class ModelCatalog {
     if ($model->getContextLength() === NULL && isset($metadata['context_length'])) {
       $model->setContextLength((int) $metadata['context_length']);
     }
+    // Always rewrite: missing key means the backend reported none.
+    $model->setSupportedFeatures($metadata['supported_features'] ?? []);
   }
 
   /**

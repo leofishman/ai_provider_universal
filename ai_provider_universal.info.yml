@@ -1,6 +1,6 @@
 name: "AI Provider: Universal"
 type: module
-description: "Universal multi-instance AI provider. Servers and models as config entities, dynamic operation-type detection, per-model capability overrides. Ships an OpenAI-compatible backend (llama.cpp, Ollama, vLLM, Fireworks, OpenAI...); other protocols via backend plugins."
+description: "Universal multi-instance AI provider. Servers and models as config entities, dynamic operation-type detection, per-model capability overrides. Ships ten OpenAI-compatible backends (Ollama, Groq, OpenRouter, Fireworks, llama.cpp/vLLM, …); other protocols via backend plugins."
 core_version_requirement: ^11.1 || ^12
 package: AI Providers
 dependencies:

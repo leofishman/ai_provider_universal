@@ -346,10 +346,19 @@ class AiUniversalServerForm extends EntityForm {
       // Use model entity id as form key (stable).
       $key = $model->id();
 
+      $features = $model->getSupportedFeatures();
+      $feature_label = $features ? implode(', ', $features) : $this->t('none reported');
+
       $element[$key] = [
         '#type'  => 'details',
         '#title' => $raw_id,
         '#open'  => FALSE,
+      ];
+
+      $element[$key]['supported_features'] = [
+        '#markup' => $this->t('<p>Catalog features: <em>@features</em>.</p>', [
+          '@features' => $feature_label,
+        ]),
       ];
 
       $element[$key]['operation_types'] = [
@@ -392,10 +401,13 @@ class AiUniversalServerForm extends EntityForm {
         '#default_value' => $model->getQualityTier(),
       ];
 
+      $reasoning_help = $model->supportsFeature('reasoning')
+        ? $this->t('This model reports a <em>reasoning</em> catalog feature. Effort is sent as <code>reasoning_effort</code> on chat requests when set; leave as default to use the server-side setting.')
+        : $this->t('Sent as <code>reasoning_effort</code> on chat requests. Leave as default for non-reasoning models or to keep the server-side setting. (Catalog did not report a reasoning feature for this model.)');
       $element[$key]['reasoning'] = [
         '#type'          => 'select',
         '#title'         => $this->t('Reasoning effort'),
-        '#description'   => $this->t('Sent as <code>reasoning_effort</code> on chat requests. Leave as default for non-reasoning models or to keep the server-side setting.'),
+        '#description'   => $reasoning_help,
         '#options'       => [
           'none'   => $this->t('None (disable thinking)'),
           'low'    => $this->t('Low'),

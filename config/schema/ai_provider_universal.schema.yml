@@ -97,3 +97,9 @@ ai_provider_universal.model.*:
       type: string
       label: 'Reasoning effort (none/low/medium/high, empty = server default)'
       nullable: true
+    supported_features:
+      type: sequence
+      label: 'Supported features from the server catalog (tools, reasoning, json_mode, ...)'
+      sequence:
+        type: string
+        label: 'Feature'

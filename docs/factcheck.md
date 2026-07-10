@@ -116,7 +116,7 @@ For fact-checking the key is **specialization + low per-claim cost**, because yo
 | Role            | Recommended (local / self-hosted)          | Why (cost/benefit)                          | Alternative (API)          |
 |-----------------|--------------------------------------------|---------------------------------------------|----------------------------|
 | **Checker**     | `bespoke-minicheck` (or any MiniCheck)    | Tiny specialized NLI model. Extremely cheap, excellent at SUPPORTED/NO for claims. | — (local is best here)    |
-| **Extractor**   | Qwen2.5-14B / Gemma-2-27B / Llama-3.1-8B  | Good JSON/structured output at low cost. Use 7-14B quantized for speed. | Groq Llama-3.1-70B (very fast) |
+| **Extractor**   | Qwen2.5-14B / Gemma-2-27B / Llama-3.1-8B  | Good JSON/structured output at low cost. Use 7-14B quantized for speed. | Groq (`groq` backend) Llama-3.3-70B / 3.1-8B-instant (very fast) |
 | **AI-detection** (detector) | Same as checker or any cheap 7B model | Heuristic only — no need for a strong model. | Use checker as fallback |
 | **Evidence embedding** | nomic-embed-text, bge-large-en-v1.5     | Strong retrieval quality vs size. Use in your AI Search index. | —                         |
 | **General fallback** | Qwen2.5-32B or Gemma-2-27B               | Solid reasoning when MiniCheck is not enough or for extractor. | Fireworks or Together Qwen-72B |

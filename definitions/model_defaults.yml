@@ -42,7 +42,10 @@ quality_tiers:
     0: 1
 
 # Costs in USD per 1 million tokens, applied when the backend publishes no
-# pricing (plain openai_compatible servers, ollama_cloud, ...). Backends
+# pricing (plain openai_compatible servers, ollama_cloud, grok without a
+# matching table row, ...). Live-catalog backends (openrouter, groq,
+# litellm, huggingface) and free local ollama usually set costs themselves.
+# Backends
 # that know their prices win over this map (openrouter/litellm read them
 # live; fireworks ships its own table in Fireworks.php). Shipped empty on
 # purpose: list prices go stale and silently skew smart-routing cost
