@@ -72,3 +72,8 @@ public function onPreCall(ModelPreCallEvent $event): void {
 ```
 
 Unlike the threshold events above, this event fires on every call (no deduplication) — it is a gate, not a notification.
+
+Related events on the main module (full table in [smart-routing.md](smart-routing.md#events)):
+
+- `ModelPostCallEvent` — after a successful chat call (tokens + latency) for custom telemetry.
+- `ModelsDiscoveredEvent` — during discovery, before models are saved, to inject site pricing or drop models.

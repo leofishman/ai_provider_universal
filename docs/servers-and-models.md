@@ -80,7 +80,7 @@ Each server's edit form has a **"Models: capabilities and routing metadata"** se
 | Reasoning effort | Sent as the OpenAI-compatible `reasoning_effort` request parameter on every chat call to this model (`none`/`low`/`medium`/`high`). Leave as "Server default" to send nothing. Servers that don't support the parameter simply ignore it. Distinct from the catalog `reasoning` *feature* flag (capability, not effort level). |
 | Sampling overrides | Optional `temperature`, `top_p`, `frequency_penalty`, `presence_penalty`, sent on every chat call to this model, overriding the generic provider configuration. Empty fields send nothing (server default). Prefilled at discovery from the vendor recommendations in `model_defaults.yml` when the family is known; your edits are never clobbered. To tune the *same* model differently per use case, create a second model entity with the same raw model id and different values — smart routing and the AI core's per-operation defaults treat them as independent candidates. |
 
-**Smart routing** (`RouteDecider`) uses cost, quality tier and context length — see [docs/smart-routing.md](smart-routing.md). Catalog features are stored for UI/API consumers (`$model->supportsFeature('tools')`, etc.) and are not yet a route filter. Reasoning effort is applied by the provider on chat calls, not by the route decider.
+**Smart routing** (`RouteDecider`) uses cost, quality tier, context length and optional **required catalog features** on each route — see [docs/smart-routing.md](smart-routing.md). Catalog features also remain queryable in code (`$model->supportsFeature('tools')`, etc.). Reasoning effort and sampling overrides are applied by the provider on chat calls, not by the route decider.
 
 ## Model filtering
 

@@ -47,11 +47,14 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
 2. **Pick the required tier**: the route's simple or complex tier,
    depending on step 1.
 3. **Load candidates** (`candidateModels()`): the route's explicit list, or
-   every model, filtered to those supporting the operation type — and with
-   one more cut: **models on a server that has exhausted its daily usage
-   limit are dropped from the pool**, so a route naturally fails over to
-   another provider once a server maxes out (see
-   [docs/usage-limits.md](usage-limits.md)).
+   every model, filtered to those supporting the operation type, then:
+   - **required catalog features**: if the route lists any (e.g. `tools`,
+     `reasoning`), every candidate must report all of them in its discovered
+     `supported_features` (models on servers that publish no features are
+     excluded when any feature is required);
+   - **usage limits**: models on a server that has exhausted a daily limit
+     drop out, so the route fails over to another provider (see
+     [docs/usage-limits.md](usage-limits.md)).
 4. **Filter eligible candidates**: a model survives if (a) its context
    length can fit the estimated prompt tokens **+ 512 assumed output
    tokens** (models with no known context length are never excluded on this
@@ -154,7 +157,7 @@ submodule is disabled.
 
 | Event | When | Subscribers can |
 |---|---|---|
-| `ModelPreCallEvent` (`ai_provider_universal.model_pre_call`) | Before every inference call, after smart-route resolution — the model id is always a concrete `ai_universal_model` entity id. | Block the call (`setBlocked($reason)`: custom quota schemes, business hours, compliance) or swap the model (`setModelId()`). The usage-limit enforcement in this submodule is a plain service call, but your own policies belong here. |
+| `ModelPreCallEvent` (`ai_provider_universal.model_pre_call`) | Before every inference call, after smart-route resolution — the model id is always a concrete `ai_universal_model` entity id. | Block the call (`block($reason)`: custom quota schemes, business hours, compliance) or swap the model (`setModelId()`). The usage-limit enforcement in this submodule is a plain service call, but your own policies belong here. |
 | `ModelPostCallEvent` (`ai_provider_universal.model_post_call`) | After every successful chat call. | Read model id, token usage and latency (ms) for custom telemetry, cost alerting or dashboards. Read-only; failed calls dispatch `AiExceptionEvent` instead. |
 | `ModelsDiscoveredEvent` (`ai_provider_universal.models_discovered`) | During discovery, after detection and defaults, before persistence. | Enrich or correct the discovered set via `getModels()`/`setModels()` — inject site pricing, adjust tiers, drop models — without writing a backend plugin. Manual UI edits are still never clobbered. |
 | `AiExceptionEvent` (AI core) | When a provider call throws. | Implement failover: catch the failure, re-issue against another provider/model. This is the AI-core seam — the module deliberately ships no failover of its own. |
