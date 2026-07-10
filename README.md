@@ -119,12 +119,27 @@ Evidence comes from a cascade — your own AI Search index first, then the web v
 
 Full details — pipeline, scoring, recipes, settings reference, extension points: [docs/factcheck.md](docs/factcheck.md).
 
-### Content governance (planned)
+### Content governance
 
-How this module will integrate with **AI Guardrails** (inference safety), an
-async **content review** queue (scan profiles, thresholds, events for ECA), and
-**provenance / disclosure** (known AI origin — not detector-as-compliance). Empty
-config stays a no-op; `node_save` is never blocked for review. Design and phases:
+Integration with **AI Guardrails** (inference safety), an async **content
+review** queue (scan profiles, thresholds, events for ECA — planned), and
+**provenance / disclosure** (known AI origin — not detector-as-compliance).
+Empty config stays a no-op; `node_save` is never blocked for review.
+
+Already available (all off/empty by default, configure at
+*/admin/config/ai/providers/universal/governance*):
+
+- **Default Guardrail set** attached to calls served by this provider when
+  the caller sent none; smart routes can override it per route.
+- **Provenance events** (`AiContentProvenanceEvent`): an AI-origin fact per
+  successful generation, plus `ProvenanceRecorder::recordAssociation()` for
+  workflows that write AI output into entities. ECA/Workflow own the policy
+  (disclosure, AI Act Art. 50 exemptions).
+- Two post-generate Guardrail plugins for AI core sets: **AI disclosure
+  suffix** (visible disclaimer) and **AI origin marker** (invisible
+  machine-readable marker that survives copy-paste into content).
+
+Design, Art. 50 mapping and remaining phases:
 [docs/content-governance.md](docs/content-governance.md).
 
 ## Relation to ai_provider_llama_cpp

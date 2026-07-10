@@ -107,21 +107,25 @@ Make it **configurable** which AI core **Guardrail set** applies on paths
 this module owns, without forcing every caller and without overwriting a set
 already attached by chatbot / Automators / custom code.
 
-### Configuration (planned)
+### Configuration (landed)
 
 | Setting | Scope | Meaning |
 |---|---|---|
-| Default Guardrail set | Provider / factcheck settings | Applied when `ChatInput` has no set |
-| Per smart route | `ai_universal_route` (optional) | Set for that route’s chat calls |
+| Default Guardrail set | `/admin/config/ai/providers/universal/governance` | Applied when the input has no set |
+| Per smart route | `ai_universal_route` `guardrail_set` | Set for that route’s calls; beats the default |
 | Optional tool sets | Factcheck extract/detect (later) | Stricter sets for internal LLM tools |
 
-Implementation sketch:
+Implementation (`GuardrailDefaultsSubscriber`):
 
-1. If `InputInterface::getGuardrailSet()` is already non-null → **leave it**.
-2. Else if configured id is non-empty →
-   `AiGuardrailHelper::applyGuardrailSetToChatInput($id, $input)`.
-3. AI core’s `GuardrailsEventSubscriber` runs on
-   `PreGenerateResponseEvent` / `PostGenerateResponseEvent` as today.
+1. `PreGenerateResponseEvent` at priority 150 — above AI core’s global-sets
+   subscriber (100), so “caller attached nothing” is checked before
+   site-wide globals are prepended, and above the evaluating
+   `GuardrailsEventSubscriber` (0).
+2. Only for `providerId === 'universal'`. If the input already has a set →
+   **leave it** (works on both the ai 1.4 multi-set API and the 1.3
+   single-set API).
+3. Model id `route__<id>` → that route’s `guardrail_set` wins; else the
+   module default from settings. Missing/deleted set ids are a silent no-op.
 
 Document for operators: **PII, topics, injection, Bedrock → configure in AI
 Guardrails UI; pick the set here.** We do not ship duplicate PII plugins.
@@ -130,12 +134,12 @@ Guardrails UI; pick the set here.** We do not ship duplicate PII plugins.
 
 Only when they reuse our services and fit generate-time semantics:
 
-| Plugin | Phase | Configurable | Behaviour |
+| Plugin | Status | Configurable | Behaviour |
 |---|---|---|---|
-| Disclosure suffix | post | Text, tags filter | `RewriteOutputResult` appends a disclaimer (Art. 50(1) helper) |
-| Machine-readable marker | post | Marker template | `RewriteOutputResult` embeds a machine-readable AI-origin marker (e.g. HTML comment / `data-` attribute) in outputs destined for publication — survives copy-paste into a body field, feeds render marking below |
-| AI-likelihood (light) | post | Score threshold | `StopResult` with score (opt-in; costly) |
-| Factcheck (light) | post | Min support score, max claims | `StopResult` if verification fails (opt-in; costly) |
+| Disclosure suffix (`universal_disclosure_suffix`) | **landed** | Suffix text | `RewriteOutputResult` appends a disclaimer (Art. 50(1) helper); skips streamed output; never doubles up when escalation re-runs the set |
+| Machine-readable marker (`universal_ai_origin_marker`) | **landed** | Marker text | `RewriteOutputResult` appends an invisible HTML-comment marker (IPTC `digitalSourceType=trainedAlgorithmicMedia`) — survives copy-paste into a body field, feeds render marking below |
+| AI-likelihood (light) | phase 4 (rest) | Score threshold | `StopResult` with score (opt-in; costly) |
+| Factcheck (light) | phase 4 (rest) | Min support score, max claims | `StopResult` if verification fails (opt-in; costly) |
 
 Guardrails are the **in-band** execution mechanism (touch the output while it
 exists); everything after the output lands in content is events + fields, and
@@ -253,7 +257,13 @@ lives in **ECA / editorial**, not in a Guardrail `Stop`.
    article” — that is content review (`source: scheduled_scan` /
    detector), a **hint**, not legal origin.
 
-### Payload (illustrative)
+### Payload (landed: `AiContentProvenanceEvent`)
+
+Emitted by `ProvenanceRecorder`: automatically after each successful
+generation when **Emit content provenance events** is on (governance
+settings), and on demand via the `ai_provider_universal.provenance`
+service's `recordAssociation($entity, $field, $model_id, $operation)` for
+workflows that write AI output into entities.
 
 - `source`: `generation` | `association` | `detector` (last only if we ever
   dual-purpose; prefer separate content_review event)
@@ -374,14 +384,14 @@ replace *how* it looks; the recipe guarantees *that* it shows by default.
 
 Aligned with [ROADMAP.md](../ROADMAP.md) section **Content governance**.
 
-| Phase | Deliverable | Depends on |
+| Phase | Deliverable | Status |
 |---|---|---|
-| **0** | This doc + ROADMAP + glossary | — |
-| **1** | Optional Guardrail set attach (global ± per route); no overwrite; tests; short operator note | AI core Guardrails API |
-| **2** | Scan profiles + enqueue + queue worker + threshold event + result entity | Factcheck services |
-| **3** | Provenance event + field recipe (origin/disclosure/exemption taxonomy) + render marking (`<meta>` + visible label at first exposure) + ECA examples | Post-call / association hooks |
-| **4** | Optional `AiGuardrail` plugins (disclosure; machine-readable marker; light likelihood/factcheck) reusing services | Phase 1; factcheck services |
-| **5** | Scan checks as plugins; refine per-field UI | Phase 2 |
+| **0** | This doc + ROADMAP + glossary | done |
+| **1** | Optional Guardrail set attach (global ± per route); no overwrite; tests; short operator note | **done** (`GuardrailDefaultsSubscriber`, governance settings form, route `guardrail_set`) |
+| **2** | Scan profiles + enqueue + queue worker + threshold event + result entity | pending (factcheck services) |
+| **3** | Provenance event + field recipe (origin/disclosure/exemption taxonomy) + render marking (`<meta>` + visible label at first exposure) + ECA examples | **event landed** (`AiContentProvenanceEvent`, `ProvenanceRecorder`); field recipe + render marking pending |
+| **4** | Optional `AiGuardrail` plugins (disclosure; machine-readable marker; light likelihood/factcheck) reusing services | **disclosure + marker landed**; light likelihood/factcheck pending |
+| **5** | Scan checks as plugins; refine per-field UI | pending (phase 2 first) |
 
 Each phase stays mergeable alone; empty config = no behaviour change.
 

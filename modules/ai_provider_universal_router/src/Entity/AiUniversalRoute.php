@@ -51,6 +51,7 @@ use Drupal\ai_provider_universal_router\AiUniversalRouteListBuilder;
     'factcheck_min_score',
     'verifier_model',
     'required_features',
+    'guardrail_set',
   ],
   links: [
     'add-form' => '/admin/config/ai/providers/universal/routes/add',
@@ -139,6 +140,16 @@ class AiUniversalRoute extends ConfigEntityBase implements AiUniversalRouteInter
   protected array $required_features = [];
 
   /**
+   * AI core Guardrail set attached to this route's calls ('' = default).
+   *
+   * Only applied when the caller attached no set; overrides the provider's
+   * module-wide default set.
+   *
+   * @var string
+   */
+  protected string $guardrail_set = '';
+
+  /**
    * {@inheritdoc}
    */
   public function getRequiredFeatures(): array {
@@ -150,6 +161,13 @@ class AiUniversalRoute extends ConfigEntityBase implements AiUniversalRouteInter
    */
   public function getVerifierModel(): string {
     return $this->verifier_model ?? '';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getGuardrailSet(): string {
+    return $this->guardrail_set ?? '';
   }
 
   /**

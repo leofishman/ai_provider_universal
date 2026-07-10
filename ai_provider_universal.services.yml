@@ -25,3 +25,19 @@ services:
     autowire: true
     arguments:
       $transliteration: '@transliteration'
+
+  Drupal\ai_provider_universal\EventSubscriber\GuardrailDefaultsSubscriber:
+    class: Drupal\ai_provider_universal\EventSubscriber\GuardrailDefaultsSubscriber
+    autowire: true
+    tags:
+      - { name: event_subscriber }
+
+  Drupal\ai_provider_universal\Service\ProvenanceRecorder:
+    class: Drupal\ai_provider_universal\Service\ProvenanceRecorder
+    autowire: true
+    tags:
+      - { name: event_subscriber }
+
+  # Stable alias for workflows/ECA code asserting AI origin on entities.
+  ai_provider_universal.provenance:
+    alias: Drupal\ai_provider_universal\Service\ProvenanceRecorder

@@ -185,12 +185,16 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 
 ### Phase 1 — Guardrail set attach
 
-- [ ] Optional default Guardrail set (provider / settings) applied only when
-      `ChatInput` has no set yet (`AiGuardrailHelper`; do not overwrite).
-- [ ] Optional Guardrail set on smart routes (`ai_universal_route`).
-- [ ] Kernel/unit tests: apply / skip-if-present / empty no-op.
-- [ ] Operator note: PII/topics/injection live in AI Guardrails UI; we only
-      select which set to attach.
+- [x] Optional default Guardrail set applied only when the input has no set
+      yet (`GuardrailDefaultsSubscriber` on PreGenerate at priority 150,
+      before core's global sets; never overwrites; ai 1.3/1.4 compatible).
+      Settings form at `/admin/config/ai/providers/universal/governance`.
+- [x] Optional Guardrail set on smart routes (`ai_universal_route`
+      `guardrail_set`; route setting beats the provider-wide default).
+- [x] Kernel tests: apply / skip-if-present / empty no-op / other provider
+      ignored / route override / route fallback / missing set no-op.
+- [x] Operator note: PII/topics/injection live in AI Guardrails UI; we only
+      select which set to attach (form description + README).
 
 ### Phase 2 — Content review queue
 
@@ -207,8 +211,10 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 
 ### Phase 3 — Provenance / disclosure
 
-- [ ] Provenance event on known AI generation / association (not detector as
-      legal origin); payload without full prompt/response by default.
+- [x] Provenance event on known AI generation / association (not detector as
+      legal origin); payload without full prompt/response by default
+      (`AiContentProvenanceEvent`; `ProvenanceRecorder` re-emits post-call
+      when `emit_provenance` is on, `recordAssociation()` for workflows).
 - [ ] Docs: ECA examples (banner field, moderation state, needs_review until
       editor asserts responsibility); optional recipe for origin / disclosure
       / exemption fields.
@@ -221,9 +227,11 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 
 ### Phase 4 — Optional AiGuardrail plugins
 
-- [ ] Post-generate **disclosure suffix** (`RewriteOutputResult`).
-- [ ] Post-generate **machine-readable marker** (`RewriteOutputResult`) for
-      outputs destined for publication.
+- [x] Post-generate **disclosure suffix** (`universal_disclosure_suffix`,
+      `RewriteOutputResult`; skips streamed output; never doubles up).
+- [x] Post-generate **machine-readable marker** (`universal_ai_origin_marker`,
+      IPTC digitalSourceType HTML comment) for outputs destined for
+      publication.
 - [ ] Optional light **AI-likelihood** / **factcheck** Guardrail plugins
       reusing factcheck services (`NonDeterministic` / `NonStreamable` as
       needed); off by default (latency/cost).
