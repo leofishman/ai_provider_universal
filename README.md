@@ -88,9 +88,11 @@ With `ai_provider_universal_router` enabled, a **Smart Route** is a virtual mode
 
 A route can also name a **verifier model**: before returning, that model (typically a free local one) judges the answer with a single yes/no call, and a rejection retries the request once with the best candidate — a lightweight alternative to full fact-checking that enables local-first/verify/escalate routing at zero cost.
 
-Complexity classification is heuristic by default (free), and can optionally delegate to a **local classifier model** — including a fine-tuned one — for the prompts heuristics consider simple: set `classifier_model` in `ai_provider_universal_router.settings` to a model entity id (empty = heuristics only; any classifier failure falls back to heuristics).
+Complexity classification is heuristic by default (free), and can optionally delegate to a **local classifier model** — including a fine-tuned one — for the prompts heuristics consider simple: pick it at **Smart routing settings** (`/admin/config/ai/providers/universal/routes/settings`; empty = heuristics only, any classifier failure falls back to heuristics). Routes can also require **catalog features** (`tools`, `reasoning`, ...) so only capable candidates are considered.
 
-Every decision lands in a log table exposed to Views: a packaged **AI routing decisions** report at `/admin/reports/ai-router-decisions` shows timestamp, complexity, chosen model, token estimate and chosen vs. worst-case cost, with exposed filters. The savings dashboard at **Smart Routes → Routing decisions** aggregates estimated spend vs. always using the priciest candidate.
+Every tunable **LLM prompt is admin-editable**: the six fact-check prompts on the Fact check settings form and the two routing prompts (classifier, route verifier) on the Smart routing settings form. Empty fields keep the shipped defaults; overrides are validated to preserve the sprintf token order.
+
+Every decision lands in a log table exposed to Views: a packaged **AI routing decisions** report at `/admin/reports/ai-router-decisions` shows timestamp, complexity, chosen model, token estimate and chosen vs. worst-case cost, with exposed filters. The savings dashboard at **Reports → Routing decisions** (`/admin/reports/ai-router-savings`) aggregates estimated spend vs. always using the priciest candidate.
 
 Full details — decision algorithm, route configuration, fact-check escalation, dashboard reference: [docs/smart-routing.md](docs/smart-routing.md).
 

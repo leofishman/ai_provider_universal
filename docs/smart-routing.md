@@ -104,8 +104,8 @@ sourcing: [docs/factcheck.md](factcheck.md).
 
 ## Savings dashboard
 
-**Configuration → AI → Providers → Universal → Smart Routes → Routing
-decisions** (`/admin/config/ai/providers/universal/routes/log`) shows the
+**Reports → Routing decisions** (`/admin/reports/ai-router-savings`, also
+reachable via the action button on the Smart Routes page) shows the
 last 100 routing decisions and running totals: request count, estimated
 spend, and estimated savings versus always using the most expensive
 candidate (`est_cost_worst - est_cost`, summed).

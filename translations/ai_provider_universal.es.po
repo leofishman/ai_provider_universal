@@ -475,9 +475,6 @@ msgstr "Grok (xAI)"
 msgid "Amazee"
 msgstr "Amazee"
 
-msgid "Hugging Face"
-msgstr "Hugging Face"
-
 msgid "OpenAI-compatible"
 msgstr "Compatible con OpenAI"
 
