@@ -572,15 +572,26 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $model_id = $this->preCallGate($model_id, 'chat');
     $this->setActiveServerForModel($model_id);
 
-    // Per-model reasoning override. The parent builds the request payload
-    // from $this->configuration, so merging here reaches every chat call.
-    // "reasoning_effort" is the OpenAI-compatible parameter (OpenAI, vLLM,
-    // llama.cpp, Fireworks); lenient local servers ignore it when unsupported.
+    // Per-model request overrides (reasoning effort and sampling). The
+    // parent builds the request payload from $this->configuration, so
+    // merging here reaches every chat call. All are OpenAI-compatible
+    // parameters (OpenAI, vLLM, llama.cpp, Fireworks); lenient local
+    // servers ignore them when unsupported.
     $model = $this->entityTypeManager->getStorage('ai_universal_model')->load($model_id);
-    $had_reasoning = array_key_exists('reasoning_effort', $this->configuration);
-    $previous_reasoning = $this->configuration['reasoning_effort'] ?? NULL;
-    if ($model instanceof AiUniversalModelInterface && ($effort = $model->getReasoning()) !== NULL) {
-      $this->configuration['reasoning_effort'] = $effort;
+    $overrides = [];
+    if ($model instanceof AiUniversalModelInterface) {
+      if (($effort = $model->getReasoning()) !== NULL) {
+        $overrides['reasoning_effort'] = $effort;
+      }
+      $overrides += $model->getSampling();
+    }
+    $previous_config = [];
+    foreach ($overrides as $param => $value) {
+      $previous_config[$param] = [
+        array_key_exists($param, $this->configuration),
+        $this->configuration[$param] ?? NULL,
+      ];
+      $this->configuration[$param] = $value;
     }
 
     // Usage limits are enforced per server by the router submodule; without
@@ -607,11 +618,13 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       return $output;
     }
     finally {
-      if ($had_reasoning) {
-        $this->configuration['reasoning_effort'] = $previous_reasoning;
-      }
-      else {
-        unset($this->configuration['reasoning_effort']);
+      foreach ($previous_config as $param => [$had, $value]) {
+        if ($had) {
+          $this->configuration[$param] = $value;
+        }
+        else {
+          unset($this->configuration[$param]);
+        }
       }
       $this->clearActiveServer();
     }

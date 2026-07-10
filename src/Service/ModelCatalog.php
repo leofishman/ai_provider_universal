@@ -59,6 +59,9 @@ class ModelCatalog {
         $metadata['quality_tier'] = $tier;
       }
       $metadata += ModelDefaults::guessCosts($rawId);
+      if (($sampling = ModelDefaults::guessSampling($rawId)) !== []) {
+        $metadata['sampling'] = $sampling;
+      }
 
       $discovered[$entityId] = [
         'raw' => $rawId,
@@ -209,6 +212,9 @@ class ModelCatalog {
     }
     // Always rewrite: missing key means the backend reported none.
     $model->setSupportedFeatures($metadata['supported_features'] ?? []);
+    if ($model->getSampling() === [] && isset($metadata['sampling'])) {
+      $model->setSampling($metadata['sampling']);
+    }
   }
 
   /**

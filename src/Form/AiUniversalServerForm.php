@@ -418,6 +418,46 @@ class AiUniversalServerForm extends EntityForm {
         '#default_value' => $model->getReasoning(),
       ];
 
+      $sampling = $model->getSampling();
+      $element[$key]['sampling'] = [
+        '#type'  => 'details',
+        '#title' => $this->t('Sampling overrides'),
+        '#open'  => $sampling !== [],
+        '#description' => $this->t('Sent on every chat request to this model, overriding the generic provider settings. Leave empty to use the server default. Duplicate a model entity with different values to tune the same model per use case.'),
+      ];
+      $element[$key]['sampling']['temperature'] = [
+        '#type'          => 'number',
+        '#title'         => $this->t('Temperature'),
+        '#default_value' => $sampling['temperature'] ?? NULL,
+        '#min'           => 0,
+        '#max'           => 2,
+        '#step'          => 'any',
+      ];
+      $element[$key]['sampling']['top_p'] = [
+        '#type'          => 'number',
+        '#title'         => $this->t('Top P'),
+        '#default_value' => $sampling['top_p'] ?? NULL,
+        '#min'           => 0,
+        '#max'           => 1,
+        '#step'          => 'any',
+      ];
+      $element[$key]['sampling']['frequency_penalty'] = [
+        '#type'          => 'number',
+        '#title'         => $this->t('Frequency penalty'),
+        '#default_value' => $sampling['frequency_penalty'] ?? NULL,
+        '#min'           => -2,
+        '#max'           => 2,
+        '#step'          => 'any',
+      ];
+      $element[$key]['sampling']['presence_penalty'] = [
+        '#type'          => 'number',
+        '#title'         => $this->t('Presence penalty'),
+        '#default_value' => $sampling['presence_penalty'] ?? NULL,
+        '#min'           => -2,
+        '#max'           => 2,
+        '#step'          => 'any',
+      ];
+
       $usage = $this->usageTracker->getToday($key);
       $element[$key]['usage_today'] = [
         '#markup' => $this->t('<p>Usage today: @requests requests, @tokens tokens.</p>', [
@@ -626,6 +666,13 @@ class AiUniversalServerForm extends EntityForm {
 
       $reasoning = $values['reasoning'] ?? '';
       $model->setReasoning($reasoning === '' ? NULL : (string) $reasoning);
+
+      // setSampling() drops empty/non-numeric values, so cleared fields
+      // fall back to the server default.
+      $model->setSampling(array_filter(
+        $values['sampling'] ?? [],
+        static fn ($v) => $v !== '' && $v !== NULL,
+      ));
 
       $model->save();
     }

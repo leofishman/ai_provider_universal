@@ -151,4 +151,27 @@ interface AiUniversalModelInterface extends ConfigEntityInterface {
    */
   public function supportsFeature(string $feature): bool;
 
+  /**
+   * Gets per-model sampling overrides for chat requests.
+   *
+   * Prefilled at discovery from definitions/model_defaults.yml (vendor
+   * documented recommendations) when the family is known; editable per
+   * model in the UI. Applied to every chat call, overriding the generic
+   * provider configuration; an absent key sends nothing so the server
+   * default applies.
+   *
+   * @return array{temperature?: float, top_p?: float, frequency_penalty?: float, presence_penalty?: float}
+   *   Subset of the supported sampling parameters.
+   */
+  public function getSampling(): array;
+
+  /**
+   * Sets the sampling overrides.
+   *
+   * @param array $sampling
+   *   Map of temperature / top_p / frequency_penalty / presence_penalty.
+   *   Unknown keys and non-numeric values are dropped.
+   */
+  public function setSampling(array $sampling): self;
+
 }

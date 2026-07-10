@@ -44,6 +44,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'context_length',
     'reasoning',
     'supported_features',
+    'sampling',
   ],
   links: [
     'collection' => '/admin/config/ai/providers/universal/models',
@@ -143,6 +144,23 @@ class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInter
    * @var string[]
    */
   protected array $supported_features = [];
+
+  /**
+   * Sampling parameter overrides sent on chat requests.
+   *
+   * @var array<string, float>
+   */
+  protected array $sampling = [];
+
+  /**
+   * Sampling keys accepted by setSampling(), OpenAI-compatible names.
+   */
+  protected const SAMPLING_KEYS = [
+    'temperature',
+    'top_p',
+    'frequency_penalty',
+    'presence_penalty',
+  ];
 
   /**
    * {@inheritdoc}
@@ -322,6 +340,27 @@ class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInter
    */
   public function supportsFeature(string $feature): bool {
     return in_array(strtolower($feature), $this->getSupportedFeatures(), TRUE);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSampling(): array {
+    return $this->sampling ?? [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSampling(array $sampling): self {
+    $normalized = [];
+    foreach (self::SAMPLING_KEYS as $key) {
+      if (isset($sampling[$key]) && is_numeric($sampling[$key])) {
+        $normalized[$key] = (float) $sampling[$key];
+      }
+    }
+    $this->sampling = $normalized;
+    return $this;
   }
 
 }

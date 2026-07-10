@@ -103,3 +103,19 @@ ai_provider_universal.model.*:
       sequence:
         type: string
         label: 'Feature'
+    sampling:
+      type: mapping
+      label: 'Sampling overrides sent on chat requests (absent key = server default)'
+      mapping:
+        temperature:
+          type: float
+          label: 'Temperature'
+        top_p:
+          type: float
+          label: 'Top P'
+        frequency_penalty:
+          type: float
+          label: 'Frequency penalty'
+        presence_penalty:
+          type: float
+          label: 'Presence penalty'

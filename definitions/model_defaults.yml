@@ -58,3 +58,15 @@ quality_tiers:
 #   'llama3.*70b': { input: 0.90, output: 0.90 }
 #   'my-local-.*': { input: 0, output: 0 }
 costs: {}
+
+# Vendor-documented sampling recommendations, applied at discovery when the
+# model entity has no sampling overrides yet. Same regex matching as above;
+# first match wins. Only families whose vendor publishes explicit
+# recommendations are listed — everything else stays on the server default.
+# Sources: Qwen3 and DeepSeek-R1 model cards (both recommend 0.6/0.95 and
+# warn against greedy decoding for thinking modes); gpt-oss OpenAI docs
+# (temperature 1.0, top_p 1.0).
+sampling:
+  'qwen3': { temperature: 0.6, top_p: 0.95 }
+  'deepseek-r\d': { temperature: 0.6, top_p: 0.95 }
+  'gpt-oss': { temperature: 1.0, top_p: 1.0 }

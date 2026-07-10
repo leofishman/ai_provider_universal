@@ -72,6 +72,22 @@ final class ModelDefaults {
   }
 
   /**
+   * Guesses vendor-recommended sampling parameters from the raw model id.
+   *
+   * @return array
+   *   Any subset of temperature / top_p / frequency_penalty /
+   *   presence_penalty; empty when the family publishes no recommendation.
+   */
+  public static function guessSampling(string $raw_model_id): array {
+    foreach (self::table()['sampling'] ?? [] as $pattern => $sampling) {
+      if (is_array($sampling) && preg_match('{' . $pattern . '}i', $raw_model_id)) {
+        return $sampling;
+      }
+    }
+    return [];
+  }
+
+  /**
    * Loads and caches the YAML table, applying the site override file.
    */
   private static function table(): array {
@@ -98,6 +114,7 @@ final class ModelDefaults {
           + ($base['quality_tiers'][$key] ?? []);
       }
       $base['costs'] = ($override['costs'] ?? []) + ($base['costs'] ?? []);
+      $base['sampling'] = ($override['sampling'] ?? []) + ($base['sampling'] ?? []);
     }
     return self::$table = $base;
   }

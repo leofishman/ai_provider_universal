@@ -58,6 +58,17 @@ final class ModelDefaultsTest extends UnitTestCase {
   }
 
   /**
+   * Tests sampling guessing from the shipped vendor-recommendation table.
+   */
+  public function testGuessSampling(): void {
+    $this->assertSame(['temperature' => 0.6, 'top_p' => 0.95], ModelDefaults::guessSampling('qwen/qwen3-32b'));
+    $this->assertSame(['temperature' => 0.6, 'top_p' => 0.95], ModelDefaults::guessSampling('deepseek-r1:8b'));
+    $this->assertSame(['temperature' => 1.0, 'top_p' => 1.0], ModelDefaults::guessSampling('openai/gpt-oss-120b'));
+    // No vendor recommendation: stay on the server default.
+    $this->assertSame([], ModelDefaults::guessSampling('llama-3.3-70b-versatile'));
+  }
+
+  /**
    * Tests cost guessing (shipped table is empty; seed one via reflection).
    */
   public function testGuessCosts(): void {
