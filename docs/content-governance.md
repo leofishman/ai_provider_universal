@@ -163,21 +163,23 @@ On entity save, **enqueue** matching nodes for async review. Configurable
 **what** to scan, **which** checks, **when** to fire an event. Never block
 save; never run multi-LLM pipelines in the HTTP request by default.
 
-### Scan profile (config entity or config schema — TBD)
+### Scan profile (landed: `aip_scan_profile` config entity)
 
-Conceptual shape:
+Admin UI at `/admin/config/ai/factcheck/scan-profiles` (permission:
+`administer factcheck settings`). Exportable shape:
 
 ```yaml
 id: editorial_light
 label: 'Editorial light'
 status: true
 bundles: [article, page]
-operations: [insert, update]   # not every blind save without filters
-require_field_change: [body] # optional; or content fingerprint
-entity_status: [1]           # e.g. published only
-cooldown: 3600               # seconds; skip re-queue if scanned recently
-dedupe_queue: true           # one pending item per entity
+operations: [insert, update]   # updates only enqueue when text changed
+published_only: true
+cooldown: 3600               # seconds; the flag doubles as pending dedupe
 checks:
+  readability:
+    enabled: true
+    alert_below: 40          # Flesch reading ease
   ai_likelihood:
     enabled: true
     alert_threshold: 70      # 0–100
@@ -187,41 +189,38 @@ checks:
   plagiarism:
     enabled: false
     alert_min_hits: 1
-  readability:
-    enabled: true
-    alert_below: 40          # Flesch-style
 event_on: threshold          # always | threshold | never
-queue: aip_content_review
 ```
 
-### Enqueue rules (request path — cheap only)
+### Enqueue rules (landed: `ScanScheduler` on node insert/update)
 
-1. Module + profile enabled.
-2. Bundle / operation / entity status match.
-3. Relevant fields changed (or fingerprint ≠ last scan).
-4. Cooldown and flood limits respected.
-5. Deduplicate pending queue items for the same entity.
+1. Profile enabled + bundle / operation / publication status match.
+2. On update: scannable text differs from the pre-save revision (free
+   comparison, the original is already in memory).
+3. Cooldown flag (key-value expirable, per profile+node) not present — the
+   same flag deduplicates pending items within its TTL.
+4. `$queue->createItem(['nid', 'profile_id', 'uid'])` and return. **No LLM.**
+   Any failure is logged and swallowed; `node_save` is never blocked.
 
-Then: `$queue->createItem([...])` and return. **No LLM.**
+### Worker (landed: `aip_content_review`, cron)
 
-### Worker
+1. Load node + profile; drop stale items silently (deleted, disabled, no
+   longer matching).
+2. `ScanRunner` runs enabled checks **cheapest first** (readability →
+   AI likelihood → fact check → plagiarism); each check's failure is
+   isolated, unconfigured checks report no result.
+3. Persists `aip_factcheck_result` (same history as the manual scan tab;
+   `details` carries `profile_id`, `source`, `thresholds_hit`).
+4. Per `event_on`, dispatches `ContentReviewEvent`
+   (`ai_provider_universal_factcheck.content_review`).
 
-1. Load entity; skip if gone or no longer matches profile.
-2. Run enabled checks (prefer **light** profiles for cron — e.g. AI likelihood
-   only; full factcheck/plagiarism as optional/heavier profiles).
-3. Persist `aip_factcheck_result` (same as manual scan history).
-4. If `event_on` says so and thresholds hit → dispatch
-   **content review event** (name TBD; e.g.
-   `ai_provider_universal_factcheck.content_review`).
-5. Optional: soft notify via `AdminNotifier` if configured.
+### Event payload (landed: `ContentReviewEvent`)
 
-### Event payload (for ECA)
-
-- `entity_type`, `entity_id`, `bundle`, `uid` (actor if known)
-- `profile_id`, checks run, scores
-- `thresholds_hit[]`
+- `entity_type`, `entity_id`, `bundle`, `uid` (the saving user)
+- `profile_id`, `scores` (per executed check; NULL = no result)
+- `thresholds_hit[]` (empty on a clean scan)
 - `result_id` (factcheck result entity)
-- `source: scheduled_scan` (distinct from provenance / detector-only)
+- `source: scheduled_scan` (distinct from provenance / manual scans)
 
 ### Relation to per-field backlog
 
@@ -388,10 +387,10 @@ Aligned with [ROADMAP.md](../ROADMAP.md) section **Content governance**.
 |---|---|---|
 | **0** | This doc + ROADMAP + glossary | done |
 | **1** | Optional Guardrail set attach (global ± per route); no overwrite; tests; short operator note | **done** (`GuardrailDefaultsSubscriber`, governance settings form, route `guardrail_set`) |
-| **2** | Scan profiles + enqueue + queue worker + threshold event + result entity | pending (factcheck services) |
+| **2** | Scan profiles + enqueue + queue worker + threshold event + result entity | **done** (`aip_scan_profile`, `ScanScheduler`, `aip_content_review` worker, `ContentReviewEvent`) |
 | **3** | Provenance event + field recipe (origin/disclosure/exemption taxonomy) + render marking (`<meta>` + visible label at first exposure) + ECA examples | **event landed** (`AiContentProvenanceEvent`, `ProvenanceRecorder`); field recipe + render marking pending |
 | **4** | Optional `AiGuardrail` plugins (disclosure; machine-readable marker; light likelihood/factcheck) reusing services | **disclosure + marker landed**; light likelihood/factcheck pending |
-| **5** | Scan checks as plugins; refine per-field UI | pending (phase 2 first) |
+| **5** | Scan checks as plugins; refine per-field UI | pending |
 
 Each phase stays mergeable alone; empty config = no behaviour change.
 

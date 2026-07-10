@@ -9,3 +9,9 @@ ai_provider_universal_factcheck.standalone:
   description: 'Scan any URL or pasted text: fact check, readability, AI likelihood, plagiarism.'
   route_name: ai_provider_universal_factcheck.standalone
   parent: system.admin_content
+
+entity.aip_scan_profile.collection:
+  title: 'Scan profiles'
+  description: 'Async content review: which content types get which checks on save.'
+  route_name: entity.aip_scan_profile.collection
+  parent: ai.admin_config_safety

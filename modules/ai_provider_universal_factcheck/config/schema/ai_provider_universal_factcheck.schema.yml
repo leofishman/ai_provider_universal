@@ -63,3 +63,79 @@ ai_provider_universal_factcheck.settings:
         detect:
           type: text
           label: 'AI-likelihood detector prompt (%s text)'
+
+ai_provider_universal_factcheck.scan_profile.*:
+  type: config_entity
+  label: 'Scan profile'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    bundles:
+      type: sequence
+      label: 'Node bundles to scan'
+      sequence:
+        type: string
+        label: 'Bundle'
+    operations:
+      type: sequence
+      label: 'Operations that enqueue (insert, update)'
+      sequence:
+        type: string
+        label: 'Operation'
+    published_only:
+      type: boolean
+      label: 'Scan published nodes only'
+    cooldown:
+      type: integer
+      label: 'Seconds before the same node can be enqueued again'
+    checks:
+      type: mapping
+      label: 'Check settings (missing check = disabled)'
+      mapping:
+        readability:
+          type: mapping
+          label: 'Readability (free, local)'
+          mapping:
+            enabled:
+              type: boolean
+              label: 'Enabled'
+            alert_below:
+              type: integer
+              label: 'Alert below this Flesch reading ease score'
+        ai_likelihood:
+          type: mapping
+          label: 'AI likelihood (one LLM call)'
+          mapping:
+            enabled:
+              type: boolean
+              label: 'Enabled'
+            alert_threshold:
+              type: integer
+              label: 'Alert at or above this likelihood (0-100)'
+        factcheck:
+          type: mapping
+          label: 'Fact check (claim extraction + verification)'
+          mapping:
+            enabled:
+              type: boolean
+              label: 'Enabled'
+            alert_below:
+              type: float
+              label: 'Alert below this support score (0-1)'
+        plagiarism:
+          type: mapping
+          label: 'Plagiarism (external search API)'
+          mapping:
+            enabled:
+              type: boolean
+              label: 'Enabled'
+            alert_min_hits:
+              type: integer
+              label: 'Alert at or above this many verbatim matches'
+    event_on:
+      type: string
+      label: 'Dispatch the content review event: always | threshold | never'

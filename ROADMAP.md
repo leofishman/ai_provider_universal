@@ -198,15 +198,21 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 
 ### Phase 2 — Content review queue
 
-- [ ] Scan profiles (exportable config): bundles, insert/update, status,
-      field-change or content hash, cooldown, dedupe, enabled checks +
-      alert thresholds, `event_on` (always | threshold | never).
-- [ ] Enqueue on entity insert/update (cheap filters only; no LLM in request).
-- [ ] Queue worker runs profile checks; always persist `aip_factcheck_result`
-      when a scan runs; dispatch content-review event per profile rules.
-- [ ] Default light profile guidance (e.g. AI-likelihood only on published
-      articles); full factcheck/plagiarism as heavier optional profiles.
-- [ ] Replaces/fulfills: admin UI for which types get which checks and what
+- [x] Scan profiles (`aip_scan_profile` config entities, admin UI at
+      `/admin/config/ai/factcheck/scan-profiles`): bundles, insert/update,
+      published-only, text-change detection vs the pre-save revision,
+      cooldown (key-value expirable flag doubles as pending dedupe),
+      enabled checks + alert thresholds, `event_on`
+      (always | threshold | never).
+- [x] Enqueue on node insert/update (`ScanScheduler`; cheap filters only,
+      no LLM in request; failures logged, never block the save).
+- [x] Queue worker (`aip_content_review`, cron) runs profile checks
+      cheapest-first via `ScanRunner`, persists `aip_factcheck_result`,
+      dispatches `ContentReviewEvent` (source `scheduled_scan`) per profile
+      rules; stale items dropped silently.
+- [x] Light-profile guidance in the profile form (readability free; AI
+      likelihood one call; factcheck/plagiarism heavy).
+- [x] Replaces/fulfills: admin UI for which types get which checks and what
       happens on failure (reaction = event → ECA/AdminNotifier, not block save).
 
 ### Phase 3 — Provenance / disclosure
@@ -251,9 +257,8 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
       /admin/content/factcheck/results + block).
 - [ ] PDF upload for the standalone fact check (needs a text-extraction
       library, e.g. smalot/pdfparser).
-- [ ] Admin UI for content types/fields/checks/failure — **superseded by
-      Content governance Phase 2** (scan profiles + events); keep this
-      line only until profiles land, then mark done.
+- [x] Admin UI for content types/fields/checks/failure — fulfilled by
+      **Content governance Phase 2** (scan profiles + events).
 - [ ] Ship a default search_api index for internal content knowledge?
 - [x] Cache + invalidation for trusted-site lookups: persistent cache keyed
       by the `node_list:trusted_site` tag — zero manual invalidation.

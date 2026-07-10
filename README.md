@@ -138,6 +138,12 @@ Already available (all off/empty by default, configure at
 - Two post-generate Guardrail plugins for AI core sets: **AI disclosure
   suffix** (visible disclaimer) and **AI origin marker** (invisible
   machine-readable marker that survives copy-paste into content).
+- **Scan profiles** (with the factcheck submodule, at
+  */admin/config/ai/factcheck/scan-profiles*): nodes matching a profile are
+  queued on save and reviewed asynchronously on cron — readability, AI
+  likelihood, fact check, plagiarism, each with an alert threshold. Results
+  land in the scan history; crossing a threshold fires a **content review
+  event** for ECA/Workflow. Saving is never blocked.
 
 Design, Art. 50 mapping and remaining phases:
 [docs/content-governance.md](docs/content-governance.md).
