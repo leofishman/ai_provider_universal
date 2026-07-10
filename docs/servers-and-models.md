@@ -10,7 +10,7 @@ Fields on the server form:
 |---|---|
 | Server name / machine name | Label and permanent id (`ai_universal_server.id`). |
 | Backend | Protocol plugin — see the catalog below. Hidden when only one backend is installed. |
-| Host name | `http://host` or `https://host`. Hidden for backends with a fixed endpoint (OpenRouter, Hugging Face, Fireworks, Ollama Cloud), which show their endpoint as a hint instead. |
+| Host name | `http://host` or `https://host`. Hidden for backends with a fixed endpoint (OpenRouter, Hugging Face, Fireworks, Groq, Ollama Cloud, Grok), which show their endpoint as a hint instead. |
 | Port | Optional; common local defaults are documented inline (Ollama 11434, llama.cpp 8080, vLLM 8000, LM Studio 1234, LiteLLM 4000). |
 | API Key | A [Key](https://www.drupal.org/project/key) entity, sent as `Authorization: Bearer`. Required for hosted services; optional for unauthenticated local servers. The "create a new key" link opens in a new tab; the **Refresh keys** button re-populates the select without losing your form input. |
 | Timeout | Request timeout in seconds (default 600). |
@@ -27,6 +27,7 @@ Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBacken
 |---|---|---|---|---|---|---|
 | `openai_compatible` | llama.cpp, vLLM, LM Studio and any OpenAI-protocol server | none (required) | yes | `/v1/models` | llama.cpp `status.args` (`--embeddings`, `--reranking`) → HF `pipeline_tag` of `--hf-repo` → name heuristics → `chat` | `--ctx-size` (router mode) → `meta.n_ctx_train` → `max_model_len` (vLLM); cost stays unset |
 | `ollama` | Local Ollama | none (required; typical host `http://127.0.0.1`, port `11434`) | yes | `/v1/models` enriched per model with native `POST /api/show` | Ollama `capabilities` / `details.family` → generic heuristics | Free costs (`0`); context from Modelfile `num_ctx` or `model_info.*.context_length` |
+| `groq` | GroqCloud | `api.groq.com/openai/v1` | no (fixed) | `/v1/models` | Prompt-guard / safeguard → `moderation`; else generic heuristics (whisper → STT, …) | Hardcoded table of published on-demand prices by model-id substring (`src/Plugin/AiServerBackend/Groq.php::MODEL_METADATA`) |
 | `fireworks` | Fireworks AI serverless | `api.fireworks.ai/inference/v1` | optional | `/v1/models` | Name heuristics tuned to `accounts/fireworks/models/*` ids | Hardcoded table of published serverless prices by model-family substring (`src/Plugin/AiServerBackend/Fireworks.php::MODEL_METADATA`) |
 | `openrouter` | OpenRouter unified API | `openrouter.ai/api/v1` | optional | `/v1/models` | `architecture.output_modalities` (image → `text_to_image`) → generic heuristics | Live from the catalog payload (`pricing.prompt`/`completion`, `context_length`) — no hardcoded table |
 | `litellm` | Self-hosted LiteLLM proxy | none (required) | yes | `/model/info` (proxy root, not `/v1`); falls back to `/v1/models` if the key can't read it | Structured `model_info.mode` field → generic heuristics on fallback | `model_info.input_cost_per_token`/`output_cost_per_token` (× 1M) and `max_input_tokens` |
@@ -35,7 +36,7 @@ Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBacken
 | `ollama_cloud` | Ollama Cloud (ollama.com) | `ollama.com/v1` | optional (needs API key) | `/v1/models` | Generic heuristics only (bare ids, no metadata) | None — fill in manually |
 | `grok` | Grok (xAI) | `api.x.ai/v1` | no (fixed) | `/v1/models` | Generic heuristics | Basic hardcoded table for grok-2 / grok-beta |
 
-> ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons.
+> ⚠️ **Fireworks and Groq pricing are maintained lookup tables, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) and [console.groq.com/docs/models](https://console.groq.com/docs/models) when those catalogs change — stale prices skew smart-routing cost comparisons.
 
 Notes:
 - **LiteLLM discovery degrades gracefully**: if the configured key cannot read `/model/info` (common with scoped virtual keys), the backend falls back to the plain `/v1/models` catalog with name-based detection instead of failing discovery outright.

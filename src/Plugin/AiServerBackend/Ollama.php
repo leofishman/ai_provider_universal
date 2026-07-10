@@ -46,8 +46,9 @@ class Ollama extends OpenAiCompatible {
       return $models;
     }
 
+    // /api/show serves local metadata; never worth the inference timeout.
     $client = $this->httpClientFactory->fromOptions([
-      'timeout' => $server->getTimeout() ?: 600,
+      'timeout' => 10,
     ]);
     $options = [
       'headers' => [

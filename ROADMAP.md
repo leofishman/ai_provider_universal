@@ -95,6 +95,9 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       family/capabilities for operation types); costs prefilled as free for
       smart routing. Keep-alive remains Ollama server-side (Modelfile /
       daemon defaults) until inference dispatch can pass per-request options.
+- [x] **`groq` backend** (GroqCloud): fixed `api.groq.com/openai/v1`, thin
+      OpenAI-compatible plugin with published list-price table + context for
+      Llama / GPT-OSS / Qwen / Whisper / prompt-guard models.
 - [ ] **`anthropic` backend** (native, needs inference dispatch): Messages
       API mapping, discovery via GET /v1/models, static capabilities.
 - [ ] OpenRouter embeddings discovery: embedding models are not in

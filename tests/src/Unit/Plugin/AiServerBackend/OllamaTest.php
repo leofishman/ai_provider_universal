@@ -9,6 +9,10 @@ use Drupal\ai_provider_universal\Plugin\AiServerBackend\Ollama;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Tests\UnitTestCase;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -105,6 +109,53 @@ final class OllamaTest extends UnitTestCase {
       ['cost_input' => 0.0, 'cost_output' => 0.0],
       $backend->detectModelMetadata(['id' => 'mystery']),
     );
+  }
+
+  /**
+   * Discovery enriches the OpenAI catalog with /api/show fields per model.
+   *
+   * The second model's show call fails; its entry stays bare and discovery
+   * still succeeds.
+   */
+  public function testListModelsEnrichment(): void {
+    $mock = new MockHandler([
+      // GET /v1/models.
+      new Response(200, [], json_encode([
+        'data' => [
+          ['id' => 'llama3.2:1b'],
+          ['id' => 'broken-model'],
+        ],
+      ])),
+      // POST /api/show for llama3.2:1b.
+      new Response(200, [], json_encode([
+        'details' => ['family' => 'llama'],
+        'model_info' => ['llama.context_length' => 131072],
+        'capabilities' => ['completion', 'tools'],
+      ])),
+      // POST /api/show for broken-model.
+      new Response(500),
+    ]);
+    $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+    $factory = $this->createMock(ClientFactory::class);
+    $factory->method('fromOptions')->willReturn($client);
+
+    $backend = new Ollama([], 'ollama', [], $factory, $this->createMock(StateInterface::class));
+
+    $server = $this->createMock(AiUniversalServerInterface::class);
+    $server->method('getHostName')->willReturn('http://127.0.0.1');
+    $server->method('getPort')->willReturn('11434');
+    $server->method('getApiKey')->willReturn('');
+    $server->method('getTimeout')->willReturn(30);
+
+    $models = $backend->listModels($server);
+
+    $this->assertCount(2, $models);
+    $this->assertSame('llama', $models[0]['details']['family']);
+    $this->assertSame(131072, $models[0]['model_info']['llama.context_length']);
+    $this->assertSame(['completion', 'tools'], $models[0]['capabilities']);
+    // Failed show call leaves the entry bare.
+    $this->assertSame(['id' => 'broken-model'], $models[1]);
   }
 
   /**

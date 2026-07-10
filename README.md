@@ -11,11 +11,12 @@ New to the terminology? See the [glossary](docs/glossary.md).
 
 ## Backends
 
-Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with nine backends:
+Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with ten backends:
 
 - `fireworks` — Fireworks AI serverless inference: fixed default endpoint, Fireworks-specific capability detection, and published pricing + context lengths prefilled at discovery for smart routing.
 - `openai_compatible` — llama.cpp, vLLM, LM Studio, OpenAI, and anything else speaking the OpenAI REST protocol. Capability detection uses llama.cpp's per-model `status.args` (router mode), HuggingFace `pipeline_tag` lookup for `--hf-repo` models, and model-name heuristics. Prefer the dedicated `ollama` backend for local Ollama.
 - `ollama` — Local Ollama (typical port 11434): OpenAI-compatible chat/embeddings; discovery enriches each model via native `/api/show` (context length, family, capabilities) and prefills costs as free for smart routing.
+- `groq` — GroqCloud (api.groq.com): very fast OpenAI-compatible inference; fixed endpoint; published list prices + context prefilled for smart routing (lookup table — free tier works with rate limits).
 - `litellm` — LiteLLM proxy servers. Discovery uses LiteLLM's `/model/info` endpoint: operation types from the structured `mode` field, per-token costs and context window read live — falling back to the plain OpenAI catalog when the key cannot read `/model/info`.
 - `amazee` — **amazee.ai** (managed, region-pinned LiteLLM): same protocol as `litellm`, shipped as its own backend so it appears with amazee-specific guidance in the server form. Point the host at your private `litellm_api_url` and use your amazee.ai key.
 - `openrouter` — OpenRouter unified API (openrouter.ai): 300+ models from OpenAI, Anthropic, Google, Meta and others behind one endpoint. Fixed default endpoint, capability detection from the catalog's `architecture.output_modalities`, and pricing + context length prefilled from the live catalog for smart routing (no hardcoded price table). OpenRouter's embedding models live on a separate catalog endpoint and are not discovered yet — see ROADMAP.
