@@ -343,7 +343,7 @@ syndication and API consumers:
 
 The Code of Practice expects the *human-visible* disclosure at **first
 exposure** to the content. For the recipe this is a requirement, not an
-example: when `field_disclosure_required` is true and no exemption applies,
+example: when `field_ai_disclosure_req` is true and no exemption applies,
 the label renders **on the published node itself** (extra field /
 pseudo-field in the default view mode), not only as an internal flag. ECA may
 replace *how* it looks; the recipe guarantees *that* it shows by default.

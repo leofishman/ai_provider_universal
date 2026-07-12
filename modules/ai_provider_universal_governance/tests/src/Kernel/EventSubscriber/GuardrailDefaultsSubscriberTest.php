@@ -50,6 +50,9 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
         'label' => $id,
         'description' => '',
         'stop_threshold' => 1.0,
+        // Empty multi-value maps required by AiGuardrailSet getters.
+        'pre_generate_guardrails' => ['plugin_id' => []],
+        'post_generate_guardrails' => ['plugin_id' => []],
       ])->save();
     }
   }

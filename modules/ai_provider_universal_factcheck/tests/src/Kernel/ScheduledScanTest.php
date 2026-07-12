@@ -253,6 +253,29 @@ final class ScheduledScanTest extends KernelTestBase {
   }
 
   /**
+   * With event_on always the event fires even when no threshold is crossed.
+   */
+  public function testEventOnAlwaysDispatches(): void {
+    // With alert_below 0 the readability threshold is never crossed, so
+    // thresholds_hit stays empty and only event_on drives the dispatch.
+    $this->createProfile([
+      'event_on' => 'always',
+      'checks' => [
+        'readability' => ['enabled' => TRUE, 'alert_below' => 0],
+      ],
+    ]);
+    $this->createArticle();
+
+    $item = $this->container->get('queue')->get(ScanScheduler::QUEUE)->claimItem();
+    $this->container->get('plugin.manager.queue_worker')
+      ->createInstance('aip_content_review')
+      ->processItem($item->data);
+
+    $this->assertCount(1, $this->collected);
+    $this->assertSame([], $this->collected[0]->getThresholdsHit());
+  }
+
+  /**
    * Stale queue items (deleted node or profile) are dropped silently.
    */
   public function testStaleItemsAreDropped(): void {
