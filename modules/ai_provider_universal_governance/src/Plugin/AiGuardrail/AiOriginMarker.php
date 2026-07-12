@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\ai_provider_universal\Plugin\AiGuardrail;
+namespace Drupal\ai_provider_universal_governance\Plugin\AiGuardrail;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\ai\Attribute\AiGuardrail;

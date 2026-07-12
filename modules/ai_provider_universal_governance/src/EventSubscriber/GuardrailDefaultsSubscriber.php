@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\ai_provider_universal\EventSubscriber;
+namespace Drupal\ai_provider_universal_governance\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\ai\Event\PreGenerateResponseEvent;
 use Drupal\ai\Guardrail\AiGuardrailRepository;
 use Drupal\ai\OperationType\InputInterface;
-use Drupal\ai_provider_universal\Utility\InternalChatTags;
+use Drupal\ai_provider_universal_governance\Utility\InternalChatTags;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -72,7 +72,7 @@ class GuardrailDefaultsSubscriber implements EventSubscriberInterface {
     }
 
     $set_id = $this->routeGuardrailSet($event->getModelId())
-      ?? (string) $this->configFactory->get('ai_provider_universal.settings')->get('default_guardrail_set');
+      ?? (string) $this->configFactory->get('ai_provider_universal_governance.settings')->get('default_guardrail_set');
     if ($set_id === '') {
       return;
     }

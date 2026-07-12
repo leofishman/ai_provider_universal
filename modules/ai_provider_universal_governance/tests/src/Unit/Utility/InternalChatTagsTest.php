@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\ai_provider_universal\Unit\Utility;
+namespace Drupal\Tests\ai_provider_universal_governance\Unit\Utility;
 
-use Drupal\ai_provider_universal\Utility\InternalChatTags;
+use Drupal\ai_provider_universal_governance\Utility\InternalChatTags;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Event;
+namespace Drupal\ai_provider_universal_governance\Event;
 
 use Drupal\Component\EventDispatcher\Event;
 

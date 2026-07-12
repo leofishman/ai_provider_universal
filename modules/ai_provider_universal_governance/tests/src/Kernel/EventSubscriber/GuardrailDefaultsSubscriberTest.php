@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\ai_provider_universal\Kernel\EventSubscriber;
+namespace Drupal\Tests\ai_provider_universal_governance\Kernel\EventSubscriber;
 
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\ai\Event\PreGenerateResponseEvent;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
-use Drupal\ai_provider_universal\EventSubscriber\GuardrailDefaultsSubscriber;
+use Drupal\ai_provider_universal_governance\EventSubscriber\GuardrailDefaultsSubscriber;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -34,6 +34,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
     'key',
     'ai',
     'ai_provider_universal',
+    'ai_provider_universal_governance',
     'ai_provider_universal_router',
   ];
 
@@ -109,7 +110,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
    * The configured default set is attached when the caller sent none.
    */
   public function testDefaultSetAttached(): void {
-    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'default_set')->save();
+    $this->config('ai_provider_universal_governance.settings')->set('default_guardrail_set', 'default_set')->save();
 
     $input = $this->dispatch($this->chatInput());
     $this->assertSame(['default_set'], $this->attachedSetIds($input));
@@ -127,7 +128,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
    * A caller-attached set is never overwritten or amended.
    */
   public function testCallerSetWins(): void {
-    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'default_set')->save();
+    $this->config('ai_provider_universal_governance.settings')->set('default_guardrail_set', 'default_set')->save();
 
     $input = $this->chatInput();
     $this->attachSet($input, 'caller_set');
@@ -140,7 +141,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
    * Calls served by other providers are ignored.
    */
   public function testOtherProviderIgnored(): void {
-    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'default_set')->save();
+    $this->config('ai_provider_universal_governance.settings')->set('default_guardrail_set', 'default_set')->save();
 
     $input = $this->dispatch($this->chatInput(), 'openai');
     $this->assertSame([], $this->attachedSetIds($input));
@@ -150,7 +151,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
    * A set on the addressed smart route beats the module-wide default.
    */
   public function testRouteSetOverridesDefault(): void {
-    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'default_set')->save();
+    $this->config('ai_provider_universal_governance.settings')->set('default_guardrail_set', 'default_set')->save();
     $this->container->get('entity_type.manager')->getStorage('ai_universal_route')->create([
       'id' => 'cheap',
       'label' => 'Cheap',
@@ -165,7 +166,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
    * A route without its own set falls through to the module default.
    */
   public function testRouteWithoutSetFallsBackToDefault(): void {
-    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'default_set')->save();
+    $this->config('ai_provider_universal_governance.settings')->set('default_guardrail_set', 'default_set')->save();
     $this->container->get('entity_type.manager')->getStorage('ai_universal_route')->create([
       'id' => 'plain',
       'label' => 'Plain',
@@ -179,7 +180,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
    * A configured id pointing to a deleted set is a silent no-op.
    */
   public function testMissingSetIsNoOp(): void {
-    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'nonexistent')->save();
+    $this->config('ai_provider_universal_governance.settings')->set('default_guardrail_set', 'nonexistent')->save();
 
     $input = $this->dispatch($this->chatInput());
     $this->assertSame([], $this->attachedSetIds($input));
@@ -189,7 +190,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
    * Factcheck (and other internal tool) tags never get the default set.
    */
   public function testInternalToolTagsSkipAttach(): void {
-    $this->config('ai_provider_universal.settings')->set('default_guardrail_set', 'default_set')->save();
+    $this->config('ai_provider_universal_governance.settings')->set('default_guardrail_set', 'default_set')->save();
 
     foreach (['ai_provider_universal_factcheck', 'complexity_classifier', 'route_verifier'] as $tag) {
       $input = $this->dispatch($this->chatInput(), 'universal', 'some_model', ['chat', $tag]);

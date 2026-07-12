@@ -34,13 +34,3 @@ function ai_provider_universal_update_10101(): void {
   $schema = ai_provider_universal_schema();
   \Drupal::database()->schema()->createTable('ai_provider_universal_usage', $schema['ai_provider_universal_usage']);
 }
-
-/**
- * Adds the content governance settings (guardrail default, provenance).
- */
-function ai_provider_universal_update_10102(): void {
-  \Drupal::configFactory()->getEditable('ai_provider_universal.settings')
-    ->set('default_guardrail_set', '')
-    ->set('emit_provenance', FALSE)
-    ->save();
-}

@@ -13,8 +13,8 @@ use Drupal\Component\EventDispatcher\Event;
  * subscribe to the AI core's AiExceptionEvent for those.
  *
  * Tags are the $tags argument passed to chat() (e.g. factcheck tools,
- * route verifier). Provenance skips internal tool tags; see
- * InternalChatTags.
+ * route verifier). The governance submodule skips internal tool tags; see
+ * \Drupal\ai_provider_universal_governance\Utility\InternalChatTags.
  */
 class ModelPostCallEvent extends Event {
 

@@ -1,14 +1,3 @@
-ai_provider_universal.settings:
-  type: config_object
-  label: 'Universal provider settings'
-  mapping:
-    default_guardrail_set:
-      type: string
-      label: 'AI core Guardrail set attached when the caller provided none (empty = off)'
-    emit_provenance:
-      type: boolean
-      label: 'Dispatch AI-origin provenance events after successful generations'
-
 ai_provider_universal.server.*:
   type: config_entity
   label: 'AI Server'

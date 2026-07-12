@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Form;
+namespace Drupal\ai_provider_universal_governance\Form;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class GovernanceSettingsForm extends ConfigFormBase {
 
-  const CONFIG_NAME = 'ai_provider_universal.settings';
+  const CONFIG_NAME = 'ai_provider_universal_governance.settings';
 
   /**
    * The entity type manager.

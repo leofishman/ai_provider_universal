@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\ai_provider_universal\Kernel\Service;
+namespace Drupal\Tests\ai_provider_universal_governance\Kernel\Service;
 
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\ai_provider_universal\Event\AiContentProvenanceEvent;
+use Drupal\ai_provider_universal_governance\Event\AiContentProvenanceEvent;
 use Drupal\ai_provider_universal\Event\ModelPostCallEvent;
-use Drupal\ai_provider_universal\Service\ProvenanceRecorder;
+use Drupal\ai_provider_universal_governance\Service\ProvenanceRecorder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -34,12 +34,13 @@ final class ProvenanceRecorderTest extends KernelTestBase {
     'key',
     'ai',
     'ai_provider_universal',
+    'ai_provider_universal_governance',
   ];
 
   /**
    * Provenance events collected by the test listener.
    *
-   * @var \Drupal\ai_provider_universal\Event\AiContentProvenanceEvent[]
+   * @var \Drupal\ai_provider_universal_governance\Event\AiContentProvenanceEvent[]
    */
   protected array $collected = [];
 
@@ -91,7 +92,7 @@ final class ProvenanceRecorderTest extends KernelTestBase {
    * When enabled, each generation emits one fact with model and server.
    */
   public function testGenerationEmitsFact(): void {
-    $this->config('ai_provider_universal.settings')->set('emit_provenance', TRUE)->save();
+    $this->config('ai_provider_universal_governance.settings')->set('emit_provenance', TRUE)->save();
 
     $this->dispatchPostCall();
 
@@ -109,7 +110,7 @@ final class ProvenanceRecorderTest extends KernelTestBase {
    * Internal tool tags never emit content provenance.
    */
   public function testInternalToolTagsSkipProvenance(): void {
-    $this->config('ai_provider_universal.settings')->set('emit_provenance', TRUE)->save();
+    $this->config('ai_provider_universal_governance.settings')->set('emit_provenance', TRUE)->save();
 
     $this->dispatchPostCall(['ai_provider_universal_factcheck']);
     $this->assertSame([], $this->collected);
@@ -130,7 +131,7 @@ final class ProvenanceRecorderTest extends KernelTestBase {
     ]);
     $account->save();
 
-    $this->container->get('ai_provider_universal.provenance')
+    $this->container->get('ai_provider_universal_governance.provenance')
       ->recordAssociation($account, 'field_bio', 'local__qwen', 'chat');
 
     $this->assertCount(1, $this->collected);

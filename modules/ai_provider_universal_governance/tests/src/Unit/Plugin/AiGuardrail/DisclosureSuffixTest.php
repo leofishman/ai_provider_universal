@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\ai_provider_universal\Unit\Plugin\AiGuardrail;
+namespace Drupal\Tests\ai_provider_universal_governance\Unit\Plugin\AiGuardrail;
 
 use Drupal\ai\Guardrail\Result\PassResult;
 use Drupal\ai\Guardrail\Result\RewriteOutputResult;
@@ -10,8 +10,8 @@ use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai\OperationType\Chat\ChatOutput;
 use Drupal\ai\OperationType\Chat\StreamedChatMessageIteratorInterface;
-use Drupal\ai_provider_universal\Plugin\AiGuardrail\AiOriginMarker;
-use Drupal\ai_provider_universal\Plugin\AiGuardrail\DisclosureSuffix;
+use Drupal\ai_provider_universal_governance\Plugin\AiGuardrail\AiOriginMarker;
+use Drupal\ai_provider_universal_governance\Plugin\AiGuardrail\DisclosureSuffix;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;

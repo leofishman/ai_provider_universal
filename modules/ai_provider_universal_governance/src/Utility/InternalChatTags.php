@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Utility;
+namespace Drupal\ai_provider_universal_governance\Utility;
 
 /**
  * Tags that mark tool/internal chat calls (not end-user generation).

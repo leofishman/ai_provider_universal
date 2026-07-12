@@ -126,7 +126,8 @@ review** queue (scan profiles, thresholds, events for ECA — planned), and
 **provenance / disclosure** (known AI origin — not detector-as-compliance).
 Empty config stays a no-op; `node_save` is never blocked for review.
 
-Already available (all off/empty by default, configure at
+Already available (all off/empty by default, in the optional
+`ai_provider_universal_governance` submodule — enable it and configure at
 */admin/config/ai/providers/universal/governance*):
 
 - **Default Guardrail set** attached to calls served by this provider when

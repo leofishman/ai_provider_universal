@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\ai_provider_universal\Service;
+namespace Drupal\ai_provider_universal_governance\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -8,9 +8,9 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
-use Drupal\ai_provider_universal\Event\AiContentProvenanceEvent;
+use Drupal\ai_provider_universal_governance\Event\AiContentProvenanceEvent;
 use Drupal\ai_provider_universal\Event\ModelPostCallEvent;
-use Drupal\ai_provider_universal\Utility\InternalChatTags;
+use Drupal\ai_provider_universal_governance\Utility\InternalChatTags;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -52,7 +52,7 @@ class ProvenanceRecorder implements EventSubscriberInterface {
    * Re-emits a successful model call as a provenance fact when enabled.
    */
   public function onModelPostCall(ModelPostCallEvent $event): void {
-    if (!$this->configFactory->get('ai_provider_universal.settings')->get('emit_provenance')) {
+    if (!$this->configFactory->get('ai_provider_universal_governance.settings')->get('emit_provenance')) {
       return;
     }
     // Factcheck/classifier/verifier are not content-generation provenance.

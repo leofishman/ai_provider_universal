@@ -1,5 +1,10 @@
 # Content governance (Guardrails, review queue, provenance)
 
+The Guardrail attach, disclosure plugins and provenance events live in the
+optional **`ai_provider_universal_governance`** submodule (enable it only where
+Art. 50-style transparency applies); scan profiles and the review queue live in
+the factcheck submodule.
+
 How this module (and the factcheck submodule) fit into **Drupal AI Guardrails**,
 **async content review**, and **AI-origin transparency** (e.g. EU AI Act Art. 50
 style disclosure). This is the product design for the `feature/content-governance`
@@ -275,7 +280,7 @@ lives in **ECA / editorial**, not in a Guardrail `Stop`.
 
 Emitted by `ProvenanceRecorder`: automatically after each successful
 generation when **Emit content provenance events** is on (governance
-settings), and on demand via the `ai_provider_universal.provenance`
+settings), and on demand via the `ai_provider_universal_governance.provenance`
 service's `recordAssociation($entity, $field, $model_id, $operation)` for
 workflows that write AI output into entities.
 
