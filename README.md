@@ -135,8 +135,10 @@ Full details — pipeline, scoring, recipes, settings reference, extension point
 
 Optional `ai_provider_universal_governance` for **EU AI Act Art. 50-style
 transparency**: default Guardrail attach on this provider’s calls, AI-origin
-**provenance events**, and two post-generate Guardrail plugins (visible
-disclosure suffix + machine-readable origin marker). All off/empty by default
+**provenance events**, and four optional Guardrail plugins: visible
+disclosure suffix, machine-readable origin marker, and — with the factcheck
+submodule configured — AI-likelihood and fact-check stops with configurable
+thresholds. All off/empty by default
 — enable the submodule and configure at
 `/admin/config/ai/providers/universal/governance`. Empty config is a no-op;
 `node_save` is never blocked.
