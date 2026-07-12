@@ -57,6 +57,12 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
   /**
    * Dispatches a pre-generate event and returns the resulting input.
    *
+   * @param \Drupal\ai\OperationType\Chat\ChatInput $input
+   *   The chat input the subscriber may decorate.
+   * @param string $provider_id
+   *   The AI provider id on the event.
+   * @param string $model_id
+   *   The model id on the event.
    * @param string[] $tags
    *   Optional chat tags (e.g. factcheck tool tag).
    */

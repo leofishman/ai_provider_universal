@@ -53,9 +53,28 @@ final class RenderMarkingTest extends KernelTestBase {
     NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
 
     $fields = [
-      'field_ai_origin' => ['type' => 'list_string', 'settings' => ['allowed_values' => ['generated' => 'Generated', 'assisted' => 'Assisted', 'human' => 'Human', 'unknown' => 'Unknown']]],
+      'field_ai_origin' => [
+        'type' => 'list_string',
+        'settings' => [
+          'allowed_values' => [
+            'generated' => 'Generated',
+            'assisted' => 'Assisted',
+            'human' => 'Human',
+            'unknown' => 'Unknown',
+          ],
+        ],
+      ],
       'field_ai_disclosure_req' => ['type' => 'boolean', 'settings' => []],
-      'field_ai_exemption' => ['type' => 'list_string', 'settings' => ['allowed_values' => ['editorial_responsibility' => 'Editorial', 'artistic_creative_satirical' => 'Artistic', 'assistive_edit' => 'Assistive']]],
+      'field_ai_exemption' => [
+        'type' => 'list_string',
+        'settings' => [
+          'allowed_values' => [
+            'editorial_responsibility' => 'Editorial',
+            'artistic_creative_satirical' => 'Artistic',
+            'assistive_edit' => 'Assistive',
+          ],
+        ],
+      ],
     ];
     foreach ($fields as $name => $def) {
       FieldStorageConfig::create([
