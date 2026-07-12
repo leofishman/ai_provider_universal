@@ -60,7 +60,7 @@ class RouterSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Complexity classifier model'),
       '#description' => $this->t('Optional model that classifies prompts the heuristics consider simple (use a tiny, free local model). Leave disabled for heuristics only; any classifier failure falls back to heuristics.'),
       '#options' => ['' => $this->t('- Heuristics only -')] + $model_options,
-      '#default_value' => $config->get('classifier_model') ?: '',
+      '#config_target' => 'ai_provider_universal_router.settings:classifier_model',
     ];
 
     $saved_prompts = (array) $config->get('prompts');
@@ -75,7 +75,7 @@ class RouterSettingsForm extends ConfigFormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Classifier system prompt'),
       '#description' => $this->t('The model must answer with one word: simple or complex. No tokens.'),
-      '#default_value' => $saved_prompts['classifier'] ?? '',
+      '#config_target' => 'ai_provider_universal_router.settings:prompts.classifier',
       '#attributes' => ['placeholder' => ComplexityClassifier::CLASSIFIER_PROMPT],
       '#rows' => 4,
     ];
@@ -83,7 +83,7 @@ class RouterSettingsForm extends ConfigFormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Route verifier prompt'),
       '#description' => $this->t('Tokens, in order: the task, the answer. The model must answer yes or no.'),
-      '#default_value' => $saved_prompts['verifier'] ?? '',
+      '#config_target' => 'ai_provider_universal_router.settings:prompts.verifier',
       '#attributes' => ['placeholder' => UniversalProvider::VERIFIER_PROMPT],
       '#rows' => 4,
     ];
@@ -101,29 +101,15 @@ class RouterSettingsForm extends ConfigFormBase {
       'verifier' => UniversalProvider::VERIFIER_PROMPT,
     ];
     foreach ($defaults as $key => $default) {
+      // Trim so empty/whitespace falls back to shipped defaults at runtime.
       $custom = trim((string) $form_state->getValue(['prompts', $key], ''));
+      $form_state->setValue(['prompts', $key], $custom);
       if ($custom !== '' && !PromptPlaceholders::matches($default, $custom)) {
         $form_state->setErrorByName("prompts][$key", $this->t('The prompt must keep the default sprintf tokens in the same order: @tokens.', [
           '@tokens' => PromptPlaceholders::describe($default) ?: $this->t('none'),
         ]));
       }
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->config('ai_provider_universal_router.settings')
-      ->set('classifier_model', (string) $form_state->getValue('classifier_model'))
-      // Plain text sent to the LLM, never rendered as markup: trim and
-      // drop empties so unset fields use the shipped defaults.
-      ->set('prompts', array_filter(array_map(
-        static fn ($value): string => trim((string) $value),
-        $form_state->getValue('prompts', []),
-      )))
-      ->save();
-    parent::submitForm($form, $form_state);
   }
 
 }

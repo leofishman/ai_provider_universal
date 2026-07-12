@@ -69,12 +69,22 @@ composer update drupal/ai
 
 Without the patches the module works, but route/model selects in the AI settings form may not validate, and `ai_search` cannot use this module's embedding models. Upstream issues are being filed against the AI module.
 
-## Setup
+## Configuration
 
 1. Enable the module (if you haven't already — see Installation above).
-2. Go to **Configuration → AI → Providers → Universal** and add a server: backend, host/port (local servers) or just the API key (hosted services with fixed endpoints: OpenRouter, Groq, Fireworks, Hugging Face, Ollama Cloud, Grok/xAI), timeout, optional model filter and daily usage limits. The **Test connection & list models** button previews what the server reports before you save.
+2. Go to **Configuration → AI → Providers → Universal** (`/admin/config/ai/providers/universal`) and add a server: backend, host/port (local servers) or just the API key (hosted services with fixed endpoints: OpenRouter, Groq, Fireworks, Hugging Face, Ollama Cloud, Grok/xAI), timeout, optional model filter and daily usage limits. The **Test connection & list models** button previews what the server reports before you save.
 3. Saving the server runs model discovery; review detected models (operation types, costs, context, catalog features) and override routing metadata if needed.
 4. Select the default provider/model per operation type at **Configuration → AI → AI settings** (`/admin/config/ai/settings`).
+
+| Path | Purpose |
+|---|---|
+| `/admin/config/ai/providers/universal` | Servers and discovered models |
+| `/admin/config/ai/settings` | Default provider/model per operation type |
+| `/admin/config/ai/providers/universal/routes` | Smart routes (router submodule) |
+| `/admin/config/ai/providers/universal/routes/settings` | Classifier model and routing prompt overrides |
+| `/admin/config/ai/factcheck` | Fact check settings (factcheck submodule) |
+| `/admin/reports/ai-router-decisions` | Routing decisions report (Views) |
+| `/admin/reports/ai-router-savings` | Estimated routing savings dashboard |
 
 Discovery can be re-run any time with `drush aip:discover-models [server_id]` (alias `aipdm`) or by re-saving the server. Re-discovery **never overwrites** costs/tier/context/reasoning/sampling you set manually; catalog **features** are always refreshed from the server. Per-model enrichment failures (Ollama `/api/show`, LiteLLM `/model/info`, …) log a notice and fall back to the plain catalog entry instead of aborting discovery.
 
