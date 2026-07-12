@@ -243,9 +243,12 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 - [x] Post-generate **machine-readable marker** (`universal_ai_origin_marker`,
       IPTC digitalSourceType HTML comment) for outputs destined for
       publication.
-- [ ] Optional light **AI-likelihood** / **factcheck** Guardrail plugins
-      reusing factcheck services (`NonDeterministic` / `NonStreamable` as
-      needed); off by default (latency/cost).
+- [x] Optional light **AI-likelihood** / **factcheck** Guardrail plugins
+      (`universal_ai_likelihood`, `universal_factcheck`) reusing the
+      factcheck AiDetector / FactChecker via a soft container dependency —
+      hidden unless the factcheck submodule is enabled and configured.
+      `NonDeterministic` + `NonStreamable`; StopResult with score
+      (likelihood/100, or 1 − support); off by default (latency/cost).
 
 ### Phase 5 — Extensibility
 

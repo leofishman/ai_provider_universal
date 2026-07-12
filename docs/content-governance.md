@@ -158,8 +158,8 @@ Only when they reuse our services and fit generate-time semantics:
 |---|---|---|---|
 | Disclosure suffix (`universal_disclosure_suffix`) | **landed** | Suffix text | `RewriteOutputResult` appends a disclaimer (Art. 50(1) helper); skips streamed output; never doubles up when escalation re-runs the set |
 | Machine-readable marker (`universal_ai_origin_marker`) | **landed** | Marker text | `RewriteOutputResult` appends an invisible HTML-comment marker (IPTC `digitalSourceType=trainedAlgorithmicMedia`) — survives copy-paste into a body field, feeds render marking below |
-| AI-likelihood (light) | phase 4 (rest) | Score threshold | `StopResult` with score (opt-in; costly) |
-| Factcheck (light) | phase 4 (rest) | Min support score, max claims | `StopResult` if verification fails (opt-in; costly) |
+| AI-likelihood (`universal_ai_likelihood`) | **landed** | Score threshold (0–100) | `StopResult` with score when the detector estimate crosses the threshold; pre-generate scores the last user message, post-generate the response. Hidden unless factcheck is enabled with a detector model |
+| Factcheck (`universal_factcheck`) | **landed** | Min support score (0–1) | `StopResult` (score = 1 − support) when claim verification falls below the minimum; post-generate only. Depth/max-claims follow the fact check profile settings. Hidden unless factcheck is enabled with a checker model |
 
 Guardrails are the **in-band** execution mechanism (touch the output while it
 exists); everything after the output lands in content is events + fields, and
@@ -411,7 +411,7 @@ Aligned with [ROADMAP.md](../ROADMAP.md) section **Content governance**.
 | **1** | Optional Guardrail set attach (global ± per route); no overwrite; tests; short operator note | **done** (`GuardrailDefaultsSubscriber`, governance settings form, route `guardrail_set`) |
 | **2** | Scan profiles + enqueue + queue worker + threshold event + result entity | **done** (`aip_scan_profile`, `ScanScheduler`, `aip_content_review` worker, `ContentReviewEvent`) |
 | **3** | Provenance event + field recipe (origin/disclosure/exemption taxonomy) + render marking (`<meta>` + visible label at first exposure) + ECA examples | **done** (`AiContentProvenanceEvent`, `ProvenanceRecorder`, `ai_content_disclosure` recipe, `hook_node_view` marking in the governance submodule, ECA examples above) |
-| **4** | Optional `AiGuardrail` plugins (disclosure; machine-readable marker; light likelihood/factcheck) reusing services | **disclosure + marker landed**; light likelihood/factcheck pending |
+| **4** | Optional `AiGuardrail` plugins (disclosure; machine-readable marker; light likelihood/factcheck) reusing services | **done** (`universal_disclosure_suffix`, `universal_ai_origin_marker`, `universal_ai_likelihood`, `universal_factcheck`) |
 | **5** | Scan checks as plugins; refine per-field UI | pending |
 
 Each phase stays mergeable alone; empty config = no behaviour change.
