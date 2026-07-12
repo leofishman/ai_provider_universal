@@ -21,6 +21,8 @@ class ModelPostCallEvent extends Event {
   const EVENT_NAME = 'ai_provider_universal.model_post_call';
 
   /**
+   * Constructs the post-call telemetry event.
+   *
    * @param string $modelId
    *   The ai_universal_model entity id that served the call.
    * @param string $operationType
