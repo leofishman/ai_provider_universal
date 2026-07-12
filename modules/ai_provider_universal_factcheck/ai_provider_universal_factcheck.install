@@ -20,3 +20,12 @@ function ai_provider_universal_factcheck_install(): void {
     $role->save();
   }
 }
+
+/**
+ * Registers the scan profile config entity type on existing installs.
+ */
+function ai_provider_universal_factcheck_update_10101(): void {
+  \Drupal::entityDefinitionUpdateManager()->installEntityType(
+    \Drupal::entityTypeManager()->getDefinition('aip_scan_profile')
+  );
+}
