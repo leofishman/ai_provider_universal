@@ -625,7 +625,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       $usage = $output->getTokenUsage();
       $this->usageTracker->record($model_id, $usage->input, $usage->output);
       $this->serviceContainer->get('event_dispatcher')->dispatch(
-        new ModelPostCallEvent($model_id, 'chat', $usage->input, $usage->output, (microtime(TRUE) - $started) * 1000),
+        new ModelPostCallEvent($model_id, 'chat', $usage->input, $usage->output, (microtime(TRUE) - $started) * 1000, $tags),
         ModelPostCallEvent::EVENT_NAME,
       );
       return $output;

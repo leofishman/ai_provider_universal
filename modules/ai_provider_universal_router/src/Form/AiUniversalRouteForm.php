@@ -125,6 +125,21 @@ class AiUniversalRouteForm extends EntityForm {
       '#default_value' => $route->getVerifierModel(),
     ];
 
+    $set_options = [];
+    foreach ($this->entityTypeManager->getStorage('ai_guardrail_set')->loadMultiple() as $set) {
+      $set_options[$set->id()] = $set->label();
+    }
+    if ($set_options || $route->getGuardrailSet() !== '') {
+      $form['guardrail_set'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Guardrail set'),
+        '#options' => $set_options,
+        '#empty_option' => $this->t('- Provider default -'),
+        '#default_value' => $route->getGuardrailSet(),
+        '#description' => $this->t('AI core Guardrail set attached to calls on this route when the caller provided none. Overrides the provider-wide default from the Content governance settings.'),
+      ];
+    }
+
     if ($this->moduleHandler->moduleExists('ai_provider_universal_factcheck')) {
       $form['factcheck'] = [
         '#type' => 'checkbox',

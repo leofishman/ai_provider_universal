@@ -56,3 +56,6 @@ ai_provider_universal_router.route.*:
       sequence:
         type: string
         label: 'Feature'
+    guardrail_set:
+      type: string
+      label: 'AI core Guardrail set attached to this route when the caller provided none (empty = provider default)'

@@ -1,0 +1,7 @@
+ai_provider_universal_governance.settings:
+  path: '/admin/config/ai/providers/universal/governance'
+  defaults:
+    _form: '\Drupal\ai_provider_universal_governance\Form\GovernanceSettingsForm'
+    _title: 'Content governance'
+  requirements:
+    _permission: 'administer ai providers'

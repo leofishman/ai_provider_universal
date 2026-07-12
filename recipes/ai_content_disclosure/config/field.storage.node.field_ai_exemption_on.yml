@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - datetime
+id: node.field_ai_exemption_on
+field_name: field_ai_exemption_on
+entity_type: node
+type: datetime
+settings:
+  datetime_type: datetime
+module: datetime
+locked: false
+cardinality: 1
+translatable: false
+indexes: {}
+persist_with_no_fields: true
+custom_storage: false

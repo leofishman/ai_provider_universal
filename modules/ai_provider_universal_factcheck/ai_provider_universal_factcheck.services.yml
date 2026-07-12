@@ -74,3 +74,23 @@ services:
   Drupal\ai_provider_universal_factcheck\Hook\AiProviderUniversalFactcheckHooks:
     class: Drupal\ai_provider_universal_factcheck\Hook\AiProviderUniversalFactcheckHooks
     autowire: true
+
+  Drupal\ai_provider_universal_factcheck\Service\ScanScheduler:
+    class: Drupal\ai_provider_universal_factcheck\Service\ScanScheduler
+    arguments:
+      - '@entity_type.manager'
+      - '@queue'
+      - '@keyvalue.expirable'
+      - '@current_user'
+      - '@logger.channel.ai_provider_universal_factcheck'
+
+  Drupal\ai_provider_universal_factcheck\Service\ScanRunner:
+    class: Drupal\ai_provider_universal_factcheck\Service\ScanRunner
+    arguments:
+      - '@entity_type.manager'
+      - '@Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer'
+      - '@Drupal\ai_provider_universal_factcheck\Service\AiDetector'
+      - '@Drupal\ai_provider_universal_factcheck\Service\FactChecker'
+      - '@Drupal\ai_provider_universal_factcheck\Service\PlagiarismChecker'
+      - '@event_dispatcher'
+      - '@logger.channel.ai_provider_universal_factcheck'

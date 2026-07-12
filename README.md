@@ -33,7 +33,7 @@ Other modules can contribute more backends (e.g. native Anthropic/Gemini once in
 ## Requirements
 
 - Drupal 11.1+ / 12
-- [AI](https://www.drupal.org/project/ai) ^1.2
+- [AI](https://www.drupal.org/project/ai) ^1.3 (Guardrails API; content governance)
 - [Key](https://www.drupal.org/project/key)
 
 ## Installation
@@ -47,7 +47,7 @@ composer require 'drupal/ai_provider_universal:^1.0@beta'
 
 drush pm:enable ai_provider_universal
 # optional submodules:
-drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck
+drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck ai_provider_universal_governance
 ```
 
 Release notes for **1.0.0-beta1** (changes since alpha1): [RELEASE_NOTES_1.0.0-beta1.html](RELEASE_NOTES_1.0.0-beta1.html).
@@ -83,6 +83,8 @@ Without the patches the module works, but route/model selects in the AI settings
 | `/admin/config/ai/providers/universal/routes` | Smart routes (router submodule) |
 | `/admin/config/ai/providers/universal/routes/settings` | Classifier model and routing prompt overrides |
 | `/admin/config/ai/factcheck` | Fact check settings (factcheck submodule) |
+| `/admin/config/ai/factcheck/scan-profiles` | Async content-scan profiles (factcheck; used by governance review) |
+| `/admin/config/ai/providers/universal/governance` | Guardrails defaults, provenance, disclosure (governance submodule) |
 | `/admin/reports/ai-router-decisions` | Routing decisions report (Views) |
 | `/admin/reports/ai-router-savings` | Estimated routing savings dashboard |
 
@@ -128,6 +130,33 @@ With `ai_provider_universal_factcheck` enabled, answers from smart routes can be
 Evidence comes from a cascade — your own AI Search index first, then the web via [Tavily](https://tavily.com) — curated by an optional **Trusted site** content type with per-domain reputation (−10 to 10): positive domains are preferred sources; claims echoed by negative-reputation domains are marked tainted and lower the score. Two bundled recipes set it up: `factcheck_trusted_sites` (the content type) and, optionally, `factcheck_trusted_sites_seeds` (example entries, created unpublished — reputation is your editorial call).
 
 Full details — pipeline, scoring, recipes, settings reference, extension points: [docs/factcheck.md](docs/factcheck.md).
+
+### Content governance (governance submodule)
+
+Optional `ai_provider_universal_governance` for **EU AI Act Art. 50-style
+transparency**: default Guardrail attach on this provider’s calls, AI-origin
+**provenance events**, and four optional Guardrail plugins: visible
+disclosure suffix, machine-readable origin marker, and — with the factcheck
+submodule configured — AI-likelihood and fact-check stops with configurable
+thresholds. All off/empty by default
+— enable the submodule and configure at
+`/admin/config/ai/providers/universal/governance`. Empty config is a no-op;
+`node_save` is never blocked.
+
+For Art. 50-style disclosure on published content, the **`ai_content_disclosure`
+recipe** ships field storages (`field_ai_origin`, `field_ai_disclosure_req`,
+`field_ai_exemption` + audit fields); attach them to your content types and the
+governance submodule renders a machine-readable `<meta name="ai-origin">` tag
+plus a visible disclosure label on the node page — exemptions
+(`editorial_responsibility`, `artistic_creative_satirical`, `assistive_edit`)
+are asserted by editors or ECA, never inferred.
+
+Async **content review** (scan profiles, thresholds, content-review events for
+ECA) lives in the **factcheck** submodule (`/admin/config/ai/factcheck/scan-profiles`);
+governance does not own that queue.
+
+Full design, Art. 50 mapping and phases:
+[docs/content-governance.md](docs/content-governance.md).
 
 ## Relation to ai_provider_llama_cpp
 

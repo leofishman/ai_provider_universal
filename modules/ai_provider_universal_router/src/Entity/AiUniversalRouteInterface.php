@@ -54,6 +54,13 @@ interface AiUniversalRouteInterface extends ConfigEntityInterface {
   public function getFactcheckMinScore(): float;
 
   /**
+   * AI core Guardrail set id for this route's calls ('' = provider default).
+   *
+   * Only attached when the caller provided no set of its own.
+   */
+  public function getGuardrailSet(): string;
+
+  /**
    * Catalog features every candidate must report (empty = no filter).
    *
    * Matched against the model's discovered supported_features (tools,

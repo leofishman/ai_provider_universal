@@ -1,0 +1,20 @@
+services:
+  Drupal\ai_provider_universal_governance\Hook\AiProviderUniversalGovernanceHooks:
+    class: Drupal\ai_provider_universal_governance\Hook\AiProviderUniversalGovernanceHooks
+    autowire: true
+
+  Drupal\ai_provider_universal_governance\EventSubscriber\GuardrailDefaultsSubscriber:
+    class: Drupal\ai_provider_universal_governance\EventSubscriber\GuardrailDefaultsSubscriber
+    autowire: true
+    tags:
+      - { name: event_subscriber }
+
+  Drupal\ai_provider_universal_governance\Service\ProvenanceRecorder:
+    class: Drupal\ai_provider_universal_governance\Service\ProvenanceRecorder
+    autowire: true
+    tags:
+      - { name: event_subscriber }
+
+  # Stable alias for workflows/ECA code asserting AI origin on entities.
+  ai_provider_universal_governance.provenance:
+    alias: Drupal\ai_provider_universal_governance\Service\ProvenanceRecorder

@@ -1,0 +1,10 @@
+name: 'AI Provider: Universal — Content Governance'
+type: module
+description: 'EU AI Act Art. 50 transparency: default Guardrail attach, AI-origin disclosure and content provenance events.'
+core_version_requirement: ^11.1 || ^12
+package: AI Providers
+dependencies:
+  - ai_provider_universal:ai_provider_universal
+configure: ai_provider_universal_governance.settings
+'interface translation project': ai_provider_universal_governance
+'interface translation server pattern': 'modules/contrib/ai_provider_universal/modules/ai_provider_universal_governance/translations/%project.%language.po'

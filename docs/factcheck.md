@@ -2,6 +2,8 @@
 
 `ai_provider_universal_factcheck` verifies AI answers and site content claim by claim, and powers the per-node **Content scan** tab. It has two consumers: smart routes (verify an answer, escalate to a better model when it fails) and editors (scan a node on demand).
 
+Async **content review** (scan profiles + queue on entity save) and optional ties to AI Guardrails / provenance events live in this submodule and in `ai_provider_universal_governance` — see [content-governance.md](content-governance.md). Manual Content scan and route escalation stay as they are; governance is opt-in and never blocks save.
+
 Any chat model reachable through a configured server works as extractor or checker — the pipeline is model-agnostic. Verified in practice with Google **Gemma 3** (1B/4B via Ollama; 12B via vLLM on ROCm/AMD GPUs), **Qwen 2.5** (vLLM), and Bespoke **MiniCheck** as a dedicated checker (see below). Small models (≤1B) extract claims unreliably; 4B-class and up are dependable.
 
 ## The verification pipeline

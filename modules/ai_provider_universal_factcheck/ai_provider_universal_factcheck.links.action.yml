@@ -4,3 +4,9 @@ ai_provider_universal_factcheck.content_scan:
   appears_on:
     - entity.node.edit_form
   weight: 10
+
+entity.aip_scan_profile.add_form:
+  route_name: entity.aip_scan_profile.add_form
+  title: 'Add scan profile'
+  appears_on:
+    - entity.aip_scan_profile.collection

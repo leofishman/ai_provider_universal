@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_ai_exemption
+field_name: field_ai_exemption
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    - value: editorial_responsibility
+      label: 'Editorial responsibility (Art. 50(4) text: human review, a person or entity holds editorial responsibility — disclosure not required)'
+    - value: artistic_creative_satirical
+      label: 'Artistic / creative / satirical work (Art. 50(4): disclosure adapted, e.g. credits instead of banner — not removed)'
+    - value: assistive_edit
+      label: 'Assistive edit (Art. 50(2): standard assistive function, input not substantially altered — marking does not apply)'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {}
+persist_with_no_fields: true
+custom_storage: false

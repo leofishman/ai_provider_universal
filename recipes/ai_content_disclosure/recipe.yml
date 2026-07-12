@@ -1,0 +1,10 @@
+name: 'AI content disclosure fields'
+description: 'Field storages for AI-origin transparency on nodes (EU AI Act Art. 50 style): origin, disclosure-required flag, human-asserted exemption with audit trail. Attach the fields to your content types via the field UI (reuse existing storage); the governance submodule renders the machine-readable meta tag and the visible label from them.'
+type: 'Fields'
+install:
+  - node
+  - field
+  - options
+  - datetime
+config:
+  strict: false

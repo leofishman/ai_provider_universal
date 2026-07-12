@@ -6,6 +6,7 @@ namespace Drupal\Tests\ai_provider_universal_factcheck\Unit;
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\ai_provider_universal_factcheck\Hook\AiProviderUniversalFactcheckHooks;
+use Drupal\ai_provider_universal_factcheck\Service\ScanScheduler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -17,10 +18,19 @@ use PHPUnit\Framework\Attributes\Group;
 final class FactcheckHooksTest extends UnitTestCase {
 
   /**
+   * Hooks instance with a mocked scheduler (unused by hook_mail).
+   */
+  protected function createHooks(): AiProviderUniversalFactcheckHooks {
+    return new AiProviderUniversalFactcheckHooks(
+      $this->createMock(ScanScheduler::class),
+    );
+  }
+
+  /**
    * Subject and body from params land on the message array.
    */
   public function testMailBuildsMessage(): void {
-    $hooks = new AiProviderUniversalFactcheckHooks();
+    $hooks = $this->createHooks();
     $message = ['body' => []];
     $hooks->mail('scan_run', $message, [
       'subject' => 'Scan done',
@@ -35,7 +45,7 @@ final class FactcheckHooksTest extends UnitTestCase {
    * Missing params produce empty subject/body rather than notices.
    */
   public function testMailToleratesMissingParams(): void {
-    $hooks = new AiProviderUniversalFactcheckHooks();
+    $hooks = $this->createHooks();
     $message = ['body' => []];
     $hooks->mail('settings_changed', $message, []);
 
