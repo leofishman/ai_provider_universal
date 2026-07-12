@@ -43,6 +43,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 )]
 class FactcheckGuardrail extends AiGuardrailPluginBase implements ConfigurableInterface, PluginFormInterface, ContainerFactoryPluginInterface, NonDeterministicGuardrailInterface, NonStreamableGuardrailInterface {
 
+  // Required by NonDeterministicGuardrailInterface (LLM-backed plugins).
   use NeedsAiPluginManagerTrait;
   use StringTranslationTrait;
 

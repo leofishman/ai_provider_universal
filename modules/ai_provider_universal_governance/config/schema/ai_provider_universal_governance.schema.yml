@@ -8,3 +8,37 @@ ai_provider_universal_governance.settings:
     emit_provenance:
       type: boolean
       label: 'Dispatch AI-origin provenance events after successful generations'
+
+# Plugin settings stored on ai.ai_guardrail.* via
+# type: ai.guardrail.settings.[%parent.guardrail].
+ai.guardrail.settings.universal_disclosure_suffix:
+  type: mapping
+  label: 'AI disclosure suffix (Universal) settings'
+  mapping:
+    suffix_text:
+      type: text
+      label: 'Suffix text appended to chat responses'
+
+ai.guardrail.settings.universal_ai_origin_marker:
+  type: mapping
+  label: 'AI origin marker (Universal) settings'
+  mapping:
+    suffix_text:
+      type: text
+      label: 'Machine-readable marker text appended to chat responses'
+
+ai.guardrail.settings.universal_ai_likelihood:
+  type: mapping
+  label: 'AI likelihood (Universal) settings'
+  mapping:
+    threshold:
+      type: integer
+      label: 'Stop threshold (0–100)'
+
+ai.guardrail.settings.universal_factcheck:
+  type: mapping
+  label: 'Fact check (Universal) settings'
+  mapping:
+    min_score:
+      type: float
+      label: 'Minimum claim-support score (0–1)'
