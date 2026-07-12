@@ -47,7 +47,7 @@ composer require 'drupal/ai_provider_universal:^1.0@beta'
 
 drush pm:enable ai_provider_universal
 # optional submodules:
-drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck
+drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck ai_provider_universal_governance
 ```
 
 Release notes for **1.0.0-beta1** (changes since alpha1): [RELEASE_NOTES_1.0.0-beta1.html](RELEASE_NOTES_1.0.0-beta1.html).
@@ -83,6 +83,8 @@ Without the patches the module works, but route/model selects in the AI settings
 | `/admin/config/ai/providers/universal/routes` | Smart routes (router submodule) |
 | `/admin/config/ai/providers/universal/routes/settings` | Classifier model and routing prompt overrides |
 | `/admin/config/ai/factcheck` | Fact check settings (factcheck submodule) |
+| `/admin/config/ai/factcheck/scan-profiles` | Async content-scan profiles (factcheck; used by governance review) |
+| `/admin/config/ai/providers/universal/governance` | Guardrails defaults, provenance, disclosure (governance submodule) |
 | `/admin/reports/ai-router-decisions` | Routing decisions report (Views) |
 | `/admin/reports/ai-router-savings` | Estimated routing savings dashboard |
 
@@ -129,34 +131,21 @@ Evidence comes from a cascade — your own AI Search index first, then the web v
 
 Full details — pipeline, scoring, recipes, settings reference, extension points: [docs/factcheck.md](docs/factcheck.md).
 
-### Content governance
+### Content governance (governance submodule)
 
-Integration with **AI Guardrails** (inference safety), an async **content
-review** queue (scan profiles, thresholds, events for ECA — planned), and
-**provenance / disclosure** (known AI origin — not detector-as-compliance).
-Empty config stays a no-op; `node_save` is never blocked for review.
+Optional `ai_provider_universal_governance` for **EU AI Act Art. 50-style
+transparency**: default Guardrail attach on this provider’s calls, AI-origin
+**provenance events**, and two post-generate Guardrail plugins (visible
+disclosure suffix + machine-readable origin marker). All off/empty by default
+— enable the submodule and configure at
+`/admin/config/ai/providers/universal/governance`. Empty config is a no-op;
+`node_save` is never blocked.
 
-Already available (all off/empty by default, in the optional
-`ai_provider_universal_governance` submodule — enable it and configure at
-*/admin/config/ai/providers/universal/governance*):
+Async **content review** (scan profiles, thresholds, content-review events for
+ECA) lives in the **factcheck** submodule (`/admin/config/ai/factcheck/scan-profiles`);
+governance does not own that queue.
 
-- **Default Guardrail set** attached to calls served by this provider when
-  the caller sent none; smart routes can override it per route.
-- **Provenance events** (`AiContentProvenanceEvent`): an AI-origin fact per
-  successful generation, plus `ProvenanceRecorder::recordAssociation()` for
-  workflows that write AI output into entities. ECA/Workflow own the policy
-  (disclosure, AI Act Art. 50 exemptions).
-- Two post-generate Guardrail plugins for AI core sets: **AI disclosure
-  suffix** (visible disclaimer) and **AI origin marker** (invisible
-  machine-readable marker that survives copy-paste into content).
-- **Scan profiles** (with the factcheck submodule, at
-  */admin/config/ai/factcheck/scan-profiles*): nodes matching a profile are
-  queued on save and reviewed asynchronously on cron — readability, AI
-  likelihood, fact check, plagiarism, each with an alert threshold. Results
-  land in the scan history; crossing a threshold fires a **content review
-  event** for ECA/Workflow. Saving is never blocked.
-
-Design, Art. 50 mapping and remaining phases:
+Full design, Art. 50 mapping and phases:
 [docs/content-governance.md](docs/content-governance.md).
 
 ## Relation to ai_provider_llama_cpp
