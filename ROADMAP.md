@@ -221,15 +221,20 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
       legal origin); payload without full prompt/response by default
       (`AiContentProvenanceEvent`; `ProvenanceRecorder` re-emits post-call
       when `emit_provenance` is on, `recordAssociation()` for workflows).
-- [ ] Docs: ECA examples (banner field, moderation state, needs_review until
-      editor asserts responsibility); optional recipe for origin / disclosure
-      / exemption fields.
-- [ ] Exemption taxonomy per Art. 50: `editorial_responsibility` (text, no
+- [x] Docs: ECA examples (banner field, moderation state, needs_review until
+      editor asserts responsibility) in docs/content-governance.md; optional
+      `ai_content_disclosure` recipe for origin / disclosure / exemption
+      fields (storages only; attach per bundle via the field UI).
+- [x] Exemption taxonomy per Art. 50: `editorial_responsibility` (text, no
       disclosure), `artistic_creative_satirical` (adapted disclosure, not
       none), `assistive_edit` (marking N/A) — human/ECA-asserted, never
-      inferred by Guardrails or AI-likelihood.
-- [ ] Render marking: machine-readable `<meta>` on the node page + visible
-      label at first exposure when disclosure required and no exemption.
+      inferred by Guardrails or AI-likelihood (`field_ai_exemption` allowed
+      values + audit fields in the recipe).
+- [x] Render marking: machine-readable `<meta name="ai-origin">` (IPTC
+      digitalSourceType) on the node's canonical page + visible label at
+      first exposure when disclosure required and no exemption; artistic
+      exemption swaps the banner for an adapted credits line
+      (`hook_node_view` in the governance submodule; kernel-tested).
 
 ### Phase 4 — Optional AiGuardrail plugins
 

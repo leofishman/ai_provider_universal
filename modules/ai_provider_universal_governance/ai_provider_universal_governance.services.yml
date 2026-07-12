@@ -1,4 +1,8 @@
 services:
+  Drupal\ai_provider_universal_governance\Hook\AiProviderUniversalGovernanceHooks:
+    class: Drupal\ai_provider_universal_governance\Hook\AiProviderUniversalGovernanceHooks
+    autowire: true
+
   Drupal\ai_provider_universal_governance\EventSubscriber\GuardrailDefaultsSubscriber:
     class: Drupal\ai_provider_universal_governance\EventSubscriber\GuardrailDefaultsSubscriber
     autowire: true

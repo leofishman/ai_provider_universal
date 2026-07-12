@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_ai_origin
+field_name: field_ai_origin
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    - value: generated
+      label: 'AI generated'
+    - value: assisted
+      label: 'AI assisted'
+    - value: human
+      label: Human
+    - value: unknown
+      label: Unknown
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {}
+persist_with_no_fields: true
+custom_storage: false

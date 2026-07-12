@@ -141,6 +141,14 @@ disclosure suffix + machine-readable origin marker). All off/empty by default
 `/admin/config/ai/providers/universal/governance`. Empty config is a no-op;
 `node_save` is never blocked.
 
+For Art. 50-style disclosure on published content, the **`ai_content_disclosure`
+recipe** ships field storages (`field_ai_origin`, `field_ai_disclosure_req`,
+`field_ai_exemption` + audit fields); attach them to your content types and the
+governance submodule renders a machine-readable `<meta name="ai-origin">` tag
+plus a visible disclosure label on the node page — exemptions
+(`editorial_responsibility`, `artistic_creative_satirical`, `assistive_edit`)
+are asserted by editors or ECA, never inferred.
+
 Async **content review** (scan profiles, thresholds, content-review events for
 ECA) lives in the **factcheck** submodule (`/admin/config/ai/factcheck/scan-profiles`);
 governance does not own that queue.

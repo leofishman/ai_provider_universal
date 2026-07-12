@@ -298,14 +298,16 @@ Avoid putting full prompts/responses in the event by default (size, PII).
 
 ### Disclosure fields (optional recipe — not required)
 
-Suggested content fields (names illustrative):
+Shipped as the **`ai_content_disclosure`** recipe (field storages only —
+attach them to your content types via the field UI, reusing the existing
+storage):
 
 | Field | Role |
 |---|---|
 | `field_ai_origin` | `generated` / `assisted` / `human` / `unknown` |
-| `field_disclosure_required` | bool (default from policy) |
-| `field_exemption_reason` | see taxonomy below |
-| `field_exemption_asserted_by` + time | Audit trail |
+| `field_ai_disclosure_req` | bool (default from policy) |
+| `field_ai_exemption` | see taxonomy below |
+| `field_ai_exemption_by` + `field_ai_exemption_on` | Audit trail (user + time) |
 
 Exemption taxonomy — Art. 50 has **two distinct escape hatches**, do not mix
 them:
@@ -408,7 +410,7 @@ Aligned with [ROADMAP.md](../ROADMAP.md) section **Content governance**.
 | **0** | This doc + ROADMAP + glossary | done |
 | **1** | Optional Guardrail set attach (global ± per route); no overwrite; tests; short operator note | **done** (`GuardrailDefaultsSubscriber`, governance settings form, route `guardrail_set`) |
 | **2** | Scan profiles + enqueue + queue worker + threshold event + result entity | **done** (`aip_scan_profile`, `ScanScheduler`, `aip_content_review` worker, `ContentReviewEvent`) |
-| **3** | Provenance event + field recipe (origin/disclosure/exemption taxonomy) + render marking (`<meta>` + visible label at first exposure) + ECA examples | **event landed** (`AiContentProvenanceEvent`, `ProvenanceRecorder`); field recipe + render marking pending |
+| **3** | Provenance event + field recipe (origin/disclosure/exemption taxonomy) + render marking (`<meta>` + visible label at first exposure) + ECA examples | **done** (`AiContentProvenanceEvent`, `ProvenanceRecorder`, `ai_content_disclosure` recipe, `hook_node_view` marking in the governance submodule, ECA examples above) |
 | **4** | Optional `AiGuardrail` plugins (disclosure; machine-readable marker; light likelihood/factcheck) reusing services | **disclosure + marker landed**; light likelihood/factcheck pending |
 | **5** | Scan checks as plugins; refine per-field UI | pending |
 
