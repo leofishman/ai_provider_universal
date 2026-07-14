@@ -1,0 +1,31 @@
+uuid: e34e33b3-cfbc-4ec8-bda2-507059f8d837
+langcode: en
+status: true
+dependencies:
+  module:
+    - ai_provider_universal_factcheck
+    - node
+id: editorial_light
+label: 'Editorial light'
+bundles:
+  - article
+operations:
+  - insert
+  - update
+published_only: true
+cooldown: 3600
+checks:
+  readability:
+    enabled: true
+    # Flesch reading ease; typical prose scores well above this floor.
+    alert_below: 40
+  ai_likelihood:
+    enabled: false
+    alert_threshold: 70
+  factcheck:
+    enabled: false
+    alert_below: 0.5
+  plagiarism:
+    enabled: false
+    alert_min_hits: 1
+event_on: threshold

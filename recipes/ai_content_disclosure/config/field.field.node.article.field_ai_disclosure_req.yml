@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_ai_disclosure_req
+    - node.type.article
+id: node.article.field_ai_disclosure_req
+field_name: field_ai_disclosure_req
+entity_type: node
+bundle: article
+label: 'AI disclosure required'
+description: 'When checked, and origin is AI generated or assisted, the governance module shows a visible disclosure label on the full node page (unless an exemption applies).'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Disclosure required'
+  off_label: 'No public disclosure required'
+field_type: boolean

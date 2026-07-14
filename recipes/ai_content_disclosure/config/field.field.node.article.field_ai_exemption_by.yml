@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_ai_exemption_by
+    - node.type.article
+id: node.article.field_ai_exemption_by
+field_name: field_ai_exemption_by
+entity_type: node
+bundle: article
+label: 'Exemption asserted by'
+description: 'User who asserted the AI disclosure exemption (audit trail).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:user'
+  handler_settings:
+    include_anonymous: false
+    filter:
+      type: _none
+    target_bundles: null
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+field_type: entity_reference

@@ -143,17 +143,32 @@ thresholds. All off/empty by default
 `/admin/config/ai/providers/universal/governance`. Empty config is a no-op;
 `node_save` is never blocked.
 
-For Art. 50-style disclosure on published content, the **`ai_content_disclosure`
-recipe** ships field storages (`field_ai_origin`, `field_ai_disclosure_req`,
-`field_ai_exemption` + audit fields); attach them to your content types and the
-governance submodule renders a machine-readable `<meta name="ai-origin">` tag
-plus a visible disclosure label on the node page — exemptions
+For Art. 50-style disclosure on published content, two optional recipes:
+
+| Recipe | What it does |
+|---|---|
+| **`ai_content_disclosure`** | Field storages + **Article** instances/form widgets (`field_ai_origin`, `field_ai_disclosure_req`, `field_ai_exemption` + audit). Requires the Article content type. |
+| **`ai_content_governance_starter`** | Applies disclosure, enables **governance + factcheck**, installs a light **scan profile** (`editorial_light`: readability on published articles, event on threshold). Provenance and default Guardrail attach stay **off**. |
+
+```bash
+# From the Drupal web root (adjust the module path):
+drush en ai_provider_universal -y
+# One-shot path (recommended first hour):
+php core/scripts/drupal recipe modules/contrib/ai_provider_universal/recipes/ai_content_governance_starter
+# Or fields only:
+# php core/scripts/drupal recipe modules/contrib/ai_provider_universal/recipes/ai_content_disclosure
+```
+
+The governance submodule renders a machine-readable `<meta name="ai-origin">`
+tag plus a visible disclosure label on the node page — exemptions
 (`editorial_responsibility`, `artistic_creative_satirical`, `assistive_edit`)
-are asserted by editors or ECA, never inferred.
+are asserted by editors or ECA, never inferred. Reuse the same field storages
+on other bundles via the field UI.
 
 Async **content review** (scan profiles, thresholds, content-review events for
-ECA) lives in the **factcheck** submodule (`/admin/config/ai/factcheck/scan-profiles`);
-governance does not own that queue.
+ECA) lives in the **factcheck** submodule (`/admin/config/ai/factcheck/scan-profiles`).
+ECA/Workflow are **not** required by the recipes — wire them to the events when
+you want site policy (see the design doc).
 
 Full design, Art. 50 mapping and phases:
 [docs/content-governance.md](docs/content-governance.md).

@@ -1,10 +1,92 @@
 name: 'AI content disclosure fields'
-description: 'Field storages for AI-origin transparency on nodes (EU AI Act Art. 50 style): origin, disclosure-required flag, human-asserted exemption with audit trail. Attach the fields to your content types via the field UI (reuse existing storage); the governance submodule renders the machine-readable meta tag and the visible label from them.'
+description: 'Field storages and Article fields for AI-origin transparency (EU AI Act Art. 50 style): origin, disclosure-required flag, human-asserted exemption with audit trail. Requires the Article content type (Standard profile or equivalent). The governance submodule renders a machine-readable meta tag and visible label from these fields. Other bundles can reuse the same storages via the field UI.'
 type: 'Fields'
 install:
   - node
   - field
   - options
   - datetime
+  - user
 config:
-  strict: false
+  # Field storages shape the database; treat them strictly.
+  strict:
+    - field.storage.node.field_ai_origin
+    - field.storage.node.field_ai_disclosure_req
+    - field.storage.node.field_ai_exemption
+    - field.storage.node.field_ai_exemption_by
+    - field.storage.node.field_ai_exemption_on
+  actions:
+    # Place fields on the Article form (site must already have Article).
+    core.entity_form_display.node.article.default:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: article
+        mode: default
+        status: true
+      setComponents:
+        - name: field_ai_origin
+          options:
+            type: options_select
+            weight: 40
+            region: content
+            settings: {  }
+            third_party_settings: {  }
+        - name: field_ai_disclosure_req
+          options:
+            type: boolean_checkbox
+            weight: 41
+            region: content
+            settings:
+              display_label: true
+            third_party_settings: {  }
+        - name: field_ai_exemption
+          options:
+            type: options_select
+            weight: 42
+            region: content
+            settings: {  }
+            third_party_settings: {  }
+        - name: field_ai_exemption_by
+          options:
+            type: entity_reference_autocomplete
+            weight: 43
+            region: content
+            settings:
+              match_operator: CONTAINS
+              match_limit: 10
+              size: 60
+              placeholder: ''
+            third_party_settings: {  }
+        - name: field_ai_exemption_on
+          options:
+            type: datetime_default
+            weight: 44
+            region: content
+            settings: {  }
+            third_party_settings: {  }
+    # Origin + exemption on the default view for editors; the governance
+    # hook still adds the public label/meta independently of formatters.
+    # Disclosure-required and audit fields stay form-only.
+    core.entity_view_display.node.article.default:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: article
+        mode: default
+        status: true
+      setComponents:
+        - name: field_ai_origin
+          options:
+            type: list_default
+            label: above
+            weight: 40
+            region: content
+            settings: {  }
+            third_party_settings: {  }
+        - name: field_ai_exemption
+          options:
+            type: list_default
+            label: above
+            weight: 41
+            region: content
+            settings: {  }
+            third_party_settings: {  }

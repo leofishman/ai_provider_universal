@@ -1,0 +1,14 @@
+name: 'AI content governance starter'
+description: 'One-shot starter for content governance: enables the governance and factcheck submodules, applies AI disclosure fields on Article, and installs a light scan profile (readability only on published articles, event on threshold). Provenance emission and default Guardrail attach stay off until you configure them. Does not install ECA or Workflow — wire those to ContentReviewEvent / AiContentProvenanceEvent yourself (see docs/content-governance.md). Requires the Article content type.'
+type: 'Site'
+# Sibling under recipes/ (Drupal resolves bare names relative to the
+# parent of this recipe's directory — see RecipeConfigurator).
+recipes:
+  - ai_content_disclosure
+install:
+  - node
+  - ai_provider_universal
+  - ai_provider_universal_factcheck
+  - ai_provider_universal_governance
+config:
+  strict: false

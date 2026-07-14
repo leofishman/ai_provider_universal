@@ -296,11 +296,19 @@ workflows that write AI output into entities.
 
 Avoid putting full prompts/responses in the event by default (size, PII).
 
-### Disclosure fields (optional recipe — not required)
+### Disclosure fields (optional recipes — not required)
 
-Shipped as the **`ai_content_disclosure`** recipe (field storages only —
-attach them to your content types via the field UI, reusing the existing
-storage):
+Two recipes under `recipes/`:
+
+| Recipe | Applies |
+|---|---|
+| **`ai_content_disclosure`** | Field storages + **Article** field instances, form widgets, and default view formatters for origin/exemption. Requires `node.type.article`. Other bundles: reuse storages in the field UI. |
+| **`ai_content_governance_starter`** | Nested apply of `ai_content_disclosure`, enables `ai_provider_universal_governance` + `ai_provider_universal_factcheck`, ships scan profile **`editorial_light`** (Article, published only, readability check, `event_on: threshold`). Does **not** enable provenance emission, default Guardrail attach, ECA, or Workflow. |
+
+```bash
+# From the Drupal web root:
+php core/scripts/drupal recipe modules/contrib/ai_provider_universal/recipes/ai_content_governance_starter
+```
 
 | Field | Role |
 |---|---|
@@ -348,14 +356,18 @@ the label renders **on the published node itself** (extra field /
 pseudo-field in the default view mode), not only as an internal flag. ECA may
 replace *how* it looks; the recipe guarantees *that* it shows by default.
 
-### ECA examples (documentation only unless we ship models)
+### ECA / Workflow examples (not shipped as recipes)
 
-- On provenance with `disclosure_required` and empty exemption → set banner
+The starter recipe stops at fields + a light scan profile so policy stays
+site-owned. Typical ECA (or Workflow + content moderation) wiring:
+
+- On provenance with disclosure required and empty exemption → set banner
   field / show message.
-- On content_review threshold → set moderation state `needs_review`, mail
-  editors (or rely on `AdminNotifier`).
+- On content_review threshold (`ai_provider_universal_factcheck.content_review`)
+  → set moderation state `needs_review`, mail editors (or rely on
+  `AdminNotifier`).
 - On exemption `editorial_responsibility` (editor took ownership after
-  review) → clear `disclosure_required`, record who asserted it.
+  review) → clear disclosure required, record who asserted it.
 - On exemption `artistic_creative_satirical` → swap the banner for an
   *adapted* disclosure (e.g. a credits line) — do not remove disclosure
   entirely.
@@ -363,6 +375,9 @@ replace *how* it looks; the recipe guarantees *that* it shows by default.
   `needs_review` until an editor either asserts `editorial_responsibility` or
   publishes with the label. **This is the recommended Art. 50(4) text
   workflow: the human decision is the compliance step, ECA just routes it.**
+
+A future optional recipe may export sample ECA models; it will remain
+opt-in and will depend on `eca` / `workflows` explicitly.
 
 ---
 
