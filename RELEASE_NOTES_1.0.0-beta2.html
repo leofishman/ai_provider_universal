@@ -5,25 +5,36 @@
 <h3>Highlights</h3>
 <ul>
   <li><strong>No AI core patches required.</strong> Model IDs use a dot separator (<code>server.model</code>, smart routes <code>route.&lt;id&gt;</code>) and <code>getConfiguredModels()</code> returns a flat <code>model_id =&gt; label</code> map. AI settings and <code>ai_search</code> resolve Universal models out of the box (fixes <a href="https://www.drupal.org/project/ai_provider_universal/issues/3611069">#3611069</a> — “Universal | Array” in the embeddings engine select).</li>
-  <li><strong>Content governance submodule</strong> (<code>ai_provider_universal_governance</code>): default Guardrail set attach, AI-origin provenance events, disclosure suffix / origin marker / fact-check and AI-likelihood Guardrail plugins, optional field-based disclosure UI, and starter recipes.</li>
+  <li><strong>Content governance submodule</strong> (<code>ai_provider_universal_governance</code>): default Guardrail set attach, AI-origin provenance events, disclosure suffix / origin marker / fact-check and AI-likelihood Guardrail plugins, field-based disclosure UI, and recipes (see below).</li>
   <li><strong>Scheduled content review</strong> (factcheck): scan profiles enqueue checks on node save; cron/queue runs them; optional content-review events for ECA/Workflow.</li>
 </ul>
+
+<h3>Recipes</h3>
+<p>Bundled under <code>recipes/</code> in the project. Apply with core’s recipe runner (path relative to your Drupal root; adjust if the module lives elsewhere). Recommended one-shot for an Art. 50-style setup:</p>
+<p><code>php core/scripts/drupal recipe modules/contrib/ai_provider_universal/recipes/ai_content_governance_starter</code></p>
+<ul>
+  <li><strong><code>ai_content_governance_starter</code></strong> — applies disclosure, enables <strong>governance + factcheck</strong>, installs scan profile <code>editorial_light</code> (readability on published articles, event on threshold). Provenance emission and default Guardrail attach stay <strong>off</strong> until you configure them. Does not install ECA/Workflow.</li>
+  <li><strong><code>ai_content_disclosure</code></strong> — disclosure fields only: field storages + Article fields for AI origin, disclosure-required flag, and human-asserted exemption (with audit). Requires the Article content type. The governance submodule can render <code>&lt;meta name="ai-origin"&gt;</code> and a visible label from these fields.</li>
+  <li><strong><code>factcheck_trusted_sites</code></strong> — trusted site content type (domain + reputation −10…10) for curating web evidence in fact check.</li>
+  <li><strong><code>factcheck_trusted_sites_seeds</code></strong> — optional example trusted-site nodes (created <strong>unpublished</strong>). Apply <code>factcheck_trusted_sites</code> first; set reputation and publish editorially.</li>
+</ul>
+<p>Full design and ECA wiring notes: <a href="https://git.drupalcode.org/project/ai_provider_universal/-/blob/1.0.x/docs/content-governance.md">docs/content-governance.md</a>. Fact-check trusted sites: <a href="https://git.drupalcode.org/project/ai_provider_universal/-/blob/1.0.x/docs/factcheck.md">docs/factcheck.md</a>.</p>
 
 <h3>Upgrade notes (from beta1)</h3>
 <ol>
   <li>Run database updates: <code>drush updb</code> (update <code>10102</code> renames model entity IDs from <code>server__machine</code> to <code>server.machine</code> and rewrites stored references in AI defaults, smart routes, router/factcheck settings, Search API embeddings engines, and usage counters).</li>
   <li>Clear caches: <code>drush cr</code>.</li>
   <li>If you previously applied the module’s recommended <code>drupal/ai</code> patches (optgroups / <code>explode</code> limit 2), you can remove them — they are no longer needed for this provider.</li>
-  <li>Optional: enable <code>ai_provider_universal_governance</code> and review <strong>Configuration → AI → Providers → Universal → Content governance</strong>.</li>
+  <li>Optional: enable <code>ai_provider_universal_governance</code>, or apply the <code>ai_content_governance_starter</code> recipe, then review <strong>Configuration → AI → Providers → Universal → Content governance</strong>.</li>
 </ol>
 
 <h3>Changes</h3>
 <ul>
   <li>Flat model options with <code>Server: model</code> labels (no nested optgroups).</li>
   <li>Model ID separator <code>.</code> instead of <code>__</code> so AI core’s <code>provider__model</code> parsing stays correct.</li>
-  <li>Content governance design and implementation (Guardrails attach, provenance, disclosure, Art. 50–oriented docs).</li>
-  <li>Scan profiles for async content review (factcheck).</li>
-  <li>Docs: glossary, servers-and-models, smart routing, usage limits, content governance; README installation and config paths.</li>
+  <li>Content governance submodule + recipes <code>ai_content_disclosure</code> / <code>ai_content_governance_starter</code>.</li>
+  <li>Scan profiles for async content review (factcheck); starter profile via the governance recipe.</li>
+  <li>Docs: glossary, servers-and-models, smart routing, usage limits, content governance; README installation, config paths, and recipes.</li>
   <li>Spanish translations updated (main, router, factcheck); new <code>ai_provider_universal_governance.es.po</code>.</li>
 </ul>
 
