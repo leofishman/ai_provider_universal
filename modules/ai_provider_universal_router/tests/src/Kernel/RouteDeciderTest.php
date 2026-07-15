@@ -44,7 +44,7 @@ final class RouteDeciderTest extends KernelTestBase {
     $model_storage = $this->container->get('entity_type.manager')->getStorage('ai_universal_model');
     // Local: free, mid quality, small context.
     $model_storage->create([
-      'id' => 'local__qwen',
+      'id' => 'local.qwen',
       'label' => 'Local / qwen',
       'server_id' => 'local',
       'raw_model_id' => 'qwen2.5-7b',
@@ -56,7 +56,7 @@ final class RouteDeciderTest extends KernelTestBase {
     ])->save();
     // Remote: cheap but strong.
     $model_storage->create([
-      'id' => 'fw__llama70b',
+      'id' => 'fw.llama70b',
       'label' => 'Fireworks / llama 70b',
       'server_id' => 'fw',
       'raw_model_id' => 'llama-v3p1-70b',
@@ -69,7 +69,7 @@ final class RouteDeciderTest extends KernelTestBase {
     ])->save();
     // Remote: expensive frontier.
     $model_storage->create([
-      'id' => 'fw__deepseek',
+      'id' => 'fw.deepseek',
       'label' => 'Fireworks / deepseek r1',
       'server_id' => 'fw',
       'raw_model_id' => 'deepseek-r1',
@@ -105,9 +105,9 @@ final class RouteDeciderTest extends KernelTestBase {
     ])->save();
 
     $decider = $this->container->get(RouteDecider::class);
-    // Only fw__llama70b reports the tools feature: the free local model is
+    // Only fw.llama70b reports the tools feature: the free local model is
     // skipped even for a simple prompt.
-    $this->assertSame('fw__llama70b', $decider->resolve('tools_chat', 'Hola, ¿como estas?'));
+    $this->assertSame('fw.llama70b', $decider->resolve('tools_chat', 'Hola, ¿como estas?'));
   }
 
   /**
@@ -115,7 +115,7 @@ final class RouteDeciderTest extends KernelTestBase {
    */
   public function testSimplePromptPicksCheapest(): void {
     $decider = $this->container->get(RouteDecider::class);
-    $this->assertSame('local__qwen', $decider->resolve('default_chat', 'Hola, ¿como estas?'));
+    $this->assertSame('local.qwen', $decider->resolve('default_chat', 'Hola, ¿como estas?'));
   }
 
   /**
@@ -124,7 +124,7 @@ final class RouteDeciderTest extends KernelTestBase {
   public function testComplexPromptEscalates(): void {
     $decider = $this->container->get(RouteDecider::class);
     $chosen = $decider->resolve('default_chat', "Refactor this code step by step:\n```php\necho 'hi';\n```");
-    $this->assertSame('fw__llama70b', $chosen);
+    $this->assertSame('fw.llama70b', $chosen);
   }
 
   /**
@@ -134,7 +134,7 @@ final class RouteDeciderTest extends KernelTestBase {
     $decider = $this->container->get(RouteDecider::class);
     // ~40k chars => ~10k tokens > qwen's 8192 context; also 'complex' by size.
     $chosen = $decider->resolve('default_chat', str_repeat('palabra ', 5000));
-    $this->assertSame('fw__llama70b', $chosen);
+    $this->assertSame('fw.llama70b', $chosen);
   }
 
   /**

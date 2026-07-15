@@ -13,7 +13,7 @@ use Drupal\ai_provider_universal_router\AiUniversalRouteListBuilder;
 /**
  * A smart route: a virtual model that picks a real model per request.
  *
- * Routes appear in the AI settings model dropdown as "route__<id>". At
+ * Routes appear in the AI settings model dropdown as "route.<id>". At
  * request time the RouteDecider classifies the prompt (simple/complex) and
  * picks the cheapest candidate whose quality tier satisfies the class.
  */

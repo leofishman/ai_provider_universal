@@ -14,7 +14,7 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [x] `fireworks` backend: default endpoint, Fireworks-tuned capability
       detection, published pricing/context prefilled.
 - [x] Router submodule: `ai_universal_route` entity, cheapest-capable decision
-      engine (simple/complex tiers), virtual `route__<id>` models, decision
+      engine (simple/complex tiers), virtual `route.<id>` models, decision
       log + savings dashboard.
 - [x] Raw-JSON discovery fix: llama.cpp `status.args` (--ctx-size) and vLLM
       `max_model_len` now feed context detection. Verified live.

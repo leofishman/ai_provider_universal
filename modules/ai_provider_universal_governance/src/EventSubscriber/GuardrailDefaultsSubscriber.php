@@ -86,15 +86,15 @@ class GuardrailDefaultsSubscriber implements EventSubscriberInterface {
   /**
    * Returns the Guardrail set id of the addressed smart route, if any.
    *
-   * Smart routes are addressed as model id "route__<id>". The router
+   * Smart routes are addressed as model id "route.<id>". The router
    * submodule is optional, so the route entity type may not exist.
    */
   protected function routeGuardrailSet(string $model_id): ?string {
-    if (!str_starts_with($model_id, 'route__')
+    if (!str_starts_with($model_id, 'route.')
       || !$this->entityTypeManager->hasDefinition('ai_universal_route')) {
       return NULL;
     }
-    $route = $this->entityTypeManager->getStorage('ai_universal_route')->load(substr($model_id, 7));
+    $route = $this->entityTypeManager->getStorage('ai_universal_route')->load(substr($model_id, 6));
     $set_id = (string) ($route?->get('guardrail_set') ?? '');
     // An empty route setting falls through to the module-wide default.
     return $set_id !== '' ? $set_id : NULL;

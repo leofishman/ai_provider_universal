@@ -202,10 +202,11 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     if ($model instanceof AiUniversalModelInterface) {
       $this->activeServerId = $model->getServerId();
     }
-    elseif (str_contains($model_key, '__')) {
-      // Compatibility fallback for old-style compound keys ("server__machine").
-      // Post-2.0 all model keys are ai_universal_model entity IDs.
-      [$maybe_server] = explode('__', $model_key, 2);
+    elseif (str_contains($model_key, '.') || str_contains($model_key, '__')) {
+      // Compatibility fallback for compound keys ("server.machine", or the
+      // legacy pre-beta2 "server__machine"). Post-2.0 all model keys are
+      // ai_universal_model entity IDs.
+      [$maybe_server] = preg_split('/\.|__/', $model_key, 2);
       if ($this->entityTypeManager->getStorage('ai_universal_server')->load($maybe_server)) {
         $this->activeServerId = $maybe_server;
       }
@@ -437,32 +438,25 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     }
 
     // Generic context (e.g. the AI settings default-providers form aggregates
-    // every server). Group by server so the model select renders <optgroup>s
-    // per server, keeping options short and unambiguous even when two servers
-    // expose a model with the same raw id.
-    $grouped = $this->modelCatalog->getModelsGroupedByServer($operation_type);
-
-    // When the router submodule is enabled, expose each smart route as a
-    // virtual model ("route__<id>"); it resolves to a real model per request.
-    $routes = $this->getRouteModelOptions($operation_type);
-    if ($routes) {
-      $smart_key = (string) $this->t('Smart Routing');
-      // Force Smart Routing to be the first optgroup in the select.
-      $new_grouped = [$smart_key => $routes];
-      foreach ($grouped as $key => $value) {
-        $new_grouped[$key] = $value;
+    // every server). AI core and its consumers (ai_search, simple
+    // provider/model selects) require a FLAT model_id => string label map —
+    // nested/optgrouped arrays render as "Array". Disambiguate models with the
+    // same raw id across servers by prefixing the label with the server name.
+    // Smart routes (router submodule) go first, as virtual models.
+    $options = $this->getRouteModelOptions($operation_type);
+    foreach ($this->modelCatalog->getModelsGroupedByServer($operation_type) as $server_label => $models) {
+      foreach ($models as $model_id => $raw_id) {
+        $options[$model_id] = $server_label . ': ' . $raw_id;
       }
-      $grouped = $new_grouped;
     }
-
-    return $grouped;
+    return $options;
   }
 
   /**
    * Lists smart routes as virtual model options, if the router is enabled.
    *
    * @return array<string, string>
-   *   Map of "route__<id>" => route label.
+   *   Map of "route.<id>" => route label.
    */
   protected function getRouteModelOptions(?string $operation_type): array {
     if (!$this->entityTypeManager->hasDefinition('ai_universal_route')) {
@@ -471,28 +465,28 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $options = [];
     foreach ($this->entityTypeManager->getStorage('ai_universal_route')->loadMultiple() as $route) {
       if ($operation_type === NULL || $route->getOperationType() === $operation_type) {
-        $options['route__' . $route->id()] = (string) $this->t('Auto: @label', ['@label' => $route->label()]);
+        $options['route.' . $route->id()] = (string) $this->t('Auto: @label', ['@label' => $route->label()]);
       }
     }
     return $options;
   }
 
   /**
-   * Resolves a virtual "route__<id>" model to a real model entity id.
+   * Resolves a virtual "route.<id>" model to a real model entity id.
    *
    * No-op for regular model ids. Requires the router submodule when a route
    * id is used (the option only appears in the UI when it is enabled, so a
    * missing service here means it was uninstalled after configuration).
    */
   protected function resolveRoutedModel(string $model_id, mixed $input, string $operation_type): string {
-    if (!str_starts_with($model_id, 'route__')) {
+    if (!str_starts_with($model_id, 'route.')) {
       return $model_id;
     }
     if (!$this->serviceContainer->has('ai_provider_universal_router.decider')) {
       throw new AiSetupFailureException(sprintf('Model "%s" is a smart route, but the ai_provider_universal_router module is not enabled.', $model_id));
     }
     return $this->serviceContainer->get('ai_provider_universal_router.decider')
-      ->resolve(substr($model_id, 7), $input, $operation_type);
+      ->resolve(substr($model_id, 6), $input, $operation_type);
   }
 
   /**
@@ -528,8 +522,8 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   public function chat(array|string|ChatInput $input, string $model_id, array $tags = []): ChatOutput {
     $route_id = NULL;
-    if (str_starts_with($model_id, 'route__')) {
-      $route_id = substr($model_id, 7);
+    if (str_starts_with($model_id, 'route.')) {
+      $route_id = substr($model_id, 6);
       $model_id = $this->resolveRoutedModel($model_id, $input, 'chat');
       // Tag the call with the routing decision so observability tooling
       // (e.g. the AI core's ai_observability logs) can attribute it.

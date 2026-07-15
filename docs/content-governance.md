@@ -144,7 +144,7 @@ Implementation (`GuardrailDefaultsSubscriber`):
 2. Only for `providerId === 'universal'`. If the input already has a set →
    **leave it** (works on both the ai 1.4 multi-set API and the 1.3
    single-set API).
-3. Model id `route__<id>` → that route’s `guardrail_set` wins; else the
+3. Model id `route.<id>` → that route’s `guardrail_set` wins; else the
    module default from settings. Missing/deleted set ids are a silent no-op.
 
 Document for operators: **PII, topics, injection, Bedrock → configure in AI

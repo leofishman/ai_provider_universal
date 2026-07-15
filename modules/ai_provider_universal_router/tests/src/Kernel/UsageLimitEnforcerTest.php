@@ -76,7 +76,7 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
     $this->container->get('entity_type.manager')
       ->getStorage('ai_universal_model')
       ->create([
-        'id' => $id . '__model',
+        'id' => $id . '.model',
         'label' => 'Model ' . $id,
         'server_id' => $id,
         'raw_model_id' => 'model',
@@ -92,7 +92,7 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
     $server = $this->createServerAndModel('no_limits');
 
     // Even with logged usage, it should not be over limit.
-    $this->usageTracker->record('no_limits__model', 1000, 1000);
+    $this->usageTracker->record('no_limits.model', 1000, 1000);
     $this->assertFalse($this->limitEnforcer->isServerOverLimit($server));
   }
 
@@ -113,7 +113,7 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
     // 1. Under alert threshold (7 requests recorded on server_under_alert).
     $server1 = $this->createServerAndModel('srv_under_alert', 10, 20, 80);
     for ($i = 0; $i < 7; $i++) {
-      $this->usageTracker->record('srv_under_alert__model', 1, 1);
+      $this->usageTracker->record('srv_under_alert.model', 1, 1);
     }
     $this->assertFalse($this->limitEnforcer->isServerOverLimit($server1));
     $this->assertArrayNotHasKey('alert', $events);
@@ -121,7 +121,7 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
     // 2. Alert threshold reached (8 requests recorded on srv_alert_reached).
     $server2 = $this->createServerAndModel('srv_alert_reached', 10, 20, 80);
     for ($i = 0; $i < 8; $i++) {
-      $this->usageTracker->record('srv_alert_reached__model', 1, 1);
+      $this->usageTracker->record('srv_alert_reached.model', 1, 1);
     }
     $this->assertFalse($this->limitEnforcer->isServerOverLimit($server2));
     $this->assertCount(1, $events['alert'] ?? []);
@@ -131,14 +131,14 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
     // 3. Exactly at limit but under grace (10 requests on srv_at_limit).
     $server3 = $this->createServerAndModel('srv_at_limit', 10, 20, 80);
     for ($i = 0; $i < 10; $i++) {
-      $this->usageTracker->record('srv_at_limit__model', 1, 1);
+      $this->usageTracker->record('srv_at_limit.model', 1, 1);
     }
     $this->assertFalse($this->limitEnforcer->isServerOverLimit($server3));
 
     // 4. Over limit but under grace (11 requests on srv_under_grace).
     $server4 = $this->createServerAndModel('srv_under_grace', 10, 20, 80);
     for ($i = 0; $i < 11; $i++) {
-      $this->usageTracker->record('srv_under_grace__model', 1, 1);
+      $this->usageTracker->record('srv_under_grace.model', 1, 1);
     }
     $this->assertFalse($this->limitEnforcer->isServerOverLimit($server4));
     $this->assertArrayNotHasKey('exhausted', $events);
@@ -146,7 +146,7 @@ final class UsageLimitEnforcerTest extends KernelTestBase {
     // 5. Reach ceiling (12 requests on srv_at_ceiling).
     $server5 = $this->createServerAndModel('srv_at_ceiling', 10, 20, 80);
     for ($i = 0; $i < 12; $i++) {
-      $this->usageTracker->record('srv_at_ceiling__model', 1, 1);
+      $this->usageTracker->record('srv_at_ceiling.model', 1, 1);
     }
     $this->assertTrue($this->limitEnforcer->isServerOverLimit($server5));
     $this->assertCount(1, $events['exhausted'] ?? []);

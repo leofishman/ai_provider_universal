@@ -52,7 +52,7 @@ final class ProvenanceRecorderTest extends KernelTestBase {
     $this->installEntitySchema('user');
 
     $this->container->get('entity_type.manager')->getStorage('ai_universal_model')->create([
-      'id' => 'local__qwen',
+      'id' => 'local.qwen',
       'label' => 'Local / qwen',
       'server_id' => 'local',
       'raw_model_id' => 'qwen2.5-7b',
@@ -75,7 +75,7 @@ final class ProvenanceRecorderTest extends KernelTestBase {
    */
   protected function dispatchPostCall(array $tags = []): void {
     $this->container->get('event_dispatcher')->dispatch(
-      new ModelPostCallEvent('local__qwen', 'chat', 10, 20, 123.4, $tags),
+      new ModelPostCallEvent('local.qwen', 'chat', 10, 20, 123.4, $tags),
       ModelPostCallEvent::EVENT_NAME,
     );
   }
@@ -99,7 +99,7 @@ final class ProvenanceRecorderTest extends KernelTestBase {
     $this->assertCount(1, $this->collected);
     $event = $this->collected[0];
     $this->assertSame(AiContentProvenanceEvent::SOURCE_GENERATION, $event->getSource());
-    $this->assertSame('local__qwen', $event->getModelId());
+    $this->assertSame('local.qwen', $event->getModelId());
     $this->assertSame('local', $event->getServerId());
     $this->assertSame('chat', $event->getOperationType());
     $this->assertSame('', $event->getEntityTypeId());
@@ -132,7 +132,7 @@ final class ProvenanceRecorderTest extends KernelTestBase {
     $account->save();
 
     $this->container->get('ai_provider_universal_governance.provenance')
-      ->recordAssociation($account, 'field_bio', 'local__qwen', 'chat');
+      ->recordAssociation($account, 'field_bio', 'local.qwen', 'chat');
 
     $this->assertCount(1, $this->collected);
     $event = $this->collected[0];

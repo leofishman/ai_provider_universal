@@ -167,7 +167,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
       'guardrail_set' => 'route_set',
     ])->save();
 
-    $input = $this->dispatch($this->chatInput(), 'universal', 'route__cheap');
+    $input = $this->dispatch($this->chatInput(), 'universal', 'route.cheap');
     $this->assertSame(['route_set'], $this->attachedSetIds($input));
   }
 
@@ -181,7 +181,7 @@ final class GuardrailDefaultsSubscriberTest extends KernelTestBase {
       'label' => 'Plain',
     ])->save();
 
-    $input = $this->dispatch($this->chatInput(), 'universal', 'route__plain');
+    $input = $this->dispatch($this->chatInput(), 'universal', 'route.plain');
     $this->assertSame(['default_set'], $this->attachedSetIds($input));
   }
 

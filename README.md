@@ -52,22 +52,7 @@ drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck ai_
 
 Release notes for **1.0.0-beta1** (changes since alpha1): [RELEASE_NOTES_1.0.0-beta1.html](RELEASE_NOTES_1.0.0-beta1.html).
 
-### Recommended core AI patches
-
-Two small bugs in the AI module affect this module's provider; fixes ship in `patches/` and are declared in this module's `composer.json`:
-
-- `ai-support-optgrouped-model-options.patch` — the AI settings form rejects models presented in optgroups (this module's provider groups models by server).
-- `ai-search-embeddings-engine-explode-limit.patch` — `ai_search` breaks model ids containing double underscores (used here for `server__model` ids).
-
-Composer does **not** apply patches from dependencies by default. To apply them in your site, install [composer-patches](https://github.com/cweagans/composer-patches) and enable dependency patching:
-
-```bash
-composer require cweagans/composer-patches
-composer config extra.enable-patching true
-composer update drupal/ai
-```
-
-Without the patches the module works, but route/model selects in the AI settings form may not validate, and `ai_search` cannot use this module's embedding models. Upstream issues are being filed against the AI module.
+No core AI patches are required. Model IDs use the form `server.model` (a dot separator) and model selects are flat `model_id => label` maps, so AI core and `ai_search` resolve them out of the box. Sites upgrading from beta1 get their model IDs and stored references migrated automatically by `drush updb`.
 
 ## Configuration
 

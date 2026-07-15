@@ -234,7 +234,11 @@ class ModelCatalog {
   }
 
   /**
-   * Builds a stable entity ID "server__machine".
+   * Builds a stable entity ID "server.machine".
+   *
+   * The separator is a dot, not "__": AI core builds its simple options as
+   * "provider_id__model_id" and parses them with explode('__'), so a "__"
+   * inside our model id would be split incorrectly by core.
    */
   public function buildModelEntityId(string $serverId, string $machineName): string {
     $cleanServer = $this->sanitizeForId($serverId);
@@ -247,7 +251,7 @@ class ModelCatalog {
       $cleanServer = 'server';
     }
 
-    $id = $cleanServer . '__' . $cleanMachine;
+    $id = $cleanServer . '.' . $cleanMachine;
 
     $max = 160;
     if (strlen($id) > $max) {

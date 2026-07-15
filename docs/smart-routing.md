@@ -4,7 +4,7 @@ A **smart route** is a virtual model that picks a real model per request: cheape
 
 ## What a route is
 
-A route (`ai_universal_route` config entity, `modules/ai_provider_universal_router/src/Entity/AiUniversalRoute.php`) appears in every AI settings model dropdown as `Auto: <label>`, grouped under a **"Smart Routing"** optgroup, with the internal model id `route__<route id>`. Selecting it as the provider for an operation type means every request to that operation type is decided per-request instead of pinned to one model.
+A route (`ai_universal_route` config entity, `modules/ai_provider_universal_router/src/Entity/AiUniversalRoute.php`) appears in every AI settings model dropdown as `Auto: <label>`, listed first, with the internal model id `route.<route id>`. Selecting it as the provider for an operation type means every request to that operation type is decided per-request instead of pinned to one model.
 
 | Field | Meaning | Default |
 |---|---|---|
@@ -23,7 +23,7 @@ The candidate checkbox list is filtered to the selected operation type and rebui
 
 ## How `RouteDecider` picks a model
 
-All decision logic lives in `modules/ai_provider_universal_router/src/Service/RouteDecider.php`, called by the provider (`UniversalProvider::chat/embeddings/rerank/moderation`) whenever the resolved model id starts with `route__`.
+All decision logic lives in `modules/ai_provider_universal_router/src/Service/RouteDecider.php`, called by the provider (`UniversalProvider::chat/embeddings/rerank/moderation`) whenever the resolved model id starts with `route.`.
 
 1. **Classify the prompt** (`ComplexityClassifier`): complex if the estimated token count exceeds **1500**, or the text matches reasoning/code cues —
    ```` ``` ````, "step by step", "prove", "derive", "theorem", "refactor",
@@ -41,7 +41,7 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    The cheap signals still run first — length/cue hits return `complex`
    without a call — and any classifier failure falls back to the
    heuristics, so classification can never break routing. Routes
-   (`route__*`) are refused as classifier to avoid recursion. Point this
+   (`route.*`) are refused as classifier to avoid recursion. Point this
    at a small local model (e.g. a fine-tuned Gemma on the dedicated
    `ollama` backend) for a learned router at zero cost.
 2. **Pick the required tier**: the route's simple or complex tier,

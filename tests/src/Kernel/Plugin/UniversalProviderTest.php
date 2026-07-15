@@ -79,7 +79,7 @@ final class UniversalProviderTest extends KernelTestBase {
 
     // Simulate what discovery does: create model entities directly.
     $model_storage->create([
-      'id' => 'testserver__llama3',
+      'id' => 'testserver.llama3',
       'label' => 'llama3',
       'server_id' => 'testserver',
       'raw_model_id' => 'llama3',
@@ -99,7 +99,7 @@ final class UniversalProviderTest extends KernelTestBase {
     $m->setOperationTypes(['embeddings']);
     $m->save();
 
-    $reloaded = $model_storage->load('testserver__llama3');
+    $reloaded = $model_storage->load('testserver.llama3');
     $this->assertSame(['embeddings'], $reloaded->getEffectiveOperationTypes());
   }
 
@@ -151,20 +151,20 @@ final class UniversalProviderTest extends KernelTestBase {
 
     // Resulting entity ids only contain [a-z0-9_] and the server separator.
     $id = $catalog->buildModelEntityId('gpu', $catalog->getMachineName('Qwen/Qwen2.5-7B-Instruct'));
-    $this->assertSame('gpu__qwen_qwen2_5_7b_instruct', $id);
-    $this->assertMatchesRegularExpression('/^[a-z0-9_]+$/', $id);
+    $this->assertSame('gpu.qwen_qwen2_5_7b_instruct', $id);
+    $this->assertMatchesRegularExpression('/^[a-z0-9_.]+$/', $id);
 
     // Degenerate (all-special) raw id still yields a valid id.
     $degenerate = $catalog->buildModelEntityId('gpu', $catalog->getMachineName('///'));
-    $this->assertSame('gpu__model', $degenerate);
+    $this->assertSame('gpu.model', $degenerate);
 
     // Direct passing of unsanitized strings (uppercase, spaces, specials).
     $unsanitized = $catalog->buildModelEntityId('GPU-Server!', 'My Awesome Model / v2');
-    $this->assertSame('gpu_server__my_awesome_model_v2', $unsanitized);
+    $this->assertSame('gpu_server.my_awesome_model_v2', $unsanitized);
 
     // Degenerate server ID yields a fallback.
     $degenerate_server = $catalog->buildModelEntityId('!!!', '///');
-    $this->assertSame('server__model', $degenerate_server);
+    $this->assertSame('server.model', $degenerate_server);
 
     // Over-long names are capped and disambiguated deterministically.
     $long = str_repeat('a', 300);
@@ -191,7 +191,7 @@ final class UniversalProviderTest extends KernelTestBase {
       'port' => '8080',
     ])->save();
     $etm->getStorage('ai_universal_model')->create([
-      'id' => 'gated__llama3',
+      'id' => 'gated.llama3',
       'label' => 'llama3',
       'server_id' => 'gated',
       'raw_model_id' => 'llama3',
@@ -211,16 +211,16 @@ final class UniversalProviderTest extends KernelTestBase {
     // so anything past the gate would fail differently.
     $this->expectException(AiRequestErrorException::class);
     $this->expectExceptionMessage('blocked by test');
-    $provider->chat('hello', 'gated__llama3');
+    $provider->chat('hello', 'gated.llama3');
   }
 
   /**
    * Tests that a pre-call subscriber can swap the model.
    */
   public function testModelPreCallEventSwap(): void {
-    $event = new ModelPreCallEvent('server__original', 'chat');
-    $event->setModelId('server__cheaper');
-    $this->assertSame('server__cheaper', $event->getModelId());
+    $event = new ModelPreCallEvent('server.original', 'chat');
+    $event->setModelId('server.cheaper');
+    $this->assertSame('server.cheaper', $event->getModelId());
     $this->assertFalse($event->isBlocked());
     $event->block('done');
     $this->assertTrue($event->isBlocked());
@@ -281,13 +281,13 @@ final class UniversalProviderTest extends KernelTestBase {
 
     // Only llama3-8b-instruct should survive the filter 'llama3*, !*old*'.
     $this->assertCount(1, $discovered);
-    $this->assertArrayHasKey('discover_test__llama3_8b_instruct', $discovered);
+    $this->assertArrayHasKey('discover_test.llama3_8b_instruct', $discovered);
 
     $models = $model_storage->loadMultiple();
     $this->assertCount(1, $models);
     /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model_entity */
     $model_entity = reset($models);
-    $this->assertSame('discover_test__llama3_8b_instruct', $model_entity->id());
+    $this->assertSame('discover_test.llama3_8b_instruct', $model_entity->id());
     $this->assertSame('llama3-8b-instruct', $model_entity->getRawModelId());
   }
 

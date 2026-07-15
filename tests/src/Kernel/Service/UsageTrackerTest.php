@@ -83,21 +83,21 @@ final class UsageTrackerTest extends KernelTestBase {
 
     // Create models belonging to different servers.
     $model_storage->create([
-      'id' => 'server_a__model_1',
+      'id' => 'server_a.model_1',
       'label' => 'Server A Model 1',
       'server_id' => 'server_a',
       'raw_model_id' => 'model-1',
     ])->save();
 
     $model_storage->create([
-      'id' => 'server_a__model_2',
+      'id' => 'server_a.model_2',
       'label' => 'Server A Model 2',
       'server_id' => 'server_a',
       'raw_model_id' => 'model-2',
     ])->save();
 
     $model_storage->create([
-      'id' => 'server_b__model_3',
+      'id' => 'server_b.model_3',
       'label' => 'Server B Model 3',
       'server_id' => 'server_b',
       'raw_model_id' => 'model-3',
@@ -110,11 +110,11 @@ final class UsageTrackerTest extends KernelTestBase {
     $this->assertSame(0, $usage['output_tokens']);
 
     // Record usage for models on server_a.
-    $this->usageTracker->record('server_a__model_1', 10, 20);
-    $this->usageTracker->record('server_a__model_2', 30, 40);
+    $this->usageTracker->record('server_a.model_1', 10, 20);
+    $this->usageTracker->record('server_a.model_2', 30, 40);
 
     // Record usage for model on server_b.
-    $this->usageTracker->record('server_b__model_3', 100, 200);
+    $this->usageTracker->record('server_b.model_3', 100, 200);
 
     // Verify server_a aggregated usage.
     $usage_a = $this->usageTracker->getTodayForServer('server_a');

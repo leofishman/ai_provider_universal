@@ -57,7 +57,7 @@ class ComplexityClassifier {
     $model = $this->configFactory->get('ai_provider_universal_router.settings')
       ->get('classifier_model');
     // Routes as classifier would recurse into the decider; refuse them.
-    if ($model && !str_starts_with($model, 'route__')) {
+    if ($model && !str_starts_with($model, 'route.')) {
       try {
         return $this->modelClassify($text, $model);
       }

@@ -16,7 +16,7 @@
 | **Model defaults** | `definitions/model_defaults.yml`: tier guesses, optional costs, vendor sampling recommendations, price-band map. Site override via `$settings['ai_provider_universal_model_defaults']`. |
 | **Reasoning effort** | Optional per-model `none` / `low` / `medium` / `high`, sent as OpenAI-compatible `reasoning_effort` on chat. Not the same as a catalog `reasoning` feature flag. |
 | **Prompt overrides** | Admin-editable LLM templates (factcheck + routing classifier/verifier). Empty = shipped default; sprintf token order is validated. |
-| **Smart route** (`ai_universal_route`) | Router submodule config entity: a virtual model (`route__<id>`, shown as "Auto: label") that resolves each request to the cheapest candidate whose tier (and optional features) satisfy the prompt. |
+| **Smart route** (`ai_universal_route`) | Router submodule config entity: a virtual model (`route.<id>`, shown as "Auto: label") that resolves each request to the cheapest candidate whose tier (and optional features) satisfy the prompt. |
 | **Candidate** | A model listed on a route as eligible for selection. |
 | **Simple/complex tier** | The route's two thresholds: short/simple prompts must meet the simple tier, long or reasoning-flavored prompts the complex tier. |
 | **Escalation** | Fact-check driven retry: when a routed answer fails verification, the request is re-run once with the best candidate. |

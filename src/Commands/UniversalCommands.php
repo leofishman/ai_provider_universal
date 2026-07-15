@@ -106,15 +106,15 @@ class UniversalCommands extends DrushCommands {
    * @param string $prompt
    *   The prompt text.
    * @param string $model_id
-   *   An ai_universal_model entity id, or "route__<id>" for a smart route.
+   *   An ai_universal_model entity id, or "route.<id>" for a smart route.
    * @param array $options
    *   Drush options.
    *
    * @command aip:chat
    * @option system Optional system prompt.
-   * @usage drush aip:chat "What is 2+2?" my_server__llama3
+   * @usage drush aip:chat "What is 2+2?" my_server.llama3
    *   Ask a specific model.
-   * @usage drush aip:chat "What is 2+2?" route__my_route
+   * @usage drush aip:chat "What is 2+2?" route.my_route
    *   Ask through a smart route (the router picks the model).
    */
   public function chat(string $prompt, string $model_id, array $options = ['system' => '']): void {

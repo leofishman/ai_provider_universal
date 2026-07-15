@@ -131,7 +131,7 @@ final class UniversalCommandsTest extends KernelTestBase {
     $text = $output->fetch();
     $this->assertStringContainsString('Running model discovery for server: Drush Server (test_drush_server)', $text);
     $this->assertStringContainsString('Success: Discovered and persisted 2 model(s) for server "test_drush_server".', $text);
-    $this->assertStringContainsString('test_drush_server__llama3_8b', $text);
+    $this->assertStringContainsString('test_drush_server.llama3_8b', $text);
   }
 
   /**

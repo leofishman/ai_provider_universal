@@ -34,3 +34,88 @@ function ai_provider_universal_update_10101(): void {
   $schema = ai_provider_universal_schema();
   \Drupal::database()->schema()->createTable('ai_provider_universal_usage', $schema['ai_provider_universal_usage']);
 }
+
+/**
+ * Converts model ID separator from "__" to "." (AI core uses "__" itself).
+ *
+ * AI core builds simple options as "provider__model" and parses them with
+ * explode('__'), so "__" inside our model ids ("server__machine") or route
+ * keys ("route__id") broke model resolution in core and ai_search. New format:
+ * "server.machine" / "route.id". Renames ai_universal_model entities and
+ * rewrites every stored reference.
+ */
+function ai_provider_universal_update_10102(): void {
+  // Replace the first "__" (our old separator) with ".".
+  $convert = fn (string $id): string => preg_replace('/__/', '.', $id, 1);
+
+  // Rename model config entities.
+  $model_storage = \Drupal::entityTypeManager()->getStorage('ai_universal_model');
+  foreach ($model_storage->loadMultiple() as $model) {
+    if (str_contains($model->id(), '__')) {
+      $values = $model->toArray();
+      $values['id'] = $convert($model->id());
+      unset($values['uuid']);
+      $model_storage->create($values)->save();
+      $model->delete();
+    }
+  }
+
+  // AI core default providers (model_id per operation type).
+  $ai_settings = \Drupal::configFactory()->getEditable('ai.settings');
+  $defaults = $ai_settings->get('default_providers') ?? [];
+  $changed = FALSE;
+  foreach ($defaults as $op => $info) {
+    if (($info['provider_id'] ?? '') === 'universal' && str_contains($info['model_id'] ?? '', '__')) {
+      $defaults[$op]['model_id'] = $convert($info['model_id']);
+      $changed = TRUE;
+    }
+  }
+  if ($changed) {
+    $ai_settings->set('default_providers', $defaults)->save();
+  }
+
+  // Smart router: route candidates/verifier and classifier setting.
+  if (\Drupal::entityTypeManager()->hasDefinition('ai_universal_route')) {
+    foreach (\Drupal::entityTypeManager()->getStorage('ai_universal_route')->loadMultiple() as $route) {
+      $route->set('candidates', array_map($convert, $route->get('candidates') ?? []));
+      $route->set('verifier_model', $convert($route->get('verifier_model') ?? ''));
+      $route->save();
+    }
+    $router_settings = \Drupal::configFactory()->getEditable('ai_provider_universal_router.settings');
+    if (str_contains($router_settings->get('classifier_model') ?? '', '__')) {
+      $router_settings->set('classifier_model', $convert($router_settings->get('classifier_model')))->save();
+    }
+  }
+
+  // Fact check: checker/extractor/detector models.
+  $factcheck = \Drupal::configFactory()->getEditable('ai_provider_universal_factcheck.settings');
+  if (!$factcheck->isNew()) {
+    foreach (['checker_model', 'extractor_model', 'detector_model'] as $key) {
+      if (str_contains($factcheck->get($key) ?? '', '__')) {
+        $factcheck->set($key, $convert($factcheck->get($key)));
+      }
+    }
+    $factcheck->save();
+  }
+
+  // ai_search stores "universal__<model id>" as the embeddings engine in
+  // search_api server backend config.
+  foreach (\Drupal::configFactory()->listAll('search_api.server.') as $name) {
+    $config = \Drupal::configFactory()->getEditable($name);
+    $engine = $config->get('backend_config.embeddings_engine');
+    if (is_string($engine) && str_starts_with($engine, 'universal__') && str_contains(substr($engine, 11), '__')) {
+      $config->set('backend_config.embeddings_engine', 'universal__' . $convert(substr($engine, 11)))->save();
+    }
+  }
+
+  // Usage counters keep history under the new ids.
+  $db = \Drupal::database();
+  foreach ($db->select('ai_provider_universal_usage', 'u')->fields('u', ['model_id'])->distinct()->execute()->fetchCol() as $model_id) {
+    if (str_contains($model_id, '__')) {
+      $db->update('ai_provider_universal_usage')
+        ->fields(['model_id' => $convert($model_id)])
+        ->condition('model_id', $model_id)
+        ->execute();
+    }
+  }
+}

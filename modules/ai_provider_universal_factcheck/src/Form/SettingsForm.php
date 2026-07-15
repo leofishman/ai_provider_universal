@@ -79,7 +79,7 @@ class SettingsForm extends ConfigFormBase {
       $route_storage = $this->entityTypeManager->getStorage('ai_universal_route');
       foreach ($route_storage->loadMultiple() as $route) {
         if ($route->getOperationType() === 'chat') {
-          $rid = 'route__' . $route->id();
+          $rid = 'route.' . $route->id();
           $model_options[$rid] = $this->t('Auto: @label', ['@label' => $route->label()]);
         }
       }
