@@ -42,13 +42,13 @@ Notes:
 - **LiteLLM discovery degrades gracefully**: if the configured key cannot read `/model/info` (common with scoped virtual keys), the backend falls back to the plain `/v1/models` catalog with name-based detection instead of failing discovery outright.
 - **amazee.ai** is a thin subclass of `litellm` purely so it shows up as its own option in the backend select with amazee-specific description text — there is no protocol difference.
 - **Ollama vs Ollama Cloud**: use `ollama` for a self-hosted daemon (LAN/Docker/host.docker.internal); use `ollama_cloud` for ollama.com. Local Ollama still works under `openai_compatible`, but you lose `/api/show` context enrichment and free-cost prefill.
-- Two core AI-module patches are recommended for optgrouped model selects and `ai_search` compatibility — see the README's "Recommended core AI patches" section.
+- No AI core patches are required: model entity ids use a **dot** separator (`server.model`) so AI core's `provider__model` simple options and `ai_search` parse them correctly, and `getConfiguredModels()` returns a flat `model_id => label` map.
 
 ## Model discovery
 
 Discovery is the **write path**: it calls the backend's `listModels()`, runs the model filter, asks the backend to detect operation types and routing metadata per model, then persists the result as `ai_universal_model` config entities (`src/Service/ModelCatalog.php`).
 
-- **Entity id**: `<server_id>__<sanitized_raw_model_id>`, so ids stay unique across servers even when two servers expose a model with the same raw id (e.g. `local__llama3` vs `openrouter__llama3`).
+- **Entity id**: `<server_id>.<sanitized_raw_model_id>`, so ids stay unique across servers even when two servers expose a model with the same raw id (e.g. `local.llama3` vs `openrouter.llama3`).
 - **Label**: `<Server label> / <raw model id>`, only set automatically while it still matches the auto-generated pattern — a manually renamed model label survives re-discovery.
 - **Removed models are deleted**: any `ai_universal_model` for the server that discovery no longer sees is removed (`hook_entity_delete` also cascades: deleting a server deletes all its models).
 - **Manual edits are never clobbered** for cost, quality tier, context length and reasoning effort: `applyDetectedMetadata()` only writes a detected value into a field that is still `NULL`. Once you set a value in the UI, re-discovery leaves it alone.

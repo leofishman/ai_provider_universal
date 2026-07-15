@@ -131,12 +131,11 @@ class ModelCatalog {
   }
 
   /**
-   * Returns models grouped by server, for optgroup-style select options.
+   * Returns models grouped by server label.
    *
-   * The outer keys are server labels (used as <optgroup> labels), the inner
-   * arrays map model entity id => raw model id. This keeps the AI settings
-   * model dropdown unambiguous when several servers expose the same raw model
-   * id, without prefixing every option with a long server name.
+   * Used by the provider to build a flat select list with "Server: model"
+   * labels (AI core cannot consume nested/optgroup maps). Outer keys are
+   * server labels; inner arrays map model entity id => raw model id.
    *
    * @param string|null $operationType
    *   Optional operation type to filter models by.

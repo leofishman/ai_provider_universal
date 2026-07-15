@@ -293,8 +293,8 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
       table pricing, supported_features vs reasoning effort.
 - [x] Content governance design: [docs/content-governance.md](docs/content-governance.md)
       (Guardrails vs review queue vs provenance; phases 0–5 in ROADMAP).
-- [ ] Recommended patches: file the upstream issues in the AI module queue
-      and link them from the README.
+- [x] No AI core patches: flat model options + `server.model` ids (#3611069);
+      update 10102 migrates beta1 `__` ids.
 - [ ] Hourly limits in README/usage-limits/servers-and-models once the
       feature lands (see UX & platform improvements).
 - [x] smart-routing: savings dashboard moved to Views (ai_router_log view with Page + JSON/REST export displays)

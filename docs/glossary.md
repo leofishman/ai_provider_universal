@@ -3,7 +3,7 @@
 | Term | Meaning |
 |---|---|
 | **Server** (`ai_universal_server`) | A config entity describing one AI endpoint: backend, host/port (or a fixed default endpoint), API key, timeout, model filter and daily usage limits. The unit that owns an account/budget. |
-| **Model** (`ai_universal_model`) | A config entity for one model discovered on a server. Id format `<server>__<model>`. Carries operation types, routing metadata, optional catalog features and sampling overrides. |
+| **Model** (`ai_universal_model`) | A config entity for one model discovered on a server. Id format `<server>.<model>` (dot separator so AI core can parse `provider__model` options). Carries operation types, routing metadata, optional catalog features and sampling overrides. |
 | **Backend** (`AiServerBackend` plugin) | Protocol adapter for one kind of server. Shipped ids: `openai_compatible`, `ollama`, `ollama_cloud`, `groq`, `openrouter`, `fireworks`, `huggingface`, `litellm`, `amazee`, `grok`. Owns base URI, model listing and capability/metadata detection. |
 | **Discovery** | The write path that asks a backend for its model catalog and persists the result as model entities. Runs on server save or `drush aip:discover-models` (`aipdm`). `ModelsDiscoveredEvent` fires before persistence. |
 | **Operation type** | What a model can do, in AI-module terms: `chat`, `embeddings`, `moderation`, `rerank`, `speech_to_text`, `text_to_speech`, `text_to_image`. Detected per model, overridable in the UI. |

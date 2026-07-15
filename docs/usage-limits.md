@@ -66,7 +66,7 @@ public function onPreCall(ModelPreCallEvent $event): void {
     // Either block the call entirely (throws AiRequestErrorException) ...
     $event->block('Chat is disabled outside business hours.');
     // ... or swap to a cheaper model instead:
-    // $event->setModelId('local__llama3_8b');
+    // $event->setModelId('local.llama3_8b');
   }
 }
 ```
