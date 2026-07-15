@@ -1,0 +1,115 @@
+<p>First beta after <strong>1.0.0-alpha1</strong>. The feature set for the 1.0 line is considered complete enough for wider testing: ten backends, smart routing, fact check, extensibility events, and admin-tunable prompts. Please report issues on the <a href="https://www.drupal.org/project/issues/ai_provider_universal" rel="nofollow">project issue queue</a>.</p>
+<p><strong>Requirements:</strong> Drupal ^11.1 || ^12, PHP ^8.3, <a href="https://www.drupal.org/project/ai" rel="nofollow">AI</a> ^1.2, <a href="https://www.drupal.org/project/key" rel="nofollow">Key</a> ^1.18.</p>
+<pre>
+composer require 'drupal/ai_provider_universal:^1.0@beta'
+drush pm:enable ai_provider_universal
+# optional:
+drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck
+</pre><p>Development branch: <code class="language-php">composer require drupal/ai_provider_universal:1.0.x-dev</code>.</p>
+<h3>What is this module?</h3>
+<p>A multi-instance AI provider for the Drupal AI module. Infrastructure is modeled as config entities:</p>
+<ul>
+<li><strong>Servers</strong> (<code class="language-php">ai_universal_server</code>) — one endpoint each (backend, host/key, limits).</li>
+<li><strong>Models</strong> (<code class="language-php">ai_universal_model</code>) — discovered per server, exportable, with operation types, routing metadata, sampling overrides, and optional catalog features.</li>
+</ul>
+<p>Optional submodules: <strong>Smart Router</strong> (cost-aware virtual routes) and <strong>Fact Check</strong> (claim verification + content scan).</p>
+<hr />
+<h3>Highlights</h3>
+<ul>
+<li><strong>Smart routing beyond cost.</strong> Routes can now require <em>catalog features</em> (tools, reasoning, json_mode — read live from the server), and every model carries <em>sampling overrides</em> (temperature, top_p, penalties). Duplicate a model entity with different sampling to tune the same model per use case — routing treats the variants as independent candidates.</li>
+<li><strong>Every prompt is yours.</strong> All eight tunable LLM prompts (six fact-check, classifier, route verifier) are editable from the admin UI, with sprintf-token validation and shipped defaults you can always fall back to. Translate them, add domain guidance, tighten them for your models.</li>
+<li><strong>Two new backends with real metadata.</strong> Local <code class="language-php">ollama</code> (native <code class="language-php">/api/show</code> enrichment: true context windows, capabilities, free-cost prefill) and <code class="language-php">groq</code> (live pricing, context and feature flags from the catalog).</li>
+<li><strong>Built to be extended.</strong> New <code class="language-php">ModelPostCallEvent</code> and <code class="language-php">ModelsDiscoveredEvent</code> join the pre-call gate, and routed calls are tagged (<code class="language-php">smart_route:&amp;lt;id&amp;gt;</code>, <code class="language-php">route_complexity:&amp;lt;class&amp;gt;</code>) so the AI core's <code class="language-php">ai_observability</code> logs attribute every call to its route.</li>
+<li><strong>Hardening pass.</strong> SSRF guard on standalone URL scans, per-role scan flood limits, and prompt-injection mitigations baked into the shipped fact-check prompts.</li>
+</ul>
+<hr />
+<h3>Changes since 1.0.0-alpha1</h3>
+<h4>Backends</h4>
+<ul>
+<li><strong>Ollama</strong> (<code class="language-php">ollama</code>) — dedicated local backend; discovery enriches <code class="language-php">/v1/models</code> via native <code class="language-php">POST /api/show</code> (context length, family/capabilities); costs prefilled as free for smart routing.</li>
+<li><strong>Groq</strong> (<code class="language-php">groq</code>) — fixed <code class="language-php">api.groq.com/openai/v1</code>; <strong>live</strong> pricing, context, modalities, and <code class="language-php">supported_features</code> from the catalog.</li>
+<li>Clearer separation: use <code class="language-php">ollama</code> for self-hosted daemons, <code class="language-php">ollama_cloud</code> for ollama.com.</li>
+<li>Discovery is more resilient: per-model enrichment failures log and fall back instead of aborting the whole run.</li>
+<li>Ollama models proxied to ollama.com (ids ending in <code class="language-php">-cloud</code>) are <strong>not</strong> marked free — they are metered on ollama.com, so their costs stay unset for you to fill in.</li>
+</ul>
+<h4>Models &amp; discovery</h4>
+<ul>
+<li><strong>Catalog features</strong> (<code class="language-php">supported_features</code>) persisted on models when the backend publishes them; always refreshed on re-discovery.</li>
+<li><strong>Sampling overrides</strong> per model (<code class="language-php">temperature</code>, <code class="language-php">top_p</code>, <code class="language-php">frequency_penalty</code>, <code class="language-php">presence_penalty</code>) on every chat call; vendor recommendations prefilled from <code class="language-php">definitions/model_defaults.yml</code> when known.</li>
+<li><strong>Quality tier</strong> prefill: family/size heuristics plus a <strong>price-band</strong> fallback for live-pricing catalogs (so large catalogs are not left unrated).</li>
+<li>Manual cost / tier / context / reasoning / sampling edits are still never clobbered by re-discovery.</li>
+</ul>
+<h4>Smart Router</h4>
+<ul>
+<li><strong>Verifier model</strong> on a route — lightweight yes/no check before return; one retry with the best remaining candidate on rejection.</li>
+<li><strong>Complexity classifier</strong> — optional local model for prompts heuristics treat as simple; admin setting + fallback to heuristics.</li>
+<li><strong>Required catalog features</strong> on routes (e.g. tools, reasoning) — candidates must report them.</li>
+<li><strong>Admin-editable routing prompts</strong> (classifier system prompt, route verifier) with sprintf token validation.</li>
+<li>Decision log now exposed as editable <strong>Views</strong> (decisions list with sortable columns + JSON/REST export); savings dashboard moved to <strong>Reports</strong>.</li>
+<li>New <strong>Smart routing settings</strong> page (classifier model — previously config-only — and routing prompt overrides).</li>
+<li>Routed calls tagged <code class="language-php">smart_route:&amp;lt;id&amp;gt;</code> / <code class="language-php">route_complexity:&amp;lt;class&amp;gt;</code> for <code class="language-php">ai_observability</code> attribution.</li>
+</ul>
+<h4>Fact check</h4>
+<ul>
+<li><strong>Admin notifications</strong> — <code class="language-php">AdminNotifier</code> + <code class="language-php">FactcheckNotificationEvent</code> (always dispatched; optional default email via <code class="language-php">notify_email</code>; ECA/subscribers can suppress mail).</li>
+<li>Content-scan <strong>flood limits</strong> per role/session.</li>
+<li><strong>Prompt overrides</strong> for the six fact-check LLM templates (empty = shipped default).</li>
+<li><strong>Media Bias Fact Check</strong> bias import (static JSON + optional RapidAPI <code class="language-php">drush factcheck:sync-bias-ratings</code>).</li>
+<li>Fact check <strong>results</strong> content entity + Views history; standalone page/block improvements.</li>
+<li>Standalone URL fetch <strong>SSRF protection</strong> (public http(s) only; private/reserved addresses blocked).</li>
+<li><strong>Prompt-injection mitigations</strong> in the shipped templates: scanned text, claims and evidence are explicitly framed as data, never instructions.</li>
+<li><strong>Trusted-site seeds expanded</strong>: scientific sources (PubMed, Nature, Science, arXiv — the latter flagged as not peer-reviewed) and wire services (Reuters, AP) join WHO/UN/Wikipedia. All created unpublished: reputation stays an editorial decision.</li>
+<li>Settings UX: key_select + refresh; breadcrumb-friendly path under AI config.</li>
+<li>Batch claim verification robustness and extractor language pinning.</li>
+</ul>
+<h4>Extensibility events</h4>
+<ul>
+<li><code class="language-php">ModelPreCallEvent</code> — block or swap model before every call (pre-call gate).</li>
+<li><code class="language-php">ModelPostCallEvent</code> — tokens + latency after successful chat.</li>
+<li><code class="language-php">ModelsDiscoveredEvent</code> — adjust discovered models before persistence.</li>
+<li><code class="language-php">UsageThresholdEvent</code> (router) — alert / exhausted daily limits.</li>
+<li><code class="language-php">FactcheckNotificationEvent</code> — admin alerts for scans and settings changes.</li>
+</ul>
+<h4>Platform &amp; DX</h4>
+<ul>
+<li>Core requirement tightened to <strong>Drupal ^11.1 || ^12</strong> (PHP ^8.3).</li>
+<li>OOP hooks where needed; Spanish interface strings expanded for main, router, and factcheck.</li>
+<li>PHPUnit attributes; Kernel tests use <code class="language-php">RunTestsInSeparateProcesses</code>.</li>
+<li>Documentation refresh: README, glossary, servers-and-models, smart-routing, factcheck, usage-limits, adding-a-backend.</li>
+</ul>
+<hr />
+<h3>Recommended AI core patches</h3>
+<p>Still recommended (shipped under <code class="language-php">patches/</code>, declared in this module’s <code class="language-php">composer.json</code>). Enable dependency patching with <a href="https://github.com/cweagans/composer-patches" rel="nofollow">composer-patches</a>:</p>
+<ul>
+<li>Optgrouped model options in AI settings form.</li>
+<li><code class="language-php">ai_search</code> embeddings engine parsing for model ids containing double underscores.</li>
+</ul>
+<pre>
+composer require cweagans/composer-patches
+composer config extra.enable-patching true
+composer update drupal/ai
+</pre><hr />
+<h3>Upgrade notes (from alpha1)</h3>
+<ul>
+<li><strong>Config export/import:</strong> new model fields (<code class="language-php">supported_features</code>, <code class="language-php">sampling</code>), route fields (<code class="language-php">required_features</code>, verifier), factcheck settings (notify, flood, prompts), router settings (classifier, prompts). Re-export site config after upgrade.</li>
+<li><strong>Routing decisions report moved:</strong> now under <strong>Reports</strong> at <code class="language-php">/admin/reports/ai-router-savings</code> (was <code class="language-php">/admin/config/ai/providers/universal/routes/log</code>) — update bookmarks. A quick-access button remains on the Smart Routes page.</li>
+<li><strong>Local Ollama:</strong> prefer backend <code class="language-php">ollama</code> over generic <code class="language-php">openai_compatible</code> for richer discovery metadata (re-save server / re-run discovery).</li>
+<li><strong>Drupal 10:</strong> no longer supported; use Drupal 11.1+ or 12.</li>
+<li>No automated migration from <code class="language-php">ai_provider_llama_cpp</code> — recreate servers under this module.</li>
+</ul>
+<hr />
+<h3>Submodules</h3>
+<ul>
+<li><code class="language-php">ai_provider_universal_router</code> — smart routes, usage-limit enforcement, decision log.</li>
+<li><code class="language-php">ai_provider_universal_factcheck</code> — claim verification, content scan, trusted sites, notifications.</li>
+</ul>
+<p>Full documentation lives in the package under <code class="language-php">docs/</code> and in the project README.</p>
+<hr />
+<h3>Known limitations (beta)</h3>
+<ul>
+<li>Inference is OpenAI-protocol only; native Anthropic/Gemini backends still need “inference dispatch through backends” (roadmap).</li>
+<li>Token estimates for routing use chars/4, not a real tokenizer.</li>
+<li>No time-of-day pricing schedules yet.</li>
+<li>OpenRouter embedding catalog merge and several UX items remain on the roadmap.</li>
+</ul>
+<p>Thank you for testing the beta. Feedback on real-world multi-provider fleets and smart-route savings numbers is especially welcome.</p>

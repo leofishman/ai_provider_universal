@@ -50,7 +50,10 @@ drush pm:enable ai_provider_universal
 drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck ai_provider_universal_governance
 ```
 
-Release notes for **1.0.0-beta1** (changes since alpha1): [RELEASE_NOTES_1.0.0-beta1.html](RELEASE_NOTES_1.0.0-beta1.html).
+Release notes:
+
+- **1.0.0-beta2** (changes since beta1): [RELEASE_NOTES_1.0.0-beta2.html](RELEASE_NOTES_1.0.0-beta2.html)
+- **1.0.0-beta1** (changes since alpha1): [RELEASE_NOTES_1.0.0-beta1.html](RELEASE_NOTES_1.0.0-beta1.html)
 
 No core AI patches are required. Model IDs use the form `server.model` (a dot separator) and model selects are flat `model_id => label` maps, so AI core and `ai_search` resolve them out of the box. Sites upgrading from beta1 get their model IDs and stored references migrated automatically by `drush updb`.
 

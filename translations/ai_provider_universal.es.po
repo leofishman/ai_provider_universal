@@ -2,7 +2,7 @@
 # Copyright (c) 2026
 msgid ""
 msgstr ""
-"Project-Id-Version: AI Provider: Universal 1.0.0-alpha1\n"
+"Project-Id-Version: AI Provider: Universal 1.0.0-beta2\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -75,7 +75,7 @@ msgstr ""
 "Otros módulos pueden añadir backends nativos."
 
 msgid "Endpoint: %uri (API key required; host and port are not needed)."
-msgstr ""
+msgstr "Endpoint: %uri (se requiere clave API; host y puerto no son necesarios)."
 "Endpoint: %uri (se requiere clave API; no se necesitan host ni puerto)."
 
 msgid "Host Name"
@@ -124,7 +124,7 @@ msgid "Timeout (seconds)"
 msgstr "Tiempo de espera (segundos)"
 
 msgid "Request timeout in seconds. Increase for slow models or large inputs."
-msgstr ""
+msgstr "Tiempo de espera de la petición en segundos. Auméntelo para modelos lentos o entradas grandes."
 "Tiempo de espera de la solicitud en segundos. Aumente para modelos lentos o "
 "entradas grandes."
 
@@ -223,7 +223,7 @@ msgid "Operation types"
 msgstr "Tipos de operación"
 
 msgid "Auto-detected: <em>@types</em>. Leave unchecked to use auto-detection."
-msgstr ""
+msgstr "Detectado automáticamente: <em>@types</em>. Déjelos sin marcar para usar la detección automática."
 "Detectados automáticamente: <em>@types</em>. Déjelos sin marcar para usar la "
 "detección automática."
 
@@ -231,7 +231,7 @@ msgid "Cost per 1M input tokens (USD)"
 msgstr "Costo por 1M de tokens de entrada (USD)"
 
 msgid "Use 0 for local/self-hosted models. Leave empty if unknown."
-msgstr ""
+msgstr "Use 0 para modelos locales/autoalojados. Déjelo vacío si se desconoce."
 "Use 0 para modelos locales o autoalojados. Déjelo vacío si se desconoce."
 
 msgid "Cost per 1M output tokens (USD)"
@@ -311,7 +311,7 @@ msgstr ""
 "la clave API."
 
 msgid "Connection OK — @count models available (model filter not applied):"
-msgstr ""
+msgstr "Conexión OK — @count modelos disponibles (filtro de modelos no aplicado):"
 "Conexión correcta — @count modelos disponibles (filtro de modelo no "
 "aplicado):"
 
@@ -355,7 +355,7 @@ msgid "No configured servers found."
 msgstr "No se encontraron servidores configurados."
 
 msgid "Running model discovery for server: <info>@label</info> (@id)..."
-msgstr ""
+msgstr "Ejecutando descubrimiento de modelos para el servidor: <info>@label</info> (@id)..."
 "Ejecutando descubrimiento de modelos para el servidor: <info>@label</info> "
 "(@id)..."
 
@@ -418,7 +418,7 @@ msgstr ""
 "ilimitado)"
 
 msgid "Usage percentage that triggers an alert event/log (empty = no alert)"
-msgstr ""
+msgstr "Porcentaje de uso que dispara un evento/log de alerta (vacío = sin alerta)"
 "Porcentaje de uso que dispara un evento o log de alerta (vacío = sin alerta)"
 
 msgid ""
@@ -437,7 +437,7 @@ msgid "Quality tier (1-5)"
 msgstr "Nivel de calidad (1-5)"
 
 msgid "Reasoning effort (none/low/medium/high, empty = server default)"
-msgstr ""
+msgstr "Esfuerzo de razonamiento (none/low/medium/high, vacío = predeterminado del servidor)"
 "Esfuerzo de razonamiento (none/low/medium/high, vacío = predeterminado del "
 "servidor)"
 
@@ -511,7 +511,7 @@ msgid "Discover models from one or all configured servers."
 msgstr "Descubre modelos de uno o todos los servidores configurados."
 
 msgid "Server ID (machine name). Omit to discover from all servers."
-msgstr ""
+msgstr "ID del servidor (nombre máquina). Omita para descubrir en todos los servidores."
 "ID del servidor (nombre máquina). Omítalo para descubrir de todos los "
 "servidores."
 

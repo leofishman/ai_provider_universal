@@ -1,0 +1,37 @@
+<h2>AI Provider: Universal 1.0.0-beta2</h2>
+
+<p>Changes since <a href="https://www.drupal.org/project/ai_provider_universal/releases/1.0.0-beta1">1.0.0-beta1</a>.</p>
+
+<h3>Highlights</h3>
+<ul>
+  <li><strong>No AI core patches required.</strong> Model IDs use a dot separator (<code>server.model</code>, smart routes <code>route.&lt;id&gt;</code>) and <code>getConfiguredModels()</code> returns a flat <code>model_id =&gt; label</code> map. AI settings and <code>ai_search</code> resolve Universal models out of the box (fixes <a href="https://www.drupal.org/project/ai_provider_universal/issues/3611069">#3611069</a> — “Universal | Array” in the embeddings engine select).</li>
+  <li><strong>Content governance submodule</strong> (<code>ai_provider_universal_governance</code>): default Guardrail set attach, AI-origin provenance events, disclosure suffix / origin marker / fact-check and AI-likelihood Guardrail plugins, optional field-based disclosure UI, and starter recipes.</li>
+  <li><strong>Scheduled content review</strong> (factcheck): scan profiles enqueue checks on node save; cron/queue runs them; optional content-review events for ECA/Workflow.</li>
+</ul>
+
+<h3>Upgrade notes (from beta1)</h3>
+<ol>
+  <li>Run database updates: <code>drush updb</code> (update <code>10102</code> renames model entity IDs from <code>server__machine</code> to <code>server.machine</code> and rewrites stored references in AI defaults, smart routes, router/factcheck settings, Search API embeddings engines, and usage counters).</li>
+  <li>Clear caches: <code>drush cr</code>.</li>
+  <li>If you previously applied the module’s recommended <code>drupal/ai</code> patches (optgroups / <code>explode</code> limit 2), you can remove them — they are no longer needed for this provider.</li>
+  <li>Optional: enable <code>ai_provider_universal_governance</code> and review <strong>Configuration → AI → Providers → Universal → Content governance</strong>.</li>
+</ol>
+
+<h3>Changes</h3>
+<ul>
+  <li>Flat model options with <code>Server: model</code> labels (no nested optgroups).</li>
+  <li>Model ID separator <code>.</code> instead of <code>__</code> so AI core’s <code>provider__model</code> parsing stays correct.</li>
+  <li>Content governance design and implementation (Guardrails attach, provenance, disclosure, Art. 50–oriented docs).</li>
+  <li>Scan profiles for async content review (factcheck).</li>
+  <li>Docs: glossary, servers-and-models, smart routing, usage limits, content governance; README installation and config paths.</li>
+  <li>Spanish translations updated (main, router, factcheck); new <code>ai_provider_universal_governance.es.po</code>.</li>
+</ul>
+
+<h3>Requirements</h3>
+<ul>
+  <li>Drupal 11.1+ / 12</li>
+  <li><a href="https://www.drupal.org/project/ai">AI</a> ^1.3 (Guardrails API for governance features)</li>
+  <li><a href="https://www.drupal.org/project/key">Key</a></li>
+</ul>
+
+<p><strong>Install:</strong> <code>composer require 'drupal/ai_provider_universal:^1.0@beta'</code></p>

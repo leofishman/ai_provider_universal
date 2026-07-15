@@ -1,7 +1,7 @@
 # Spanish translation of AI Provider: Universal — Smart Router
 msgid ""
 msgstr ""
-"Project-Id-Version: AI Provider: Universal — Smart Router 1.0.0-alpha1\n"
+"Project-Id-Version: AI Provider: Universal — Smart Router 1.0.0-beta2\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -260,3 +260,13 @@ msgstr "El prompt debe conservar los tokens sprintf predeterminados en el mismo 
 msgid "Tokens, in order: the task, the answer. The model must answer yes or no."
 msgstr "Tokens, en orden: la tarea, la respuesta. El modelo debe responder yes o no."
 
+
+# Added 2026-07-15 — content governance / beta2
+msgid "Guardrail set"
+msgstr "Conjunto de Guardrails"
+
+msgid "- Provider default -"
+msgstr "- Predeterminado del proveedor -"
+
+msgid "AI core Guardrail set attached to calls on this route when the caller provided none. Overrides the provider-wide default from the Content governance settings."
+msgstr "Conjunto de Guardrails de AI core aplicado a las llamadas de esta ruta cuando el invocador no aportó ninguno. Sobrescribe el predeterminado del proveedor en la configuración de gobernanza de contenido."
