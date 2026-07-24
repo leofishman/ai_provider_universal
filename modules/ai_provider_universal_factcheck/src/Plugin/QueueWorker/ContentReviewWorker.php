@@ -33,8 +33,11 @@ class ContentReviewWorker extends QueueWorkerBase implements ContainerFactoryPlu
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
-    protected readonly ScanRunner $scanRunner,
+    // Not readonly: QueueWorkerBase brings in DependencySerializationTrait,
+    // whose __wakeup() cannot reinitialize readonly properties declared here
+    // on PHP < 8.4.
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected ScanRunner $scanRunner,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }

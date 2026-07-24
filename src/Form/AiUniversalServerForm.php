@@ -2,6 +2,8 @@
 
 namespace Drupal\ai_provider_universal\Form;
 
+use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -11,8 +13,6 @@ use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Yaml\Exception\ParseException;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Form for adding and editing ai_universal_server entities.
@@ -475,7 +475,7 @@ class AiUniversalServerForm extends EntityForm {
         '#type'          => 'textarea',
         '#title'         => $this->t('Extra request parameters (YAML)'),
         '#description'   => $this->t('Merged verbatim into every chat request to this model, for parameters this module does not model itself. Example, OpenAI built-in web search: <code>tools:<br />&nbsp;&nbsp;- type: web_search</code><br />Servers that do not understand a parameter usually ignore it, but strict ones will return an error. Note that Drupal function-calling tools passed by the calling module override a <code>tools</code> key set here.'),
-        '#default_value' => $extra === [] ? '' : trim(Yaml::dump($extra, 4, 2)),
+        '#default_value' => $extra === [] ? '' : trim(Yaml::encode($extra)),
         '#rows'          => 4,
       ];
 
@@ -534,10 +534,11 @@ class AiUniversalServerForm extends EntityForm {
       if ($yaml === '') {
         continue;
       }
+      $error = NULL;
       try {
-        $parsed = Yaml::parse($yaml);
+        $parsed = Yaml::decode($yaml);
       }
-      catch (ParseException $e) {
+      catch (InvalidDataTypeException $e) {
         $parsed = NULL;
         $error = $e->getMessage();
       }
@@ -687,7 +688,7 @@ class AiUniversalServerForm extends EntityForm {
     static $presets;
     if ($presets === NULL) {
       // Same relative resolution as ModelDefaults: no container access needed.
-      $presets = Yaml::parseFile(dirname(__DIR__, 2) . '/definitions/extra_params.yml') ?: [];
+      $presets = Yaml::decode(file_get_contents(dirname(__DIR__, 2) . '/definitions/extra_params.yml')) ?: [];
     }
     return $presets;
   }
@@ -732,7 +733,7 @@ class AiUniversalServerForm extends EntityForm {
 
       // Already validated as a YAML mapping in validateForm().
       $yaml = trim((string) ($values['extra_params'] ?? ''));
-      $params = $yaml === '' ? [] : (array) Yaml::parse($yaml);
+      $params = $yaml === '' ? [] : (array) Yaml::decode($yaml);
       $preset = (string) ($values['extra_params_preset'] ?? '');
       if ($preset !== '') {
         // Preset wins on conflict: picking it is an explicit request for it.

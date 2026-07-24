@@ -91,7 +91,7 @@ No code required: create (or duplicate) a model entity, paste the YAML, and ever
 
 Because model entities are per-*configuration*, you can offer the same model twice — one plain entity, one duplicate with web search enabled — and point only the modules that need current information at the second one. Full recipe: [docs/servers-and-models.md](docs/servers-and-models.md#example-one-model-two-configurations). Re-discovery keeps such duplicates as long as the server still offers the underlying model.
 
-Caveats: `model`, `messages`, `stream` and `stream_options` are owned by the provider and are stripped if set here. A server that does not recognise a parameter usually ignores it, but strict ones return an error. And if the calling module passes Drupal function-calling tools on the `ChatInput`, AI core overwrites the `tools` key — a native `tools` entry here only applies to calls that carry no Drupal tools.
+Caveats: `model`, `messages`, `stream` and `stream_options` are owned by the provider and are stripped if set here. A server that does not recognize a parameter usually ignores it, but strict ones return an error. And if the calling module passes Drupal function-calling tools on the `ChatInput`, AI core overwrites the `tools` key — a native `tools` entry here only applies to calls that carry no Drupal tools.
 
 ### Authentication / API keys
 
