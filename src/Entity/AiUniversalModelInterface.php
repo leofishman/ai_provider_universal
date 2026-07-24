@@ -174,4 +174,29 @@ interface AiUniversalModelInterface extends ConfigEntityInterface {
    */
   public function setSampling(array $sampling): self;
 
+  /**
+   * Gets free-form request parameters merged into every chat payload.
+   *
+   * Escape hatch for provider-native parameters the module knows nothing
+   * about, such as OpenAI's built-in tools:
+   * @code
+   * tools:
+   *   - type: web_search
+   * @endcode
+   * Sent as-is to the OpenAI-compatible endpoint; servers that do not
+   * understand a key typically ignore it, but strict ones will error.
+   *
+   * @return array<string, mixed>
+   *   Request parameters, keyed by their wire name.
+   */
+  public function getExtraParams(): array;
+
+  /**
+   * Sets the extra request parameters ("model" and "messages" are dropped).
+   *
+   * @param array $params
+   *   Map of request parameter name to value.
+   */
+  public function setExtraParams(array $params): self;
+
 }

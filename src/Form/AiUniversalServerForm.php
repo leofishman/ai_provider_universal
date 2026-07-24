@@ -11,6 +11,8 @@ use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Yaml\Exception\ParseException;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Form for adding and editing ai_universal_server entities.
@@ -458,6 +460,25 @@ class AiUniversalServerForm extends EntityForm {
         '#step'          => 'any',
       ];
 
+      $extra = $model->getExtraParams();
+      $element[$key]['extra_params_preset'] = [
+        '#type'         => 'select',
+        '#title'        => $this->t('Add a known parameter set'),
+        '#description'  => $this->t('Merges a documented provider-native parameter set into the field below on save, where it can then be edited or removed.'),
+        '#options'      => array_map(
+          static fn (array $preset) => $preset['label'] ?? '',
+          $this->getExtraParamPresets(),
+        ),
+        '#empty_option' => $this->t('- None -'),
+      ];
+      $element[$key]['extra_params'] = [
+        '#type'          => 'textarea',
+        '#title'         => $this->t('Extra request parameters (YAML)'),
+        '#description'   => $this->t('Merged verbatim into every chat request to this model, for parameters this module does not model itself. Example, OpenAI built-in web search: <code>tools:<br />&nbsp;&nbsp;- type: web_search</code><br />Servers that do not understand a parameter usually ignore it, but strict ones will return an error. Note that Drupal function-calling tools passed by the calling module override a <code>tools</code> key set here.'),
+        '#default_value' => $extra === [] ? '' : trim(Yaml::dump($extra, 4, 2)),
+        '#rows'          => 4,
+      ];
+
       $usage = $this->usageTracker->getToday($key);
       $element[$key]['usage_today'] = [
         '#markup' => $this->t('<p>Usage today: @requests requests, @tokens tokens.</p>', [
@@ -506,6 +527,26 @@ class AiUniversalServerForm extends EntityForm {
     if ($this->getBackendDefaultUri((string) $form_state->getValue('backend'))) {
       $form_state->setValue('host_name', '');
       $form_state->setValue('port', '');
+    }
+
+    foreach (($form_state->getValue('overrides') ?? []) as $key => $values) {
+      $yaml = trim((string) ($values['extra_params'] ?? ''));
+      if ($yaml === '') {
+        continue;
+      }
+      try {
+        $parsed = Yaml::parse($yaml);
+      }
+      catch (ParseException $e) {
+        $parsed = NULL;
+        $error = $e->getMessage();
+      }
+      if (!is_array($parsed)) {
+        $form_state->setErrorByName("overrides][$key][extra_params", $this->t(
+          'Extra request parameters for @model must be a YAML mapping: @error',
+          ['@model' => $key, '@error' => $error ?? $this->t('not a mapping')],
+        ));
+      }
     }
 
     // The key-refresh button only needs a form rebuild, not a connection
@@ -637,6 +678,21 @@ class AiUniversalServerForm extends EntityForm {
   }
 
   /**
+   * Loads the known extra-parameter presets from definitions/extra_params.yml.
+   *
+   * @return array<string, array{label: string, params: array}>
+   *   Presets keyed by machine name.
+   */
+  protected function getExtraParamPresets(): array {
+    static $presets;
+    if ($presets === NULL) {
+      // Same relative resolution as ModelDefaults: no container access needed.
+      $presets = Yaml::parseFile(dirname(__DIR__, 2) . '/definitions/extra_params.yml') ?: [];
+    }
+    return $presets;
+  }
+
+  /**
    * Persists manual model capability overrides to ai_universal_model entities.
    */
   protected function saveModelOverrides(FormStateInterface $form_state, string $server_id): void {
@@ -673,6 +729,16 @@ class AiUniversalServerForm extends EntityForm {
         $values['sampling'] ?? [],
         static fn ($v) => $v !== '' && $v !== NULL,
       ));
+
+      // Already validated as a YAML mapping in validateForm().
+      $yaml = trim((string) ($values['extra_params'] ?? ''));
+      $params = $yaml === '' ? [] : (array) Yaml::parse($yaml);
+      $preset = (string) ($values['extra_params_preset'] ?? '');
+      if ($preset !== '') {
+        // Preset wins on conflict: picking it is an explicit request for it.
+        $params = ($this->getExtraParamPresets()[$preset]['params'] ?? []) + $params;
+      }
+      $model->setExtraParams($params);
 
       $model->save();
     }

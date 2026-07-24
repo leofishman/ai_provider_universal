@@ -104,6 +104,42 @@ final class UniversalProviderTest extends KernelTestBase {
   }
 
   /**
+   * Tests that extra request parameters round-trip through config.
+   *
+   * The stored array is merged into the chat payload by ::doChat(), so what
+   * matters is that arbitrary nested structures survive save/load and that
+   * "model"/"messages" can never be overridden from configuration.
+   */
+  public function testExtraParamsRoundTrip(): void {
+    $model_storage = $this->container->get('entity_type.manager')
+      ->getStorage('ai_universal_model');
+    $model_storage->create([
+      'id' => 'testserver.gpt5',
+      'label' => 'gpt-5',
+      'server_id' => 'testserver',
+      'raw_model_id' => 'gpt-5',
+      'detected_operation_types' => ['chat'],
+      'operation_types' => [],
+    ])->save();
+
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
+    $model = $model_storage->load('testserver.gpt5');
+    $model->setExtraParams([
+      'tools' => [['type' => 'web_search']],
+      'model' => 'hijacked',
+      'messages' => ['nope'],
+      'stream' => TRUE,
+      'stream_options' => ['include_usage' => FALSE],
+    ])->save();
+
+    $reloaded = $model_storage->load('testserver.gpt5');
+    $this->assertSame(
+      ['tools' => [['type' => 'web_search']]],
+      $reloaded->getExtraParams(),
+    );
+  }
+
+  /**
    * Tests that getConfiguredModels() is read-only (creates no config entities).
    *
    * Discovery is an explicit write path (::discoverModels()); the frequent read
@@ -289,6 +325,38 @@ final class UniversalProviderTest extends KernelTestBase {
     $model_entity = reset($models);
     $this->assertSame('discover_test.llama3_8b_instruct', $model_entity->id());
     $this->assertSame('llama3-8b-instruct', $model_entity->getRawModelId());
+
+    // A hand-made duplicate (same raw model, second configuration) must
+    // survive re-discovery even though discovery would never generate its id,
+    // while a model the server no longer offers is still cleaned up.
+    $duplicate = $model_entity->createDuplicate();
+    $duplicate->set('id', 'discover_test.llama3_8b_instruct_websearch');
+    $duplicate->set('label', 'llama3 (web search)');
+    $duplicate->setExtraParams(['tools' => [['type' => 'web_search']]]);
+    $duplicate->save();
+
+    $model_storage->create([
+      'id' => 'discover_test.gone',
+      'label' => 'gone',
+      'server_id' => 'discover_test',
+      'raw_model_id' => 'gone',
+      'detected_operation_types' => ['chat'],
+      'operation_types' => [],
+    ])->save();
+
+    $this->mockHttpClientResponses([
+      $this->createModelsListResponse($modelsData),
+    ]);
+    $provider->discoverModels();
+
+    $this->assertSame(
+      ['discover_test.llama3_8b_instruct', 'discover_test.llama3_8b_instruct_websearch'],
+      array_keys($model_storage->loadMultiple()),
+    );
+    $this->assertSame(
+      ['tools' => [['type' => 'web_search']]],
+      $model_storage->load('discover_test.llama3_8b_instruct_websearch')->getExtraParams(),
+    );
   }
 
   /**

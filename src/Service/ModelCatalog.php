@@ -172,9 +172,11 @@ class ModelCatalog {
     $storage = $this->entityTypeManager->getStorage('ai_universal_model');
     $existing = $storage->loadByProperties(['server_id' => $serverId]);
     $seen = [];
+    $seenRaw = [];
 
     foreach ($discovered as $entityId => $info) {
       $seen[$entityId] = TRUE;
+      $seenRaw[$info['raw']] = TRUE;
 
       /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
       $model = $storage->load($entityId) ?: $storage->create(['id' => $entityId]);
@@ -198,8 +200,14 @@ class ModelCatalog {
       $model->save();
     }
 
+    // Clean up models the server no longer offers. Entities whose raw model id
+    // is still in the catalog survive even when their entity id is not one
+    // discovery would generate: those are hand-made duplicates running the
+    // same model under a second configuration (different sampling, extra
+    // request parameters, ...), and deleting them would silently undo the
+    // admin's work on every re-discovery.
     foreach ($existing as $oldId => $oldModel) {
-      if (!isset($seen[$oldId])) {
+      if (!isset($seen[$oldId]) && !isset($seenRaw[$oldModel->getRawModelId()])) {
         $oldModel->delete();
       }
     }

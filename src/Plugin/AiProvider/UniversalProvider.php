@@ -586,6 +586,10 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
         $overrides['reasoning_effort'] = $effort;
       }
       $overrides += $model->getSampling();
+      // Free-form parameters (provider-native tools, web_search_options, ...)
+      // ride the same seam: the parent merges $this->configuration into the
+      // request payload verbatim.
+      $overrides += $model->getExtraParams();
     }
     $previous_config = [];
     foreach ($overrides as $param => $value) {

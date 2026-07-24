@@ -78,9 +78,44 @@ Each server's edit form has a **"Models: capabilities and routing metadata"** se
 | Quality tier (1–5) | Subjective capability rating used by smart routing (1 Minimal → 5 Frontier). Unrated models default to tier 3 when a route checks eligibility. |
 | Context length (tokens) | Auto-detected when the server exposes it; smart routing rejects a candidate whose context can't fit the estimated prompt + 512 assumed output tokens. |
 | Reasoning effort | Sent as the OpenAI-compatible `reasoning_effort` request parameter on every chat call to this model (`none`/`low`/`medium`/`high`). Leave as "Server default" to send nothing. Servers that don't support the parameter simply ignore it. Distinct from the catalog `reasoning` *feature* flag (capability, not effort level). |
-| Sampling overrides | Optional `temperature`, `top_p`, `frequency_penalty`, `presence_penalty`, sent on every chat call to this model, overriding the generic provider configuration. Empty fields send nothing (server default). Prefilled at discovery from the vendor recommendations in `model_defaults.yml` when the family is known; your edits are never clobbered. To tune the *same* model differently per use case, create a second model entity with the same raw model id and different values — smart routing and the AI core's per-operation defaults treat them as independent candidates. |
+| Sampling overrides | Optional `temperature`, `top_p`, `frequency_penalty`, `presence_penalty`, sent on every chat call to this model, overriding the generic provider configuration. Empty fields send nothing (server default). Prefilled at discovery from the vendor recommendations in `model_defaults.yml` when the family is known; your edits are never clobbered. To tune the *same* model differently per use case, duplicate the model entity — see [one model, two configurations](#example-one-model-two-configurations). |
+| Extra request parameters (YAML) | Free-form mapping merged verbatim into every chat request to this model, for parameters the module does not model itself — most usefully a provider's built-in tools (`tools: [{type: web_search}]`). The **Add a known parameter set** select above it merges a documented example from `definitions/extra_params.yml` into the field on save. `model`, `messages`, `stream` and `stream_options` are stripped (owned by the provider). A server that does not know a parameter usually ignores it; strict ones return an error. If the calling module passes Drupal function-calling tools on the `ChatInput`, AI core overwrites the `tools` key, so a native `tools` entry here only applies to calls that carry no Drupal tools. |
 
 **Smart routing** (`RouteDecider`) uses cost, quality tier, context length and optional **required catalog features** on each route — see [docs/smart-routing.md](smart-routing.md). Catalog features also remain queryable in code (`$model->supportsFeature('tools')`, etc.). Reasoning effort and sampling overrides are applied by the provider on chat calls, not by the route decider.
+
+## Example: one model, two configurations
+
+Model entities are per-configuration, not per-model-name: nothing stops two entities from pointing at the same `raw_model_id` on the same server. That is how you offer the same model twice — once plain, once with the provider's web search enabled — and let each calling module (or each smart route candidate) pick the one it wants.
+
+Discovery creates the plain one. Duplicate it:
+
+```php
+// drush php:script duplicate_model.php
+$storage = \Drupal::entityTypeManager()->getStorage('ai_universal_model');
+$plain = $storage->load('openai.gpt_5');
+
+$search = $plain->createDuplicate();
+$search->set('id', 'openai.gpt_5_websearch');
+$search->set('label', 'gpt-5 (web search)');
+$search->setExtraParams(['tools' => [['type' => 'web_search']]]);
+$search->save();
+```
+
+Both entities now show up on the server form, and `openai.gpt_5_websearch` carries the extra parameters in its own **Extra request parameters** field, where you can edit them without touching the plain one. The two are independent everywhere downstream:
+
+| | `openai.gpt_5` | `openai.gpt_5_websearch` |
+|---|---|---|
+| `raw_model_id` sent to the API | `gpt-5` | `gpt-5` |
+| Extra request parameters | *(none)* | `tools: [{type: web_search}]` |
+| Selectable at `/admin/config/ai/settings` | yes | yes |
+| Usable as a smart route candidate | yes | yes |
+| Usage counters and daily limits | shared (limits live on the **server**) | shared |
+
+Typical use: set the plain entity as the default chat provider, and point only the modules that need current information (a news summarizer, a fact-check verifier) at the web search one. Costs differ — a provider-side search usually bills extra — so set the duplicate's cost per 1M tokens higher than the plain one, otherwise smart routing will treat them as interchangeable and pick the search variant for everything.
+
+Re-discovery leaves the duplicate alone: it never deletes model entities, and it only refreshes catalog features on the ones whose raw id it finds.
+
+The same recipe works for any per-use-case difference — a cold `temperature: 0` entity for extraction next to a `temperature: 0.8` one for drafting, or a `reasoning: high` entity for hard prompts.
 
 ## Model filtering
 

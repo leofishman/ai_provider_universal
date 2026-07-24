@@ -78,6 +78,21 @@ No core AI patches are required. Model IDs use the form `server.model` (a dot se
 
 Discovery can be re-run any time with `drush aip:discover-models [server_id]` (alias `aipdm`) or by re-saving the server. Re-discovery **never overwrites** costs/tier/context/reasoning/sampling you set manually; catalog **features** are always refreshed from the server. Per-model enrichment failures (Ollama `/api/show`, LiteLLM `/model/info`, …) log a notice and fall back to the plain catalog entry instead of aborting discovery.
 
+### Provider-native request parameters
+
+Each model has an **Extra request parameters (YAML)** field on the server form. Its contents are merged verbatim into every chat request to that model, which is how you reach parameters this module does not model itself — most usefully a provider's built-in tools:
+
+```yaml
+tools:
+  - type: web_search
+```
+
+No code required: create (or duplicate) a model entity, paste the YAML, and every module that calls that model gets the behaviour. The **Add a known parameter set** select prefills documented examples from `definitions/extra_params.yml` (OpenAI web search, OpenRouter web plugin, xAI Live Search); edit or delete them afterwards like any other value.
+
+Because model entities are per-*configuration*, you can offer the same model twice — one plain entity, one duplicate with web search enabled — and point only the modules that need current information at the second one. Full recipe: [docs/servers-and-models.md](docs/servers-and-models.md#example-one-model-two-configurations). Re-discovery keeps such duplicates as long as the server still offers the underlying model.
+
+Caveats: `model`, `messages`, `stream` and `stream_options` are owned by the provider and are stripped if set here. A server that does not recognise a parameter usually ignores it, but strict ones return an error. And if the calling module passes Drupal function-calling tools on the `ChatInput`, AI core overwrites the `tools` key — a native `tools` entry here only applies to calls that carry no Drupal tools.
+
 ### Authentication / API keys
 
 Servers authenticate through the [Key](https://www.drupal.org/project/key) module: create a Key entity holding the token and select it on the server. It is sent as an `Authorization: Bearer` header on every request.

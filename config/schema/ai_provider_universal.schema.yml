@@ -119,3 +119,6 @@ ai_provider_universal.model.*:
         presence_penalty:
           type: float
           label: 'Presence penalty'
+    extra_params:
+      type: ignore
+      label: 'Extra request parameters merged into every chat payload (provider-native tools, etc.)'

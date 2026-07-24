@@ -45,6 +45,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'reasoning',
     'supported_features',
     'sampling',
+    'extra_params',
   ],
   links: [
     'collection' => '/admin/config/ai/providers/universal/models',
@@ -56,9 +57,12 @@ class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInter
   /**
    * The model machine name (unique, typically server_id + sanitized raw id).
    *
-   * @var string
+   * Nullable so EntityBase::createDuplicate() can blank it: duplicating a
+   * model is the supported way to run one model under two configurations.
+   *
+   * @var string|null
    */
-  protected string $id;
+  protected ?string $id = NULL;
 
   /**
    * Human label (usually the raw model id or "Server / model").
@@ -151,6 +155,23 @@ class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInter
    * @var array<string, float>
    */
   protected array $sampling = [];
+
+  /**
+   * Free-form request parameters merged into every chat payload.
+   *
+   * @var array<string, mixed>
+   */
+  protected array $extra_params = [];
+
+  /**
+   * Request parameters extra_params may never set (owned by the provider).
+   */
+  protected const RESERVED_PARAMS = [
+    'model',
+    'messages',
+    'stream',
+    'stream_options',
+  ];
 
   /**
    * Sampling keys accepted by setSampling(), OpenAI-compatible names.
@@ -360,6 +381,29 @@ class AiUniversalModel extends ConfigEntityBase implements AiUniversalModelInter
       }
     }
     $this->sampling = $normalized;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getExtraParams(): array {
+    return $this->extra_params ?? [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setExtraParams(array $params): self {
+    // Anything else is deliberately allowed through: the whole point is
+    // sending parameters this module knows nothing about. Only the keys the
+    // provider itself owns are protected, so a stored value can never
+    // redirect a call to another model, replace the conversation, or turn
+    // streaming on behind the response parser's back.
+    foreach (self::RESERVED_PARAMS as $reserved) {
+      unset($params[$reserved]);
+    }
+    $this->extra_params = $params;
     return $this;
   }
 

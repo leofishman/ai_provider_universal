@@ -12,6 +12,7 @@
 | **Model filter** | Comma-separated globs on the server (`llama3*, !*old*`) restricting which discovered models are kept. |
 | **Routing metadata** | Per-model fields smart routing reads: cost per 1M input/output tokens (USD), quality tier, context length. Reasoning effort and sampling are applied at chat time, not by the route decider. |
 | **Sampling overrides** | Optional per-model `temperature`, `top_p`, `frequency_penalty`, `presence_penalty` sent on every chat call. Prefilled from `model_defaults.yml` for known families when unset. |
+| **Extra request parameters** (`extra_params`) | Free-form per-model YAML mapping merged verbatim into every chat request, for provider-native parameters the module does not model itself (e.g. OpenAI's `tools: [{type: web_search}]`). Presets in `definitions/extra_params.yml`; `model`, `messages`, `stream`, `stream_options` are stripped. |
 | **Quality tier** | Subjective 1–5 capability rating (1 Minimal → 5 Frontier). Prefill order: backend → family/size regexes → parameter-count heuristic → price-band fallback for live catalogs; unrated models count as tier 3 in routing. |
 | **Model defaults** | `definitions/model_defaults.yml`: tier guesses, optional costs, vendor sampling recommendations, price-band map. Site override via `$settings['ai_provider_universal_model_defaults']`. |
 | **Reasoning effort** | Optional per-model `none` / `low` / `medium` / `high`, sent as OpenAI-compatible `reasoning_effort` on chat. Not the same as a catalog `reasoning` feature flag. |

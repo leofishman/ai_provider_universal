@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Provider-native request parameters**: new per-model **Extra request parameters (YAML)** field, merged verbatim into every chat request. Reaches parameters the module does not model itself — most usefully a provider's built-in tools (OpenAI `tools: [{type: web_search}]`) — with no code in the calling module. Documented presets in `definitions/extra_params.yml` (OpenAI web search, OpenRouter web plugin, xAI Live Search). `model`, `messages`, `stream` and `stream_options` are stripped. See [#3613029](https://www.drupal.org/project/ai_provider_openai/issues/3613029).
+- **Re-discovery no longer deletes hand-made model duplicates**: a second model entity for the same raw model (the supported way to run one model under two configurations) survives as long as the server still offers that model. Previously every re-discovery deleted it.
+
 ## 1.0.0-beta2 — 2026-07-15
 
 - **Content governance (EU AI Act Art. 50)**: new `ai_provider_universal_governance` submodule — AI-origin provenance events, disclosure rendering (`<meta name="ai-origin">` + visible label), Guardrail plugins (disclosure suffix, origin marker, fact-check, AI-likelihood), default Guardrail set attach. Scheduled content review via factcheck scan profiles.

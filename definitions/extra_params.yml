@@ -1,0 +1,26 @@
+# Known provider-native request parameters, offered as presets in the model
+# override UI ("Extra request parameters"). Picking one merges its params into
+# the model's YAML, where they can then be edited or removed.
+#
+# These are parameters the module does not model itself: they are sent verbatim
+# to the OpenAI-compatible endpoint. Always check the provider's current docs —
+# names change, and a server that does not know a parameter may reject it.
+openai_web_search:
+  label: 'OpenAI — built-in web search tool (gpt-5 family / Responses-style tools)'
+  params:
+    tools:
+      - type: web_search
+openai_web_search_options:
+  label: 'OpenAI — web search options (*-search-preview chat models)'
+  params:
+    web_search_options: {}
+openrouter_web:
+  label: 'OpenRouter — web search plugin'
+  params:
+    plugins:
+      - id: web
+xai_live_search:
+  label: 'xAI — Live Search (grok models)'
+  params:
+    search_parameters:
+      mode: auto
