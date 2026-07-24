@@ -101,6 +101,7 @@ What your implementation owns:
 
 | Concern | Contract |
 |---|---|
+| Input | Whatever AI core passed (`ChatInput`, array or string). The provider injects any `setChatSystemRole()` value as a leading system message before handing it over, so you do not have to read it off the provider — but you do have to hoist system messages yourself if your protocol keeps them outside the message list. |
 | `$configuration` | Provider settings already merged with the model's reasoning effort, sampling overrides and **extra request parameters**. Keys use OpenAI-compatible names. Translate the ones your protocol spells differently, drop the ones it would reject, and **pass unknown keys through verbatim** — that is what lets the per-model extra parameters field reach your API. |
 | Token usage | Populate `TokenUsageDto` on the returned `ChatOutput` whenever the API reports counts. Usage limits, the savings dashboard and `ModelPostCallEvent` all read it; skipping it silently disables per-server limits for your backend. |
 | Streaming | When `$streamed` is TRUE, return a `ChatOutput` wrapping a `StreamedChatMessageIterator` subclass. If you cannot stream, throw `AiMissingFeatureException` — never silently return a complete response. |

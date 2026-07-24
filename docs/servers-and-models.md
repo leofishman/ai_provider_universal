@@ -142,7 +142,7 @@ Shipped native backend: **`anthropic`**.
 Two consequences worth knowing:
 
 - **OpenAI-only parameters are dropped, not forwarded.** `frequency_penalty`, `presence_penalty`, `logit_bias`, `seed`, `n`, `response_format` and friends have no Messages API equivalent, and Anthropic rejects unknown parameters — forwarding them would turn a harmless generic setting into a failed request. `stop` is translated to `stop_sequences`. Everything else passes through.
-- **Only chat is native.** Anthropic serves no embeddings, speech or image generation, so `detectOperationTypes()` reports `chat` only. Other operation types on any server still dispatch over the OpenAI protocol.
+- **Only chat is native.** Anthropic serves no embeddings, speech or image generation, so `detectOperationTypes()` reports `chat` only. Other operation types still dispatch over the OpenAI protocol, so requesting one from a server on a native backend is **refused with an explanation** (`AiMissingFeatureException`) instead of being sent to an endpoint that does not exist — which is what you would hit if you ticked, say, *Embeddings* in the model's operation-type overrides.
 
 ## Model filtering
 

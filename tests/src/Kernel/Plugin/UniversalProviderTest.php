@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\ai_provider_universal\Kernel\Plugin;
 
+use Drupal\ai\Exception\AiMissingFeatureException;
 use Drupal\ai\Exception\AiRequestErrorException;
+use Drupal\ai\OperationType\Chat\ChatInput;
+use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
@@ -272,6 +275,85 @@ final class UniversalProviderTest extends KernelTestBase {
     $this->assertSame(1, $usage['requests']);
     $this->assertSame(12, $usage['input_tokens']);
     $this->assertSame(5, $usage['output_tokens']);
+  }
+
+  /**
+   * Tests that the provider-level system role reaches a native backend.
+   *
+   * AI core callers set it with setChatSystemRole(); the OpenAI path injects
+   * it while building its payload, so the native path has to do the same or
+   * it would silently vanish.
+   */
+  public function testChatSystemRoleReachesNativeBackend(): void {
+    $this->createAnthropicServerAndModel();
+    $this->installSchema('ai_provider_universal', ['ai_provider_universal_usage']);
+    $this->mockHttpClientResponses([$this->anthropicResponse()]);
+
+    /** @var \Drupal\ai_provider_universal\Plugin\AiProvider\UniversalProvider $provider */
+    $provider = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'claude']);
+    $provider->setChatSystemRole('You are terse.');
+
+    $input = new ChatInput([new ChatMessage('user', 'Hola')]);
+    $provider->chat($input, 'claude.sonnet');
+
+    // The caller's input object must not be mutated by the injection.
+    $this->assertCount(1, $input->getMessages());
+  }
+
+  /**
+   * Tests that non-chat operations on a native backend fail with a reason.
+   *
+   * Only chat is dispatched through the backend; anything else would be sent
+   * over the OpenAI protocol to a server that does not speak it, which
+   * otherwise surfaces as a confusing 404 from the wrong endpoint.
+   */
+  public function testNonChatOperationOnNativeBackendIsRefused(): void {
+    $this->createAnthropicServerAndModel();
+
+    /** @var \Drupal\ai_provider_universal\Plugin\AiProvider\UniversalProvider $provider */
+    $provider = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'claude']);
+
+    $this->expectException(AiMissingFeatureException::class);
+    $this->expectExceptionMessage('only serves chat');
+    $provider->embeddings('embed me', 'claude.sonnet');
+  }
+
+  /**
+   * Creates a server on the native backend plus one model on it.
+   */
+  protected function createAnthropicServerAndModel(): void {
+    $etm = $this->container->get('entity_type.manager');
+    $etm->getStorage('ai_universal_server')->create([
+      'id' => 'claude',
+      'label' => 'Anthropic',
+      'backend' => 'anthropic',
+      'host_name' => '',
+      'port' => '',
+      'timeout' => 600,
+    ])->save();
+    $etm->getStorage('ai_universal_model')->create([
+      'id' => 'claude.sonnet',
+      'label' => 'Sonnet',
+      'server_id' => 'claude',
+      'raw_model_id' => 'claude-sonnet-4-5',
+      'detected_operation_types' => ['chat'],
+    ])->save();
+  }
+
+  /**
+   * A minimal successful Messages API response.
+   */
+  protected function anthropicResponse(): Response {
+    return new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+      'id' => 'msg_01',
+      'role' => 'assistant',
+      'model' => 'claude-sonnet-4-5',
+      'content' => [['type' => 'text', 'text' => 'Native answer.']],
+      'stop_reason' => 'end_turn',
+      'usage' => ['input_tokens' => 12, 'output_tokens' => 5],
+    ]));
   }
 
   /**

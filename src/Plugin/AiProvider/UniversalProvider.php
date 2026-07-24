@@ -5,6 +5,7 @@ namespace Drupal\ai_provider_universal\Plugin\AiProvider;
 use OpenAI\Client;
 use Drupal\ai\Attribute\AiProvider;
 use Drupal\ai\Base\OpenAiBasedProviderClientBase;
+use Drupal\ai\Exception\AiMissingFeatureException;
 use Drupal\ai\Exception\AiQuotaException;
 use Drupal\ai\Exception\AiRequestErrorException;
 use Drupal\ai\Exception\AiSetupFailureException;
@@ -669,10 +670,83 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     if ($server instanceof AiUniversalServerInterface) {
       $backend = $this->modelCatalog->getBackend($server);
       if ($backend instanceof AiInferenceBackendInterface) {
-        return $backend->chat($input, $resolved, $server, $this->configuration, (bool) $this->streamed);
+        return $backend->chat(
+          $this->withChatSystemRole($input),
+          $resolved,
+          $server,
+          $this->configuration,
+          (bool) $this->streamed,
+        );
       }
     }
     return parent::chat($input, $resolved, $tags);
+  }
+
+  /**
+   * Prepends the provider-level system role AI core callers may have set.
+   *
+   * The OpenAI path does this while building its payload
+   * (OpenAiBasedProviderClientBase::chat()), so a native backend has to do
+   * the same or setChatSystemRole() would silently do nothing on it.
+   *
+   * @param array|string|\Drupal\ai\OperationType\Chat\ChatInput $input
+   *   The chat input as received from AI core.
+   *
+   * @return array|string|\Drupal\ai\OperationType\Chat\ChatInput
+   *   The input with the system role prepended, or unchanged when none is
+   *   set. The caller's object is never mutated.
+   */
+  protected function withChatSystemRole(array|string|ChatInput $input): array|string|ChatInput {
+    if ($this->chatSystemRole === '') {
+      return $input;
+    }
+
+    if ($input instanceof ChatInput) {
+      $copy = clone $input;
+      $copy->setMessages([
+        new ChatMessage('system', $this->chatSystemRole),
+        ...$input->getMessages(),
+      ]);
+      return $copy;
+    }
+
+    $system = ['role' => 'system', 'content' => $this->chatSystemRole];
+    return is_string($input)
+      ? [$system, ['role' => 'user', 'content' => $input]]
+      : [$system, ...$input];
+  }
+
+  /**
+   * Blocks non-chat operations on a server whose backend is not OpenAI-based.
+   *
+   * Only chat execution is dispatched through the backend today; every other
+   * operation type goes over the OpenAI protocol. Sending one to a server
+   * that does not speak it produces a confusing 404 from the wrong endpoint,
+   * so it is refused with an explanation instead.
+   *
+   * Extending the inference seam to another operation type means dropping
+   * the corresponding guard here.
+   *
+   * @param string $operation
+   *   The operation type being attempted.
+   *
+   * @throws \Drupal\ai\Exception\AiMissingFeatureException
+   *   When the active server's backend owns inference natively.
+   */
+  protected function assertOpenAiProtocolOperation(string $operation): void {
+    $server = $this->getServerEntity();
+    if (!$server instanceof AiUniversalServerInterface) {
+      return;
+    }
+    if ($this->modelCatalog->getBackend($server) instanceof AiInferenceBackendInterface) {
+      $this->clearActiveServer();
+      throw new AiMissingFeatureException(sprintf(
+        'Server "%s" uses the %s backend, which only serves chat. Operation "%s" would be sent over the OpenAI protocol, which this server does not speak.',
+        $server->id(),
+        $server->getBackend(),
+        $operation,
+      ));
+    }
   }
 
   /**
@@ -790,6 +864,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $model_id = $this->resolveRoutedModel($model_id, $input instanceof EmbeddingsInput ? '' : $input, 'embeddings');
     $model_id = $this->preCallGate($model_id, 'embeddings');
     $this->setActiveServerForModel($model_id);
+    $this->assertOpenAiProtocolOperation('embeddings');
     try {
       $resolved = $this->getModel($model_id);
       return parent::embeddings($input, $resolved, $tags);
@@ -805,6 +880,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   public function speechToText(string|SpeechToTextInput $input, string $model_id, array $tags = []): SpeechToTextOutput {
     $model_id = $this->preCallGate($model_id, 'speech_to_text');
     $this->setActiveServerForModel($model_id);
+    $this->assertOpenAiProtocolOperation('speech_to_text');
     try {
       $resolved = $this->getModel($model_id);
       return parent::speechToText($input, $resolved, $tags);
@@ -821,6 +897,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     $model_id = $this->resolveRoutedModel($model_id, $input->getQuery(), 'rerank');
     $model_id = $this->preCallGate($model_id, 'rerank');
     $this->setActiveServerForModel($model_id);
+    $this->assertOpenAiProtocolOperation('rerank');
     $this->loadClient();
     $raw_model_id = $this->getModel($model_id);
 
@@ -877,6 +954,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       $model_id = $this->preCallGate($model_id, 'moderation');
       $this->setActiveServerForModel($model_id);
     }
+    $this->assertOpenAiProtocolOperation('moderation');
     $this->loadClient();
 
     $raw_model_id = $this->getModel($model_id ?? '');
@@ -1013,6 +1091,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    */
   public function embeddingsVectorSize(string $model_id): int {
     $this->setActiveServerForModel($model_id);
+    $this->assertOpenAiProtocolOperation('embeddings');
     $this->loadClient();
     $raw_model_id = $this->getModel($model_id);
     try {
@@ -1100,6 +1179,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   public function textToImage(string|TextToImageInput $input, string $model_id, array $tags = []): TextToImageOutput {
     $model_id = $this->preCallGate($model_id, 'text_to_image');
     $this->setActiveServerForModel($model_id);
+    $this->assertOpenAiProtocolOperation('text_to_image');
     try {
       $resolved = $this->getModel($model_id);
       return parent::textToImage($input, $resolved, $tags);
