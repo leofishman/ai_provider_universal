@@ -11,7 +11,7 @@ New to the terminology? See the [glossary](docs/glossary.md).
 
 ## Backends
 
-Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with **ten** backends:
+Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with **eleven** backends:
 
 | Backend | Typical use | Host/port | Metadata at discovery |
 |---|---|---|---|
@@ -25,6 +25,7 @@ Protocol-specific logic lives in **AiServerBackend plugins**. The module ships w
 | `litellm` | Self-hosted LiteLLM proxy | required | `/model/info` mode + costs (fallback: `/v1/models`) |
 | `amazee` | amazee.ai managed LiteLLM | required (`litellm_api_url`) | Same as `litellm` (dedicated UX only) |
 | `grok` | Grok / xAI | fixed `api.x.ai/v1` | Small hardcoded table for grok-2 family |
+| `anthropic` | Anthropic Claude — **native Messages API**, not OpenAI-compatible | fixed `api.anthropic.com/v1` | Paginated catalog + price/context/feature table per Claude generation |
 
 Full reference (capability detection, forms, filters, moderation parsers): [docs/servers-and-models.md](docs/servers-and-models.md).
 

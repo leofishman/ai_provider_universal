@@ -8,7 +8,7 @@ Backends can live in this module or in any other module: the plugin discovery pi
 
 1. **OpenAI-compatible service** (Fireworks, OpenRouter, Ollama, Groq, Together, Mistral, ...): extend `OpenAiCompatible` and override only what differs. Chat, embeddings and streaming already work end to end, because the provider executes requests over the OpenAI protocol. This is the common case — usually under 100 lines. Use `OpenRouter` / `Groq` (live catalog pricing + modalities), `Ollama` (native side-channel enrichment), or `Fireworks` (hardcoded price table + fixed endpoint) as a template.
 
-2. **Native protocol** (Anthropic, Gemini, ...): extend `AiServerBackendPluginBase` and implement `AiServerBackendInterface` from scratch. **Current limitation:** the provider dispatches inference over the OpenAI protocol only, so a native backend today gets discovery and the UI, but not chat execution. Moving inference dispatch behind the backend interface is on the ROADMAP ("Inference dispatch through backends"); until then, stick to case 1 or help with that item first.
+2. **Native protocol** (Anthropic, Gemini, ...): extend `AiServerBackendPluginBase`, implement `AiServerBackendInterface` for discovery, and additionally implement **`AiInferenceBackendInterface`** to own chat execution. Without that second interface a backend still gets discovery and the full UI, but its chat calls go over the OpenAI protocol — which is exactly right for case 1 and wrong for a native API. Use `Anthropic` as the template.
 
 ## The interface
 
@@ -79,10 +79,42 @@ Notes:
 - Dependency injection: `OpenAiCompatible` already injects `http_client_factory`, `state`, `key.repository` and `logger.factory`. Add a constructor + `create()` override only if you need more services.
 - **Logging**: never swallow an enrichment failure silently. Catch, call `$this->log('notice', '...', [...])` (no-op in unit tests, `ai_provider_universal` channel at runtime) and fall back gracefully — see the `catch` blocks in `Ollama::listModels()` and `LiteLlm::listModels()`. Only the main `/models` fetch may throw: the form and the Drush command catch and report it.
 
+## Owning inference: `AiInferenceBackendInterface`
+
+By default the provider executes every chat request over the OpenAI protocol, through AI core's OpenAI client. A backend whose service speaks a different protocol implements `src/Backend/AiInferenceBackendInterface.php` — one method — and the provider hands execution to it instead:
+
+```php
+public function chat(
+  array|string|ChatInput $input,
+  string $modelId,
+  AiUniversalServerInterface $server,
+  array $configuration = [],
+  bool $streamed = FALSE,
+): ChatOutput;
+```
+
+Implementing it is **opt-in and additive**. Backends that do not implement it — including any in other modules — are dispatched exactly as before; adding a native backend cannot change how an existing one behaves.
+
+Everything that wraps the call stays generic and applies to both paths: the pre-call gate (`ModelPreCallEvent`, model swapping, blocking), per-server daily usage limits, usage recording, `ModelPostCallEvent`, smart routing, fact check and content governance.
+
+What your implementation owns:
+
+| Concern | Contract |
+|---|---|
+| `$configuration` | Provider settings already merged with the model's reasoning effort, sampling overrides and **extra request parameters**. Keys use OpenAI-compatible names. Translate the ones your protocol spells differently, drop the ones it would reject, and **pass unknown keys through verbatim** — that is what lets the per-model extra parameters field reach your API. |
+| Token usage | Populate `TokenUsageDto` on the returned `ChatOutput` whenever the API reports counts. Usage limits, the savings dashboard and `ModelPostCallEvent` all read it; skipping it silently disables per-server limits for your backend. |
+| Streaming | When `$streamed` is TRUE, return a `ChatOutput` wrapping a `StreamedChatMessageIterator` subclass. If you cannot stream, throw `AiMissingFeatureException` — never silently return a complete response. |
+| Errors | Map HTTP failures onto AI core exceptions: `AiRateLimitException`, `AiQuotaException` (smart routing treats it as "try the next candidate"), `AiSetupFailureException` for auth/config, `AiRequestErrorException` otherwise. |
+
+`Anthropic` is the reference implementation: system-prompt hoisting, content blocks, tool calling both ways, vision and PDF input, structured output emulated with a forced tool, extended thinking from reasoning effort, SSE streaming (`src/Chat/AnthropicStreamedChatMessageIterator.php`) and cache-aware token accounting.
+
+Operation types other than chat still go over the OpenAI protocol. A native backend should therefore report only the operation types its protocol actually serves from `detectOperationTypes()`.
+
 ## Checklist before opening an MR
 
 - [ ] Plugin class in `src/Plugin/AiServerBackend/`, `#[AiServerBackend]` attribute with translatable label/description.
 - [ ] `detectModelMetadata()` costs are USD per 1M tokens (convert if the API reports per-token prices); optional `supported_features` list when the catalog has flags.
+- [ ] Native backends: kernel test for the request/response mapping with mocked HTTP (see `tests/src/Kernel/Plugin/AnthropicBackendTest.php`).
 - [ ] Unit test for the two detect methods (see `tests/src/Unit/Plugin/AiServerBackend/OpenRouterTest.php` or `GroqTest.php` — the detect methods are pure, so mocked services suffice).
 - [ ] Verified against the live API at least once: create a server with the new backend and run `drush aip:discover-models <server_id>`.
 - [ ] `phpstan` (module's `phpstan.neon`), `phpcs --standard=Drupal,DrupalPractice` and `cspell` pass (add product names to `.cspell.json`).

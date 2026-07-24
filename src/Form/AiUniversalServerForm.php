@@ -109,7 +109,7 @@ class AiUniversalServerForm extends EntityForm {
     $form['connection']['backend'] = [
       '#type' => 'select',
       '#title' => $this->t('Backend'),
-      '#description' => $this->t('The protocol this server speaks. OpenAI-compatible covers llama.cpp, vLLM, LM Studio and any similar local or remote server. Dedicated backends improve model detection: Ollama (local), Groq, OpenRouter, Hugging Face, Fireworks, Ollama Cloud, LiteLLM/amazee.ai, Grok (xAI). Other modules can add native backends.'),
+      '#description' => $this->t('The protocol this server speaks. OpenAI-compatible covers llama.cpp, vLLM, LM Studio and any similar local or remote server. Dedicated backends improve model detection: Ollama (local), Groq, OpenRouter, Hugging Face, Fireworks, Ollama Cloud, LiteLLM/amazee.ai, Grok (xAI). Anthropic speaks its own Messages API rather than the OpenAI protocol. Other modules can add native backends.'),
       '#options' => $backendOptions,
       '#default_value' => $server->getBackend(),
       '#required' => TRUE,

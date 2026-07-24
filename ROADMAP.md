@@ -85,9 +85,13 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
 - [ ] **Time-of-day pricing** (DeepSeek already bills off-peak hours
       cheaper): optional per-model/server cost schedule by hour range; the
       smart router uses the price in effect when comparing candidates.
-- [ ] **Inference dispatch through backends**: move chat/embeddings
-      execution behind AiServerBackendInterface so non-OpenAI backends work
-      end to end ("earn the universal name").
+- [x] **Inference dispatch through backends**: chat execution can be owned
+      by a backend through the opt-in `AiInferenceBackendInterface`, so
+      non-OpenAI protocols work end to end ("earn the universal name").
+      Backends that do not implement it keep going over the OpenAI protocol
+      unchanged. First implementation: the `anthropic` backend. Embeddings
+      and the other operation types still dispatch over OpenAI only — open
+      that seam when a native backend needs it (Gemini).
 - [ ] **`llama_cpp` backend** (thin, extends openai_compatible): modality
       detection from `architecture.input_modalities`, `/props`
       health/timings, capability detection that today lives in the generic
@@ -101,8 +105,13 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       catalog pricing/context/modalities from `/v1/models` (verified against
       free-tier key). `supported_features.reasoning` is a capability flag,
       not effort levels — model entity reasoning stays manual.
-- [ ] **`anthropic` backend** (native, needs inference dispatch): Messages
-      API mapping, discovery via GET /v1/models, static capabilities.
+- [x] **`anthropic` backend** (native): Messages API mapping (system prompt
+      hoisting, content blocks, tool calling both ways, vision + PDF input,
+      structured output via forced tool, extended thinking from reasoning
+      effort, SSE streaming, cache-aware token usage), discovery via
+      paginated GET /v1/models, price/context/feature table per generation.
+      Not yet verified against the live API — mapping is covered by kernel
+      tests with mocked HTTP.
 - [ ] OpenRouter embeddings discovery: embedding models are not in
       `/v1/models` but on a separate `/embeddings/models` catalog endpoint;
       override `listModels()` in the `openrouter` backend to fetch both and

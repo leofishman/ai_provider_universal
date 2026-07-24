@@ -12,7 +12,7 @@ Fields on the server form:
 | Backend | Protocol plugin — see the catalog below. Hidden when only one backend is installed. |
 | Host name | `http://host` or `https://host`. Hidden for backends with a fixed endpoint (OpenRouter, Hugging Face, Fireworks, Groq, Ollama Cloud, Grok), which show their endpoint as a hint instead. |
 | Port | Optional; common local defaults are documented inline (Ollama 11434, llama.cpp 8080, vLLM 8000, LM Studio 1234, LiteLLM 4000). |
-| API Key | A [Key](https://www.drupal.org/project/key) entity, sent as `Authorization: Bearer`. Required for hosted services; optional for unauthenticated local servers. The "create a new key" link opens in a new tab; the **Refresh keys** button re-populates the select without losing your form input. |
+| API Key | A [Key](https://www.drupal.org/project/key) entity, sent as `Authorization: Bearer` (the `anthropic` backend sends it as `x-api-key`, as that API requires). Required for hosted services; optional for unauthenticated local servers. The "create a new key" link opens in a new tab; the **Refresh keys** button re-populates the select without losing your form input. |
 | Timeout | Request timeout in seconds (default 600). |
 | Model filter pattern | See [Model filtering](#model-filtering) below. |
 | Usage limits | Daily request/token caps — see [docs/usage-limits.md](usage-limits.md). |
@@ -21,7 +21,9 @@ The **Test connection & list models** button previews the server's model catalog
 
 ## Backend catalog
 
-Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBackend/`), auto-discovered via the `#[AiServerBackend]` attribute. They share one execution path (`OpenAiBasedProviderClientBase` — all speak the OpenAI REST protocol) and differ only in: default endpoint, how models are listed, how capabilities are detected, and how routing metadata (cost/tier/context) and optional catalog features are prefilled.
+Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBackend/`), auto-discovered via the `#[AiServerBackend]` attribute. Most share one execution path (`OpenAiBasedProviderClientBase` — they all speak the OpenAI REST protocol) and differ only in: default endpoint, how models are listed, how capabilities are detected, and how routing metadata (cost/tier/context) and optional catalog features are prefilled.
+
+A backend whose service speaks a different protocol additionally implements `AiInferenceBackendInterface` and executes chat itself — see [native inference backends](#native-inference-backends) below.
 
 | Backend id | Service | Default endpoint | Needs host/port | Discovery source | Capability detection | Pricing/context source |
 |---|---|---|---|---|---|---|
@@ -35,6 +37,7 @@ Every backend is a `AiServerBackendInterface` plugin (`src/Plugin/AiServerBacken
 | `huggingface` | Hugging Face Inference Providers | `router.huggingface.co/v1` | optional | `/v1/models` | `architecture.output_modalities` → generic heuristics | Cheapest **live** provider offer by input price; context length is the max any live provider serves |
 | `ollama_cloud` | Ollama Cloud (ollama.com) | `ollama.com/v1` | optional (needs API key) | `/v1/models` | Generic heuristics only (bare ids, no metadata) | None — fill in manually |
 | `grok` | Grok (xAI) | `api.x.ai/v1` | no (fixed) | `/v1/models` | Generic heuristics | Basic hardcoded table for grok-2 / grok-beta |
+| `anthropic` | Anthropic Claude — **native Messages API** | `api.anthropic.com/v1` | no (fixed; a host points at a gateway) | `GET /v1/models`, paginated | `chat` only (the Messages API serves nothing else) | Hardcoded table per Claude generation + `supported_features` (tools / reasoning / vision) |
 
 > ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons. **Groq** reads prices live from `/v1/models` (same idea as OpenRouter).
 
@@ -50,7 +53,7 @@ Discovery is the **write path**: it calls the backend's `listModels()`, runs the
 
 - **Entity id**: `<server_id>.<sanitized_raw_model_id>`, so ids stay unique across servers even when two servers expose a model with the same raw id (e.g. `local.llama3` vs `openrouter.llama3`).
 - **Label**: `<Server label> / <raw model id>`, only set automatically while it still matches the auto-generated pattern — a manually renamed model label survives re-discovery.
-- **Removed models are deleted**: any `ai_universal_model` for the server that discovery no longer sees is removed (`hook_entity_delete` also cascades: deleting a server deletes all its models).
+- **Removed models are deleted**: any `ai_universal_model` for the server whose **raw model id** the server no longer offers is removed (`hook_entity_delete` also cascades: deleting a server deletes all its models). Hand-made duplicates — a second entity for the same raw model, carrying a different configuration — survive re-discovery; see [one model, two configurations](#example-one-model-two-configurations).
 - **Manual edits are never clobbered** for cost, quality tier, context length and reasoning effort: `applyDetectedMetadata()` only writes a detected value into a field that is still `NULL`. Once you set a value in the UI, re-discovery leaves it alone.
 - **Catalog features always refresh**: `supported_features` (when the backend reports them) is rewritten on every discovery — there is no manual override. Empty when the backend does not publish features.
 - **Site-editable defaults**: when the backend detects no quality tier (and optionally no costs), `definitions/model_defaults.yml` fills the gap — named-family regexes (claude-opus → 5, mixtral → 3, ...), a parameter-count fallback (70b → 3, 7b → 2, ...), a last-resort price-band fallback for live-pricing catalogs (`prices:` — cost_output ≥ $20/1M → 5, ≥ $5 → 4, ..., so OpenRouter's 300+ models don't all land unrated), and a `costs:` map shipped empty for you to maintain (USD per 1M tokens). A `sampling:` map ships vendor-documented recommendations (qwen3 and deepseek-r1 → temperature 0.6 / top_p 0.95, gpt-oss → 1.0 / 1.0) applied only while the model has no sampling overrides yet. Same never-clobber rule applies. Don't edit the module file (it is replaced on updates): put site entries in an override file with the same format — its entries win — and declare it in settings.php: `$settings['ai_provider_universal_model_defaults'] = 'sites/default/model_defaults.yml';`.
@@ -116,6 +119,30 @@ Typical use: set the plain entity as the default chat provider, and point only t
 Re-discovery leaves the duplicate alone: it never deletes model entities, and it only refreshes catalog features on the ones whose raw id it finds.
 
 The same recipe works for any per-use-case difference — a cold `temperature: 0` entity for extraction next to a `temperature: 0.8` one for drafting, or a `reasoning: high` entity for hard prompts.
+
+## Native inference backends
+
+Chat requests are dispatched over the OpenAI REST protocol by default. A backend can instead own execution by implementing `AiInferenceBackendInterface` (`src/Backend/AiInferenceBackendInterface.php`), which is how a service that speaks a different protocol works end to end rather than only appearing in the catalog.
+
+The choice is per backend and invisible from the outside: model entities, the server form, smart routing, usage limits, fact check and content governance behave identically either way. Backends that do not implement the interface — including backends contributed by other modules — keep the OpenAI path unchanged.
+
+Shipped native backend: **`anthropic`**.
+
+| Anthropic feature | How it is reached |
+|---|---|
+| System prompt | Hoisted out of the message list into the API's `system` field, from both `ChatInput::setSystemPrompt()` and any `system` role message. |
+| Multi-turn, vision, PDFs | Text, base64 image and base64 `document` content blocks. Consecutive same-role turns are merged, as the API expects one message per turn. Non-PDF files are skipped rather than sent as something the API rejects. |
+| Tool calling | AI core function definitions become Anthropic tools (`name` / `input_schema`); `tool_use` blocks come back as AI core tool outputs, and a tool result is replayed as a `tool_result` block on a user turn. |
+| Structured output | Anthropic has no `response_format`: a JSON schema on the `ChatInput` becomes a single forced tool, and its arguments are returned as the message text — so callers see the same JSON they would get from OpenAI. |
+| Extended thinking | The model's **reasoning effort** maps to a `thinking` budget (low 2048, medium 8192, high 16384 tokens). `max_tokens` is raised to leave room for the answer, and sampling parameters are dropped because the API rejects both together. Set `thinking` explicitly through extra request parameters to override the mapping. |
+| Streaming | Server-sent events parsed into AI core's streamed message iterator (`src/Chat/AnthropicStreamedChatMessageIterator.php`). Thinking deltas are not leaked into the answer text. |
+| Prompt caching, server-side tools, `service_tier`, `metadata` | Per-model **extra request parameters**: unknown keys are forwarded verbatim to the Messages API. |
+| Token accounting | `input_tokens` / `output_tokens` feed usage limits and the savings report; `cache_read_input_tokens` is recorded as cached usage. |
+
+Two consequences worth knowing:
+
+- **OpenAI-only parameters are dropped, not forwarded.** `frequency_penalty`, `presence_penalty`, `logit_bias`, `seed`, `n`, `response_format` and friends have no Messages API equivalent, and Anthropic rejects unknown parameters — forwarding them would turn a harmless generic setting into a failed request. `stop` is translated to `stop_sequences`. Everything else passes through.
+- **Only chat is native.** Anthropic serves no embeddings, speech or image generation, so `detectOperationTypes()` reports `chat` only. Other operation types on any server still dispatch over the OpenAI protocol.
 
 ## Model filtering
 

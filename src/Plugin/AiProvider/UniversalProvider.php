@@ -26,6 +26,7 @@ use Drupal\ai\OperationType\TextToImage\TextToImageInput;
 use Drupal\ai\OperationType\TextToImage\TextToImageInterface;
 use Drupal\ai\OperationType\TextToImage\TextToImageOutput;
 use Drupal\ai\Traits\OperationType\ChatTrait;
+use Drupal\ai_provider_universal\Backend\AiInferenceBackendInterface;
 use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Event\ModelPostCallEvent;
@@ -600,26 +601,27 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       $this->configuration[$param] = $value;
     }
 
+    $server = $model instanceof AiUniversalModelInterface
+      ? $this->entityTypeManager->getStorage('ai_universal_server')->load($model->getServerId())
+      : NULL;
+
     // Usage limits are enforced per server by the router submodule; without
     // it counters are still recorded but nothing blocks.
-    if ($model instanceof AiUniversalModelInterface
-      && $this->serviceContainer->has('ai_provider_universal_router.limits')) {
-      $server = $this->entityTypeManager->getStorage('ai_universal_server')->load($model->getServerId());
-      if ($server instanceof AiUniversalServerInterface
-        && $this->serviceContainer->get('ai_provider_universal_router.limits')->isServerOverLimit($server)) {
-        $this->loggerFactory->get('ai_provider_universal')->warning(
-          'Server @server rejected a chat request to @model: daily usage limit reached.',
-          ['@server' => $server->id(), '@model' => $model_id],
-        );
-        $this->clearActiveServer();
-        throw new AiQuotaException(sprintf('Server "%s" has reached its daily usage limit.', $server->id()));
-      }
+    if ($server instanceof AiUniversalServerInterface
+      && $this->serviceContainer->has('ai_provider_universal_router.limits')
+      && $this->serviceContainer->get('ai_provider_universal_router.limits')->isServerOverLimit($server)) {
+      $this->loggerFactory->get('ai_provider_universal')->warning(
+        'Server @server rejected a chat request to @model: daily usage limit reached.',
+        ['@server' => $server->id(), '@model' => $model_id],
+      );
+      $this->clearActiveServer();
+      throw new AiQuotaException(sprintf('Server "%s" has reached its daily usage limit.', $server->id()));
     }
 
     try {
       $started = microtime(TRUE);
       $resolved = $this->getModel($model_id);
-      $output = parent::chat($input, $resolved, $tags);
+      $output = $this->executeChat($input, $resolved, $server, $tags);
       $usage = $output->getTokenUsage();
       $this->usageTracker->record($model_id, $usage->input, $usage->output);
       $this->serviceContainer->get('event_dispatcher')->dispatch(
@@ -639,6 +641,38 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       }
       $this->clearActiveServer();
     }
+  }
+
+  /**
+   * Dispatches one chat request to the protocol the server actually speaks.
+   *
+   * Backends are free to own execution by implementing
+   * AiInferenceBackendInterface (Anthropic's Messages API, ...). Backends
+   * that do not — the OpenAI-compatible majority, including any contributed
+   * by other modules — keep going through AI core's OpenAI client exactly as
+   * before, so adding a native backend never changes an existing one.
+   *
+   * @param array|string|\Drupal\ai\OperationType\Chat\ChatInput $input
+   *   The chat input as received from AI core.
+   * @param string $resolved
+   *   The raw model id to send to the service.
+   * @param \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface|null $server
+   *   The server owning the model, NULL in configuration/validation flows
+   *   that run without a server entity.
+   * @param array $tags
+   *   The call tags, passed through to AI core.
+   *
+   * @return \Drupal\ai\OperationType\Chat\ChatOutput
+   *   The chat output.
+   */
+  protected function executeChat(array|string|ChatInput $input, string $resolved, ?AiUniversalServerInterface $server, array $tags): ChatOutput {
+    if ($server instanceof AiUniversalServerInterface) {
+      $backend = $this->modelCatalog->getBackend($server);
+      if ($backend instanceof AiInferenceBackendInterface) {
+        return $backend->chat($input, $resolved, $server, $this->configuration, (bool) $this->streamed);
+      }
+    }
+    return parent::chat($input, $resolved, $tags);
   }
 
   /**
