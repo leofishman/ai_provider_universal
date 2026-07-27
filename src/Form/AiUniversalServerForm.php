@@ -465,9 +465,15 @@ class AiUniversalServerForm extends EntityForm {
         '#type'         => 'select',
         '#title'        => $this->t('Add a known parameter set'),
         '#description'  => $this->t('Merges a documented provider-native parameter set into the field below on save, where it can then be edited or removed.'),
+        // Only presets this server's backend understands: these parameters
+        // are provider-native, so offering all of them invites a 400.
         '#options'      => array_map(
           static fn (array $preset) => $preset['label'] ?? '',
-          $this->getExtraParamPresets(),
+          array_filter(
+            $this->getExtraParamPresets(),
+            static fn (array $preset) => !isset($preset['backends'])
+              || in_array($server->getBackend(), $preset['backends'], TRUE),
+          ),
         ),
         '#empty_option' => $this->t('- None -'),
       ];

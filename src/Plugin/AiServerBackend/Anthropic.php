@@ -682,10 +682,11 @@ class Anthropic extends AiServerBackendPluginBase implements ContainerFactoryPlu
    */
   protected function request(AiUniversalServerInterface $server, array $payload, bool $streamed): mixed {
     $client = $this->httpClientFactory->fromOptions(['timeout' => $server->getTimeout() ?: 600]);
+    $headers = ['Content-Type' => 'application/json']
+      + $this->getHttpHeaders($server)
+      + $this->authHeaders($server);
     $options = [
-      'headers' => ['Content-Type' => 'application/json']
-        + $this->getHttpHeaders($server)
-        + $this->authHeaders($server),
+      'headers' => $headers,
       'json' => $payload,
       'stream' => $streamed,
     ];

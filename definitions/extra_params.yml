@@ -3,24 +3,48 @@
 # the model's YAML, where they can then be edited or removed.
 #
 # These are parameters the module does not model itself: they are sent verbatim
-# to the OpenAI-compatible endpoint. Always check the provider's current docs —
-# names change, and a server that does not know a parameter may reject it.
+# to the endpoint. Always check the provider's current docs — names change, and
+# a server that does not know a parameter may reject it.
+#
+# "backends" lists the server backend plugin ids a preset is offered for; a
+# preset without it is offered everywhere. Provider-native parameters are not
+# portable, so keep the list tight: sending xAI's search_parameters to
+# Anthropic is a 400, not a no-op.
 openai_web_search:
   label: 'OpenAI — built-in web search tool (gpt-5 family / Responses-style tools)'
+  backends: [openai_compatible, litellm]
   params:
     tools:
       - type: web_search
 openai_web_search_options:
   label: 'OpenAI — web search options (*-search-preview chat models)'
+  backends: [openai_compatible, litellm]
   params:
     web_search_options: {}
 openrouter_web:
   label: 'OpenRouter — web search plugin'
+  backends: [openrouter]
   params:
     plugins:
       - id: web
 xai_live_search:
   label: 'xAI — Live Search (grok models)'
+  backends: [grok]
   params:
     search_parameters:
       mode: auto
+anthropic_web_search:
+  label: 'Anthropic — built-in web search tool'
+  backends: [anthropic]
+  params:
+    tools:
+      - type: web_search_20250305
+        name: web_search
+        max_uses: 5
+anthropic_code_execution:
+  label: 'Anthropic — code execution tool (requires the beta header)'
+  backends: [anthropic]
+  params:
+    tools:
+      - type: code_execution_20250522
+        name: code_execution
