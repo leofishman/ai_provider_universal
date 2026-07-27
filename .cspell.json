@@ -8,7 +8,8 @@
     "**/tests/fixtures/**",
     "**/data/mbfc-ratings-full.json",
     "TESTING-*.md",
-    "TESTING-governance.md"
+    "TESTING-governance.md",
+    "ANTHROPIC-BACKEND.md"
   ],
   "words": [
     "AAAS",

@@ -352,6 +352,10 @@ class Anthropic extends AiServerBackendPluginBase implements ContainerFactoryPlu
     // Anthropic has no response_format: structured output is emulated with a
     // single forced tool whose schema is the requested one.
     $payload = $this->applyStructuredOutput($payload, $input);
+    // Thinking is incompatible with forced tool choice.
+    if (isset($payload['tool_choice']) && ($payload['tool_choice']['type'] ?? '') !== 'auto') {
+      return $payload;
+    }
 
     return $this->applyReasoning($payload, $configuration);
   }
@@ -377,6 +381,16 @@ class Anthropic extends AiServerBackendPluginBase implements ContainerFactoryPlu
     $budget = static::THINKING_BUDGETS[$effort] ?? NULL;
     if ($budget === NULL) {
       return $payload;
+    }
+    // In a tool loop the API requires the previous assistant turn to replay its
+    // signed thinking blocks. ChatMessage cannot carry them, so once tools have
+    // been exchanged the only valid request is one without thinking.
+    foreach ($payload['messages'] as $message) {
+      foreach ($message['content'] as $block) {
+        if (($block['type'] ?? '') === 'tool_use' || ($block['type'] ?? '') === 'tool_result') {
+          return $payload;
+        }
+      }
     }
 
     $payload['thinking'] = ['type' => 'enabled', 'budget_tokens' => $budget];

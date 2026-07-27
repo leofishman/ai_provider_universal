@@ -346,6 +346,51 @@ final class AnthropicBackendTest extends KernelTestBase {
   }
 
   /**
+   * Tests that thinking is dropped when a tool loop is in progress.
+   *
+   * Extended thinking requires the previous assistant turn to replay its
+   * signed thinking blocks, which ChatMessage cannot carry.
+   */
+  public function testThinkingIsDroppedInsideAToolLoop(): void {
+    $this->mockRequests([$this->messageResponse([['type' => 'text', 'text' => 'Sunny.']])]);
+
+    $call = new ChatMessage('assistant', '');
+    $call->setTools([new ToolsFunctionOutput(new ToolsFunctionInput('get_weather'), 'toolu_1', [])]);
+    $result = new ChatMessage('tool', '{"temp":30}');
+    $result->setToolsId('toolu_1');
+
+    $this->backend()->chat(
+      new ChatInput([new ChatMessage('user', 'Weather?'), $call, $result]),
+      'claude-sonnet-4-5',
+      $this->anthropicServer(),
+      ['reasoning_effort' => 'high'],
+    );
+
+    $this->assertArrayNotHasKey('thinking', $this->lastPayload());
+  }
+
+  /**
+   * Tests that thinking is dropped when a tool choice is forced.
+   *
+   * The API only accepts tool_choice auto or none alongside thinking.
+   */
+  public function testThinkingIsDroppedWithForcedToolChoice(): void {
+    $this->mockRequests([$this->messageResponse([['type' => 'text', 'text' => '{}']])]);
+
+    $input = new ChatInput([new ChatMessage('user', 'Give me JSON.')]);
+    $input->setChatStructuredJsonSchema([
+      'name' => 'answer',
+      'schema' => ['type' => 'object', 'properties' => ['a' => ['type' => 'string']]],
+    ]);
+
+    $this->backend()->chat($input, 'claude-sonnet-4-5', $this->anthropicServer(), ['reasoning_effort' => 'high']);
+
+    $payload = $this->lastPayload();
+    $this->assertSame('tool', $payload['tool_choice']['type']);
+    $this->assertArrayNotHasKey('thinking', $payload);
+  }
+
+  /**
    * Tests that reasoning effort "none" sends no thinking block.
    */
   public function testReasoningNoneSendsNoThinking(): void {
