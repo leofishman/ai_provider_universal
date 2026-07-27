@@ -351,7 +351,7 @@ final class AnthropicBackendTest extends KernelTestBase {
    * Extended thinking requires the previous assistant turn to replay its
    * signed thinking blocks, which ChatMessage cannot carry.
    */
-  public function testThinkingIsDroppedInsideAToolLoop(): void {
+  public function testThinkingIsDroppedInsideToolLoop(): void {
     $this->mockRequests([$this->messageResponse([['type' => 'text', 'text' => 'Sunny.']])]);
 
     $call = new ChatMessage('assistant', '');
