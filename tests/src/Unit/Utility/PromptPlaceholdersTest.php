@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\ai_provider_universal\Unit\Utility;
 
 use Drupal\ai_provider_universal\Utility\PromptPlaceholders;
-use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(PromptPlaceholders::class)]
 #[Group('ai_provider_universal')]
-final class PromptPlaceholdersTest extends UnitTestCase {
+final class PromptPlaceholdersTest extends TestCase {
 
   /**
    * Overrides must keep the exact placeholder sequence of the default.

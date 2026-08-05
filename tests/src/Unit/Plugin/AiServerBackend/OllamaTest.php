@@ -8,7 +8,7 @@ use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Plugin\AiServerBackend\Ollama;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\State\StateInterface;
-use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\TestCase;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
@@ -21,7 +21,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(Ollama::class)]
 #[Group('ai_provider_universal')]
-final class OllamaTest extends UnitTestCase {
+final class OllamaTest extends TestCase {
 
   /**
    * Builds the plugin with unused mocked services.

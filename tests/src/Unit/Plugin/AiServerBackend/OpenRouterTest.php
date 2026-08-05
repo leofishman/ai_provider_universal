@@ -8,7 +8,7 @@ use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Plugin\AiServerBackend\OpenRouter;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\State\StateInterface;
-use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(OpenRouter::class)]
 #[Group('ai_provider_universal')]
-final class OpenRouterTest extends UnitTestCase {
+final class OpenRouterTest extends TestCase {
 
   /**
    * Builds the plugin with unused mocked services.

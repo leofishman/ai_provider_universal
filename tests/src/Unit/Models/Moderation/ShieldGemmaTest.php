@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\ai_provider_universal\Unit\Models\Moderation;
 
 use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
-use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(ShieldGemma::class)]
 #[Group('ai_provider_universal')]
-final class ShieldGemmaTest extends UnitTestCase {
+final class ShieldGemmaTest extends TestCase {
 
   /**
    * Tests response parsing for violation indication.

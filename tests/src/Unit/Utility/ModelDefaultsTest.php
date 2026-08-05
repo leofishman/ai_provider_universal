@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\ai_provider_universal\Unit\Utility;
 
 use Drupal\ai_provider_universal\Utility\ModelDefaults;
-use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(ModelDefaults::class)]
 #[Group('ai_provider_universal')]
-final class ModelDefaultsTest extends UnitTestCase {
+final class ModelDefaultsTest extends TestCase {
 
   /**
    * Tests tier guessing from raw model ids.

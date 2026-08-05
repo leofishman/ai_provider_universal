@@ -6,10 +6,10 @@ namespace Drupal\Tests\ai_provider_universal\Unit\Models\Moderation;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\ai_provider_universal\Models\Moderation\LlamaGuard3;
-use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Tests LlamaGuard3 "safe"/"unsafe\nSX" response parsing.
@@ -20,17 +20,11 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(LlamaGuard3::class)]
 #[Group('ai_provider_universal')]
-final class LlamaGuard3Test extends UnitTestCase {
+final class LlamaGuard3Test extends TestCase {
 
-  /**
-   * Avoids a bootstrapped container for the t() call inside parse().
-   *
-   * {@inheritdoc}
-   */
   protected function setUp(): void {
-    parent::setUp();
     $container = new ContainerBuilder();
-    $container->set('string_translation', $this->getStringTranslationStub());
+    $container->set('string_translation', $this->createMock('\Drupal\Core\StringTranslation\TranslationInterface'));
     \Drupal::setContainer($container);
   }
 

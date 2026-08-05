@@ -7,7 +7,7 @@ namespace Drupal\Tests\ai_provider_universal\Unit\Plugin\AiServerBackend;
 use Drupal\ai_provider_universal\Plugin\AiServerBackend\LiteLlm;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\State\StateInterface;
-use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(LiteLlm::class)]
 #[Group('ai_provider_universal')]
-final class LiteLlmTest extends UnitTestCase {
+final class LiteLlmTest extends TestCase {
 
   /**
    * Builds the plugin with unused mocked services.

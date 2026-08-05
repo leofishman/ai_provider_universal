@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Drupal\Tests\ai_provider_universal\Unit\Utility;
 
 use Drupal\ai_provider_universal\Utility\ModelFilter;
-use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Tests model filter glob matching.
@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(ModelFilter::class)]
 #[Group('ai_provider_universal')]
-final class ModelFilterTest extends UnitTestCase {
+final class ModelFilterTest extends TestCase {
 
   /**
    * Tests model id glob matching.
