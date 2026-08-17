@@ -75,6 +75,23 @@ interface AiServerBackendInterface {
   public function detectModelMetadata(array $modelEntry): array;
 
   /**
+   * Multiplier applied to the model's stored costs at decision time.
+   *
+   * For providers that bill on a time-of-day schedule (DeepSeek off-peak,
+   * ...) stored costs stay at list price and this returns the current
+   * discount factor. Default: 1.0 (no adjustment).
+   *
+   * @param string $rawModelId
+   *   The raw model id as sent to the provider.
+   * @param int|null $timestamp
+   *   Unix timestamp to price for; NULL means now.
+   *
+   * @return float
+   *   Factor to multiply input and output costs by.
+   */
+  public function getPriceMultiplier(string $rawModelId, ?int $timestamp = NULL): float;
+
+  /**
    * Returns extra HTTP headers every request to this server should carry.
    *
    * @param \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $server

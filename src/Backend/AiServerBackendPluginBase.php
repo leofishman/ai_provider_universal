@@ -23,6 +23,13 @@ abstract class AiServerBackendPluginBase extends PluginBase implements AiServerB
   /**
    * {@inheritdoc}
    */
+  public function getPriceMultiplier(string $rawModelId, ?int $timestamp = NULL): float {
+    return 1.0;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getHttpHeaders(AiUniversalServerInterface $server): array {
     return [];
   }

@@ -4,6 +4,7 @@ namespace Drupal\ai_provider_universal_router\Service;
 
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
+use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal_router\Entity\AiUniversalRouteInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -37,12 +38,20 @@ class RouteDecider {
    */
   protected ?array $lastDecision = NULL;
 
+  /**
+   * Per-request cache of backend price multipliers, keyed server:model.
+   *
+   * @var array<string, float>
+   */
+  protected array $priceMultipliers = [];
+
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected Connection $database,
     protected LoggerInterface $logger,
     protected UsageLimitEnforcer $limitEnforcer,
     protected ComplexityClassifier $classifier,
+    protected ModelCatalog $modelCatalog,
   ) {}
 
   /**
@@ -198,7 +207,22 @@ class RouteDecider {
   public function costOf(AiUniversalModelInterface $model, int $estTokens): float {
     $in = ($model->getCostInput() ?? 0.0) * $estTokens;
     $out = ($model->getCostOutput() ?? 0.0) * self::ASSUMED_OUTPUT_TOKENS;
-    return ($in + $out) / 1000000;
+    return ($in + $out) * $this->priceMultiplier($model) / 1000000;
+  }
+
+  /**
+   * Current price factor for a model (time-of-day pricing, see the backend).
+   */
+  protected function priceMultiplier(AiUniversalModelInterface $model): float {
+    // Memoised per request: costOf() runs inside usort comparisons.
+    $key = $model->getServerId() . ':' . $model->getRawModelId();
+    if (!isset($this->priceMultipliers[$key])) {
+      $server = $this->entityTypeManager->getStorage('ai_universal_server')
+        ->load($model->getServerId());
+      $this->priceMultipliers[$key] = $server === NULL ? 1.0
+        : $this->modelCatalog->getBackend($server)->getPriceMultiplier($model->getRawModelId());
+    }
+    return $this->priceMultipliers[$key];
   }
 
   /**

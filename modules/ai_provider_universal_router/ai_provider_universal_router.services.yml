@@ -13,6 +13,7 @@ services:
       - '@logger.channel.ai_provider_universal_router'
       - '@Drupal\ai_provider_universal_router\Service\UsageLimitEnforcer'
       - '@Drupal\ai_provider_universal_router\Service\ComplexityClassifier'
+      - '@Drupal\ai_provider_universal\Service\ModelCatalog'
 
   Drupal\ai_provider_universal_router\Service\ComplexityClassifier:
     class: Drupal\ai_provider_universal_router\Service\ComplexityClassifier
