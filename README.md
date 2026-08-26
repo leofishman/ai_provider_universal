@@ -11,7 +11,7 @@ New to the terminology? See the [glossary](docs/glossary.md).
 
 ## Backends
 
-Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with **eleven** backends:
+Protocol-specific logic lives in **AiServerBackend plugins**. The module ships with **twelve** backends:
 
 | Backend | Typical use | Host/port | Metadata at discovery |
 |---|---|---|---|
@@ -26,10 +26,11 @@ Protocol-specific logic lives in **AiServerBackend plugins**. The module ships w
 | `amazee` | amazee.ai managed LiteLLM | required (`litellm_api_url`) | Same as `litellm` (dedicated UX only) |
 | `grok` | Grok / xAI | fixed `api.x.ai/v1` | Small hardcoded table for grok-2 family |
 | `anthropic` | Anthropic Claude — **native Messages API**, not OpenAI-compatible | fixed `api.anthropic.com/v1` | Paginated catalog + price/context/feature table per Claude generation |
+| `deepseek` | DeepSeek | fixed `api.deepseek.com` | Hardcoded price/context table; off-peak discount applied when routing on cost |
 
 Full reference (capability detection, forms, filters, moderation parsers): [docs/servers-and-models.md](docs/servers-and-models.md).
 
-Other modules can contribute more backends (e.g. native Anthropic/Gemini once inference dispatch lands) by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — multi-server UI and discovery come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md).
+Backends are not limited to the OpenAI REST protocol: a backend that implements `AiInferenceBackendInterface` owns chat execution itself (that is how `anthropic` speaks the native Messages API), while everything else — the pre-call gate, usage limits, smart routing, fact check, governance — stays shared. Other modules can contribute more backends by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — multi-server UI and discovery come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md).
 
 ## Requirements
 
@@ -108,6 +109,8 @@ If the connection test fails, the exact server response (e.g. `401 Unauthorized`
 ### Smart routing (router submodule)
 
 With `ai_provider_universal_router` enabled, a **Smart Route** is a virtual model — pick "Auto: \<label\>" as the provider for an operation type and each request is routed to the cheapest candidate model whose quality tier satisfies the prompt: short/simple prompts get a low tier threshold, long or reasoning-flavored prompts (code fences, "step by step", "prove", "refactor", ...) get a higher one. Candidates on a server that has hit its daily usage limit drop out automatically, so routing doubles as failover.
+
+Cost comparison is time-aware: a backend can report a price multiplier for the current moment, so providers that bill on a schedule are ranked at the price you would actually pay. `deepseek` uses this for its peak/off-peak window (list price 00:30-16:30 UTC, a flat per-model discount outside it), which means a DeepSeek model can win a route at night and lose it during the day, with no configuration and no cron. Stored costs stay at list price.
 
 A route can also name a **verifier model**: before returning, that model (typically a free local one) judges the answer with a single yes/no call, and a rejection retries the request once with the best candidate — a lightweight alternative to full fact-checking that enables local-first/verify/escalate routing at zero cost.
 

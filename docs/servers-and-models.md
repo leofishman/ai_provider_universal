@@ -38,6 +38,7 @@ A backend whose service speaks a different protocol additionally implements `AiI
 | `ollama_cloud` | Ollama Cloud (ollama.com) | `ollama.com/v1` | optional (needs API key) | `/v1/models` | Generic heuristics only (bare ids, no metadata) | None — fill in manually |
 | `grok` | Grok (xAI) | `api.x.ai/v1` | no (fixed) | `/v1/models` | Generic heuristics | Basic hardcoded table for grok-2 / grok-beta |
 | `anthropic` | Anthropic Claude — **native Messages API** | `api.anthropic.com/v1` | no (fixed; a host points at a gateway) | `GET /v1/models`, paginated | `chat` only (the Messages API serves nothing else) | Hardcoded table per Claude generation + `supported_features` (tools / reasoning / vision) |
+| `deepseek` | DeepSeek | `api.deepseek.com` | no (fixed) | `/v1/models` (ids only) | Generic heuristics | Hardcoded table for `deepseek-chat` / `deepseek-reasoner` (price, context, quality tier). Bills peak/off-peak, so the backend also reports a **price multiplier** (`getPriceMultiplier()`) that smart routing applies at decision time — list price 00:30-16:30 UTC, flat per-model discount outside that window. Stored costs stay at list price |
 
 > ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons. **Groq** reads prices live from `/v1/models` (same idea as OpenRouter).
 
@@ -173,4 +174,4 @@ Any other model falls back to a generic chat-completions call, flagged by a lite
 
 ## Extending: adding a backend
 
-Backends are plugins — other modules can contribute one for a service this module doesn't cover natively (e.g. Together, or native Anthropic/Gemini once inference dispatch lands) without touching the catalog, the provider, or the multi-server UI. See [docs/adding-a-backend.md](adding-a-backend.md) for the contributor guide and interface walkthrough.
+Backends are plugins — other modules can contribute one for a service this module doesn't cover natively (e.g. Together, or a native Gemini) without touching the catalog, the provider, or the multi-server UI. See [docs/adding-a-backend.md](adding-a-backend.md) for the contributor guide and interface walkthrough.
