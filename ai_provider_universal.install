@@ -125,7 +125,7 @@ function ai_provider_universal_update_10102(): void {
  *
  * OpenRouter reports pricing "-1" for models with dynamic pricing
  * (openrouter/auto), which was stored as -1000000 USD/1M tokens and made the
- * server form unsavable (cost fields have #min 0). Unknown cost is NULL.
+ * server form impossible to save (cost fields have #min 0). Unknown cost is NULL.
  */
 function ai_provider_universal_update_10103(): void {
   $storage = \Drupal::entityTypeManager()->getStorage('ai_universal_model');

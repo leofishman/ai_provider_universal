@@ -22,6 +22,9 @@ use PHPUnit\Framework\TestCase;
 #[Group('ai_provider_universal')]
 final class LlamaGuard3Test extends TestCase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     $container = new ContainerBuilder();
     $container->set('string_translation', $this->createMock('\Drupal\Core\StringTranslation\TranslationInterface'));
