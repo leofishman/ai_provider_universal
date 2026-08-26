@@ -1,0 +1,40 @@
+<h2>AI Provider: Universal 1.0.0-beta3</h2>
+
+<p>Changes since <a href="https://www.drupal.org/project/ai_provider_universal/releases/1.0.0-beta2">1.0.0-beta2</a>.</p>
+
+<h3>Highlights</h3>
+<ul>
+  <li><strong>Native (non-OpenAI) inference.</strong> A backend can now own chat execution through the opt-in <code>AiInferenceBackendInterface</code>, so a service that does not speak the OpenAI REST protocol works end to end instead of only showing up in the catalog. Additive: backends that do not implement it — including ones contributed by other modules — are dispatched exactly as before, and the pre-call gate, per-server usage limits, usage recording, smart routing, fact check and governance stay shared by both paths.</li>
+  <li><strong>Anthropic (Claude) backend</strong>, speaking the native Messages API: system-prompt hoisting, multi-turn content blocks, tool calling both ways, vision and PDF input, structured output (emulated with a forced tool), extended thinking driven by the model's reasoning effort, SSE streaming and cache-aware token accounting. Discovery reads the paginated <code>/v1/models</code> catalog and prefills price, context and features per Claude generation.</li>
+  <li><strong>DeepSeek backend</strong>, OpenAI-compatible at a fixed endpoint with list prices and context prefilled. DeepSeek bills on a peak/off-peak schedule, so smart routing applies the off-peak discount (16:30–00:30 UTC) as a price multiplier at decision time; stored costs stay at list price and remain editable.</li>
+  <li><strong>Extra request parameters (YAML), per model.</strong> Merged verbatim into every chat request, so provider-native parameters the module does not model itself — most usefully a provider's built-in tools (OpenAI <code>tools: [{type: web_search}]</code>, the OpenRouter web plugin, xAI Live Search) — are reachable from the UI with no code in the calling module. Presets ship in <code>definitions/extra_params.yml</code>; <code>model</code>, <code>messages</code>, <code>stream</code> and <code>stream_options</code> are stripped. See <a href="https://www.drupal.org/project/ai_provider_openai/issues/3613029">#3613029</a>.</li>
+</ul>
+
+<h3>Fixes</h3>
+<ul>
+  <li><strong>The server form is savable again when a provider reports a negative price.</strong> OpenRouter sends <code>pricing: "-1"</code> for dynamic-priced models (<code>openrouter/auto</code>), which was stored as −1000000 USD/1M tokens; because the cost fields have a minimum of 0, the browser then blocked submission of the whole form and <em>no</em> model setting could be saved — including turning on embeddings. Such sentinels are now treated as unknown cost. Fixes <a href="https://www.drupal.org/project/ai_provider_universal/issues/3618874">#3618874</a>.</li>
+  <li><strong>Re-discovery no longer deletes hand-made model duplicates.</strong> A second model entity for the same raw model — the supported way to run one model under two configurations — now survives as long as the server still offers that model.</li>
+  <li><strong>Non-chat operations on a native backend are refused with an explanation</strong> (<code>AiMissingFeatureException</code>) instead of being sent over the OpenAI protocol to a server that does not speak it, which surfaced as a confusing 404 from a non-existent endpoint.</li>
+</ul>
+
+<h3>Upgrading</h3>
+<ol>
+  <li><code>composer update drupal/ai_provider_universal</code></li>
+  <li><code>drush updb</code> — update <strong>10103</strong> clears already-stored negative costs. Sites that discovered OpenRouter models on beta2 need this before the server form will save.</li>
+  <li>Optional: on a model page, check <strong>Cost per 1M tokens</strong> for anything that came back empty and fill it in if you route on cost.</li>
+</ol>
+
+<h3>Known limitations</h3>
+<ul>
+  <li>The Anthropic mapping is covered by kernel tests with mocked HTTP but has not yet been verified against the live API.</li>
+  <li>DeepSeek list prices are hardcoded; verify them against <a href="https://api-docs.deepseek.com/quick_start/pricing">DeepSeek's pricing page</a> before routing on cost. Discovery never overwrites a cost you edited.</li>
+</ul>
+
+<h3>Requirements</h3>
+<ul>
+  <li>Drupal 11.1+ / 12</li>
+  <li><a href="https://www.drupal.org/project/ai">AI</a> ^1.3</li>
+  <li><a href="https://www.drupal.org/project/key">Key</a></li>
+</ul>
+
+<p><strong>Install:</strong> <code>composer require 'drupal/ai_provider_universal:^1.0@beta'</code></p>
