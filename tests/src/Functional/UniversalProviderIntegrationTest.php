@@ -48,10 +48,14 @@ class UniversalProviderIntegrationTest extends BrowserTestBase {
   }
 
   /**
-   * Test server creation and model discovery.
+   * Tests the add-server form: it loads, and refuses unreachable servers.
+   *
+   * Creating a server for real needs a reachable inference endpoint (the form
+   * validates connectivity), so the happy path is not exercised here; the
+   * discovery and catalog logic is covered by the kernel tests with mocked
+   * HTTP.
    */
-  public function testServerCreationAndDiscovery(): void {
-    // Navigate to the server list page.
+  public function testAddServerFormRejectsUnreachableServer(): void {
     $this->drupalGet('/admin/config/ai/providers/universal');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('Servers');
@@ -61,24 +65,19 @@ class UniversalProviderIntegrationTest extends BrowserTestBase {
     $this->drupalGet('/admin/config/ai/providers/universal/add');
     $this->assertSession()->statusCodeEquals(200);
 
-    // Fill in the form.
-    $edit = [
+    $this->submitForm([
       'id' => 'test_server',
       'label' => 'Test Server',
       'backend' => 'openai_compatible',
       'host_name' => 'http://host.docker.internal',
       'port' => '8080',
       'timeout' => '60',
-    ];
-    $this->submitForm($edit, 'Save');
+    ], 'Save');
 
-    // Verify server was created.
-    file_put_contents('/tmp/page.txt', $this->getSession()->getPage()->getText());
-    $this->assertSession()->pageTextContains('Server Test Server has been created.');
-    $this->assertSession()->pageTextContains('http://host.docker.internal:8080');
-
-    // Discovery is not asserted here: it needs a live inference server. The
-    // mocked-HTTP discovery paths are covered by the kernel tests.
+    $this->assertSession()->pageTextContains('Could not connect to the server.');
+    $this->assertNull(
+      \Drupal::entityTypeManager()->getStorage('ai_universal_server')->load('test_server'),
+    );
   }
 
 }
