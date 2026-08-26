@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-beta3 — 2026-08-26
 
 - **Native (non-OpenAI) inference**: backends can now own chat execution through the opt-in `AiInferenceBackendInterface`, so a service that does not speak the OpenAI REST protocol works end to end instead of only appearing in the catalog. Opt-in and additive — backends that do not implement it, including ones contributed by other modules, are dispatched exactly as before. The pre-call gate, per-server usage limits, usage recording, smart routing, fact check and governance stay shared by both paths.
 - **`anthropic` backend** (native Messages API): system-prompt hoisting, multi-turn content blocks, tool calling both ways, vision and PDF input, structured output emulated with a forced tool, extended thinking driven by the model's reasoning effort, SSE streaming and cache-aware token accounting. Per-model extra request parameters are forwarded verbatim, so prompt caching, server-side tools and `service_tier` are reachable from the UI. Discovery reads the paginated `/v1/models` catalog and prefills price, context and catalog features per Claude generation. Mapping is covered by kernel tests with mocked HTTP; not yet verified against the live API.
