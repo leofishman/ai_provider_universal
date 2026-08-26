@@ -119,3 +119,28 @@ function ai_provider_universal_update_10102(): void {
     }
   }
 }
+
+/**
+ * Clears negative model costs (provider "dynamic pricing" sentinels).
+ *
+ * OpenRouter reports pricing "-1" for models with dynamic pricing
+ * (openrouter/auto), which was stored as -1000000 USD/1M tokens and made the
+ * server form unsavable (cost fields have #min 0). Unknown cost is NULL.
+ */
+function ai_provider_universal_update_10103(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('ai_universal_model');
+  foreach ($storage->loadMultiple() as $model) {
+    $changed = FALSE;
+    if ($model->getCostInput() !== NULL && $model->getCostInput() < 0) {
+      $model->setCostInput(NULL);
+      $changed = TRUE;
+    }
+    if ($model->getCostOutput() !== NULL && $model->getCostOutput() < 0) {
+      $model->setCostOutput(NULL);
+      $changed = TRUE;
+    }
+    if ($changed) {
+      $model->save();
+    }
+  }
+}

@@ -221,10 +221,12 @@ class ModelCatalog {
    * they are pure catalog flags with no UI override.
    */
   protected function applyDetectedMetadata($model, array $metadata): void {
-    if ($model->getCostInput() === NULL && isset($metadata['cost_input'])) {
+    // Negative prices are provider sentinels for "dynamic / unknown"
+    // (OpenRouter sends -1 for openrouter/auto): treat them as unknown.
+    if ($model->getCostInput() === NULL && ($metadata['cost_input'] ?? -1) >= 0) {
       $model->setCostInput((float) $metadata['cost_input']);
     }
-    if ($model->getCostOutput() === NULL && isset($metadata['cost_output'])) {
+    if ($model->getCostOutput() === NULL && ($metadata['cost_output'] ?? -1) >= 0) {
       $model->setCostOutput((float) $metadata['cost_output']);
     }
     if ($model->getQualityTier() === NULL && isset($metadata['quality_tier'])) {

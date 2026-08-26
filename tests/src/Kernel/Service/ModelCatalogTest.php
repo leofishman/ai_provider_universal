@@ -40,6 +40,27 @@ final class ModelCatalogTest extends KernelTestBase {
   ];
 
   /**
+   * Negative provider prices (OpenRouter's -1 sentinel) must not be stored.
+   */
+  public function testNegativeCostsAreTreatedAsUnknown(): void {
+    $model = $this->container->get('entity_type.manager')
+      ->getStorage('ai_universal_model')
+      ->create(['id' => 'srv.auto', 'server_id' => 'srv', 'raw_model_id' => 'openrouter/auto']);
+
+    $catalog = $this->container->get(ModelCatalog::class);
+    $apply = (new \ReflectionObject($catalog))->getMethod('applyDetectedMetadata');
+    $apply->setAccessible(TRUE);
+    $apply->invoke($catalog, $model, ['cost_input' => -1000000.0, 'cost_output' => -1000000.0]);
+
+    $this->assertNull($model->getCostInput());
+    $this->assertNull($model->getCostOutput());
+
+    $apply->invoke($catalog, $model, ['cost_input' => 0.0, 'cost_output' => 1.5]);
+    $this->assertSame(0.0, $model->getCostInput());
+    $this->assertSame(1.5, $model->getCostOutput());
+  }
+
+  /**
    * Tests offline operation-type detection from args and model-name heuristics.
    */
   #[DataProvider('providerDetection')]
