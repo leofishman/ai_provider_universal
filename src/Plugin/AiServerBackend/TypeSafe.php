@@ -184,7 +184,7 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
     $data = $this->request($server, [
       'model' => $modelId,
       'state' => $state,
-      'questions' => $questions,
+      'questions' => $this->supportedQuestions($questions, $modelId),
     ]);
 
     $usage = $data['usage'] ?? [];
@@ -197,6 +197,50 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
       ['model' => $data['model'] ?? NULL],
       new TokenUsageDto(input: $in, output: $out, total: $in + $out),
     );
+  }
+
+  /**
+   * Drops question fields the target model does not really support.
+   *
+   * The protocol is shared but the models behind it are not: Laya rejects a
+   * plain-string `criteria` on a yes/no question outright (its own shape is
+   * {"true": ..., "false": ...}), and even in the shape it accepts, the
+   * field narrows its scores — measured on laya-english, the gap between
+   * urgent and calm messages fell from 0.81 to 0.63, which moves every
+   * threshold tuned without it. Jev documents the field and behaves.
+   *
+   * So a question set that is portable stays portable: the field is dropped
+   * for Laya, with a warning, instead of silently changing what the model
+   * does. Failover between decision models is the point of this module.
+   *
+   * @param array $questions
+   *   The questions as the caller wrote them.
+   * @param string $rawModelId
+   *   The raw model id being called.
+   *
+   * @return array
+   *   The questions to send.
+   */
+  protected function supportedQuestions(array $questions, string $rawModelId): array {
+    if (!str_starts_with(strtolower($rawModelId), 'laya')) {
+      return $questions;
+    }
+
+    $dropped = [];
+    foreach ($questions as $id => $question) {
+      if (($question['type'] ?? '') === 'noul' && isset($question['criteria'])) {
+        unset($questions[$id]['criteria']);
+        $dropped[] = $id;
+      }
+    }
+    if ($dropped) {
+      $this->loggerFactory?->get('ai_provider_universal')->warning(
+        'Dropped "criteria" from yes/no question(s) @ids: @model narrows its scores when it is present.',
+        ['@ids' => implode(', ', $dropped), '@model' => $rawModelId],
+      );
+    }
+
+    return $questions;
   }
 
   /**

@@ -244,6 +244,36 @@ final class TypeSafeBackendTest extends KernelTestBase {
   }
 
   /**
+   * Tests that yes/no criteria are dropped for Laya but kept for Jev.
+   */
+  public function testNoulCriteriaAreDroppedForLaya(): void {
+    $questions = [
+      'urgent' => [
+        'type' => 'noul',
+        'instructions' => 'The message is urgent',
+        'criteria' => ['true' => 'Asks for immediate action', 'false' => 'Not in a hurry'],
+      ],
+      'team' => [
+        'type' => 'choice',
+        'instructions' => 'Which team',
+        'criteria' => ['billing' => 'Payments'],
+      ],
+    ];
+    $this->mockRequests([$this->systemOneResponse(), $this->systemOneResponse()]);
+    $server = $this->typeSafeServer();
+
+    $this->backend()->chat('Help', 'laya-english', $server, ['questions' => $questions]);
+    $sent = $this->lastPayload()['questions'];
+    $this->assertArrayNotHasKey('criteria', $sent['urgent']);
+    // A choice question is meaningless without its options: never touched.
+    $this->assertSame(['billing' => 'Payments'], $sent['team']['criteria']);
+
+    // Jev documents the field and behaves: nothing is dropped.
+    $this->backend()->chat('Help', 'jev-latest', $server, ['questions' => $questions]);
+    $this->assertArrayHasKey('criteria', $this->lastPayload()['questions']['urgent']);
+  }
+
+  /**
    * Tests that a call without questions fails before any request.
    */
   public function testMissingQuestionsIsRefused(): void {

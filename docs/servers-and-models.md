@@ -239,6 +239,10 @@ docker run -d --name laya --restart unless-stopped -p 8095:8095 -v laya-hf-cache
 
 Then add a server with the `typesafe` backend, host `http://<machine>` and port `8095`, no key. On Apple Silicon, [laya-mlx](https://github.com/mizorewww/laya-mlx) runs the same model natively (~13 ms per decision) behind the same wrapper.
 
+**Question fields are not portable across decision models.** Laya rejects a plain-string `criteria` on a yes/no question outright (its own shape is `{"true": ..., "false": ...}`), and even in the shape it accepts, the field narrows its scores: measured here on `laya-english` over 8 messages, the gap between urgent and calm ones fell from 0.81 to 0.63 — accuracy held, but every threshold tuned without the field moves. Jev documents the field and behaves. The backend therefore drops `criteria` from yes/no questions when the target model is Laya and logs a warning, so one question set stays portable across both; `choice` and `score` criteria are never touched, since those questions are meaningless without their options.
+
+Asking several questions in one request is safe: another integrator measured 9 questions batched against the same 9 asked separately over 300 items and found an average difference of 0.011, the same variation as repeating one question twice (5 of 300 crossed the yes/no threshold). Batching mainly saves time and money.
+
 Laya does not count tokens (usage is recorded as zero), and its router sends Spanish and other Latin-script text to the English checkpoint when it cannot tell the language — pick `laya-multilingual` explicitly for non-English content. As with any decision model, check its confidence against real cases before setting thresholds: it can be confidently wrong.
 
 Only `model`, `state` and `questions` are sent; sampling, reasoning and other chat parameters are ignored. Streaming is refused (`AiMissingFeatureException`). Because Jev is by far the cheapest model in most catalogs, **leave it out of the candidates of smart routes that serve free-form chat** — a route with no explicit candidates considers every chat model, and Jev cannot answer a prompt that carries no questions.
