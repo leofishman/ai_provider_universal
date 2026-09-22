@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **`typesafe` backend** (TypeSafe Jev, native System One API): typed decisions — yes/no probability, choice, score — with calibrated confidence, exposed as chat. The conversation becomes the state; questions come from the model's extra request parameters (`questions:`) or a JSON system prompt; the answer text is the JSON `answers` object. Discovery reads `/v1/models` and prefills Jev's list input price (only for `jev*` ids). Also works with self-hosted servers speaking the same protocol — verified end to end against Laya behind a System One-compatible wrapper; not yet verified against the live TypeSafe API. A bridge until the `decision` operation type lands in AI core.
+- **Decision models in smart routing and fact check**: the provider gains `isDecisionModel()` / `decide()`, a stable seam that moves to the `decision` operation type later. A decision model as the router's `classifier_model` is asked a typed small/large choice (Laya: 9/10 on hand-labelled prompts with `laya-typed-decisions`); as fact check checker it judges each claim against its evidence with a three-way choice, returning `CONTRADICTED` where MiniCheck cannot. Per-call questions now override a model's default `questions:`.
 
 ## 1.0.0-beta3 — 2026-08-26
 

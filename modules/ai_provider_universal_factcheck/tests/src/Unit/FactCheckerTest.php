@@ -95,11 +95,31 @@ class FactCheckerTest extends UnitTestCase {
       public FactCheckerTest $test;
 
       /**
+       * Model ids treated as decision models.
+       */
+      public array $decisionModels = [];
+
+      /**
        * Records the prompt and returns the next scripted response.
        */
       protected function ask(string $prompt, string $model): string {
         $this->test->recordPrompt($prompt);
         return array_shift($this->responses) ?? '';
+      }
+
+      /**
+       * Records the state; the next scripted response is the chosen verdict.
+       */
+      protected function decide(string $model, string $state, array $questions): array {
+        $this->test->recordPrompt($state);
+        return ['verdict' => ['type' => 'choice', 'choice' => array_shift($this->responses) ?? '']];
+      }
+
+      /**
+       * {@inheritdoc}
+       */
+      protected function isDecisionModel(string $model): bool {
+        return in_array($model, $this->decisionModels, TRUE);
       }
 
     };
@@ -314,6 +334,26 @@ class FactCheckerTest extends UnitTestCase {
     $this->assertStringStartsWith('Document:', $this->prompts[1]);
     $this->assertSame('SUPPORTED', $result['claims'][0]['verdict']);
     $this->assertSame(1.0, $result['score']);
+  }
+
+  /**
+   * Decision models judge per claim, three-way, and need evidence.
+   */
+  public function testDecisionModelJudgesEachClaimOnItsEvidence(): void {
+    $evidence = $this->createMock(EvidenceRetriever::class);
+    $evidence->method('retrieve')->willReturnCallback(
+      static fn (string $claim): array => str_contains($claim, 'Mars') ? [] : ['[https://example.org] Water boils at 100 C at sea level.'],
+    );
+    $checker = $this->buildChecker(['checker_model' => 'laya.laya', 'profile' => 'balanced'], ['CONTRADICTED'], $evidence);
+    $checker->decisionModels = ['laya.laya'];
+
+    $result = $checker->verifyClaims(['Water boils at 50 C.', 'Mars has two moons.']);
+
+    // No batch prompt: one decision per claim that has evidence; the claim
+    // without evidence is unsupported without a call.
+    $this->assertCount(1, $this->prompts);
+    $this->assertStringContainsString('Claim: Water boils at 50 C.', $this->prompts[0]);
+    $this->assertSame(['CONTRADICTED', 'UNSUPPORTED'], array_column($result['claims'], 'verdict'));
   }
 
   /**

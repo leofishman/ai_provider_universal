@@ -44,6 +44,17 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    (`route.*`) are refused as classifier to avoid recursion. Point this
    at a small local model (e.g. a fine-tuned Gemma on the dedicated
    `ollama` backend) for a learned router at zero cost.
+
+   A **decision model** as classifier (any model on a `typesafe` server:
+   TypeSafe Jev, or self-hosted Laya — see
+   [servers-and-models.md](servers-and-models.md)) is detected by its
+   backend and asked a typed `small` / `large` choice instead of the chat
+   prompt: one forward pass, nothing to parse. The classifier prompt
+   override does not apply to it. On 10 hand-labelled prompts Laya scored
+   9/10 with `laya-typed-decisions`, 8/10 with `laya-english` and 6/10 with
+   `laya-multilingual`; every miss called a complex prompt simple (an
+   under-powered model, never an overspend). Pair it with the route
+   verifier to catch those, and check it against your own traffic first.
 2. **Pick the required tier**: the route's simple or complex tier,
    depending on step 1.
 3. **Load candidates** (`candidateModels()`): the route's explicit list, or

@@ -34,8 +34,10 @@ use Drupal\ai_provider_universal\Event\ModelPostCallEvent;
 use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
 use Drupal\ai_provider_universal\Models\Moderation\LlamaGuard3;
 use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
+use Drupal\ai_provider_universal\Plugin\AiServerBackend\TypeSafe;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Http\ClientFactory;
@@ -542,6 +544,56 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       $output = $this->maybeEscalate($route_id, $input, $model_id, $output, $tags);
     }
     return $output;
+  }
+
+  /**
+   * TRUE when the model is a decision model (TypeSafe Jev, Laya, ...).
+   *
+   * Detected by the server's backend, not the model name, so any model on a
+   * System One server qualifies. Smart routes never do: they resolve to a
+   * chat model per call.
+   *
+   * @param string $model_id
+   *   The ai_universal_model entity id.
+   */
+  public function isDecisionModel(string $model_id): bool {
+    if ($model_id === '' || str_starts_with($model_id, 'route.')) {
+      return FALSE;
+    }
+    $model = $this->entityTypeManager->getStorage('ai_universal_model')->load($model_id);
+    $server = $model instanceof AiUniversalModelInterface
+      ? $this->entityTypeManager->getStorage('ai_universal_server')->load($model->getServerId())
+      : NULL;
+    return $server instanceof AiUniversalServerInterface
+      && $this->modelCatalog->getBackend($server) instanceof TypeSafe;
+  }
+
+  /**
+   * Asks a decision model typed questions about a state.
+   *
+   * @param string $model_id
+   *   A decision model entity id (see ::isDecisionModel()).
+   * @param string $state
+   *   The text to judge.
+   * @param array $questions
+   *   System One questions keyed by id (noul / choice / score).
+   * @param array $tags
+   *   Call tags.
+   *
+   * @return array
+   *   Answers keyed by question id; empty when the model returned none.
+   *
+   * @throws \Drupal\ai\Exception\AiRequestErrorException
+   *   When the call fails.
+   */
+  public function decide(string $model_id, string $state, array $questions, array $tags = []): array {
+    // ponytail: rides chat (the typesafe bridge), keeping the pre-call gate,
+    // usage limits and usage recording. Switch to the `decision` operation
+    // type once it lands in AI core; callers keep this signature.
+    $input = new ChatInput([new ChatMessage('user', $state)]);
+    $input->setSystemPrompt(Json::encode($questions));
+    $answers = Json::decode($this->chat($input, $model_id, $tags)->getNormalized()->getText());
+    return is_array($answers) ? $answers : [];
   }
 
   /**

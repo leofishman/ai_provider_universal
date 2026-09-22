@@ -31,6 +31,10 @@ use Psr\Log\LoggerInterface;
  * extractor model and an evidence index. MiniCheck also cannot batch, so it
  * always runs the per-claim path regardless of profile.
  *
+ * Decision models (TypeSafe Jev, self-hosted Laya; any model on a System One
+ * server) are handled the same way, asked a typed three-way choice per
+ * claim instead of a Yes/No prompt, so they can also report CONTRADICTED.
+ *
  * The verification profile setting trades cost/latency against depth:
  * - fast: one batched verdict call for all claims, 2 evidence passages per
  *   claim, no distrusted-echo check, no discrepancy analysis, verdicts
@@ -207,7 +211,9 @@ PROMPT;
       return ['score' => 1.0, 'claims' => []];
     }
 
-    $miniCheck = str_contains(strtolower((string) $this->settings()->get('checker_model')), 'minicheck');
+    // Specialized checkers (MiniCheck, decision models) judge one claim
+    // against its evidence per call: no batching, no answer-level check.
+    $specialized = $this->isSpecializedChecker((string) $this->settings()->get('checker_model'));
     $ttl = (int) $profile['cache_ttl'];
 
     // Per-claim records, cache first: unchanged claims cost nothing on a
@@ -232,7 +238,7 @@ PROMPT;
 
       // One batched verdict call when the profile (and model) allow it;
       // per-claim calls otherwise or for claims the batch failed to cover.
-      $verdicts = (!$miniCheck && $profile['batch_verify'])
+      $verdicts = (!$specialized && $profile['batch_verify'])
         ? $this->batchVerify($pending, $evidence)
         : [];
       foreach ($pending as $i => $claim) {
@@ -241,7 +247,7 @@ PROMPT;
 
       $taintedKeys = match (TRUE) {
         $profile['distrusted'] === 'off' => [],
-        $profile['distrusted'] === 'answer' && !$miniCheck => $this->taintedForAnswer($pending),
+        $profile['distrusted'] === 'answer' && !$specialized => $this->taintedForAnswer($pending),
         default => array_keys(array_filter($pending, fn (string $c): bool => $this->echoedByDistrusted($c))),
       };
 
@@ -371,6 +377,14 @@ PROMPT;
    */
   protected function verifyClaim(string $claim, array $passages): string {
     $checker = (string) $this->settings()->get('checker_model');
+
+    if ($this->isDecisionModel($checker)) {
+      if (!$passages) {
+        $this->logger->warning('Decision-model checker needs an evidence index; claim treated as unsupported: @claim', ['@claim' => $claim]);
+        return 'UNSUPPORTED';
+      }
+      return $this->decideVerdict($claim, $passages, $checker);
+    }
 
     // Specialized grounded-checking models (Bespoke-MiniCheck) only know
     // one task: does this document support this claim? Yes/No.
@@ -516,7 +530,7 @@ PROMPT;
    */
   protected function analyzeDiscrepancy(string $claim, array $passages): string {
     $model = (string) ($this->settings()->get('extractor_model') ?: $this->settings()->get('checker_model'));
-    if (str_contains(strtolower($model), 'minicheck')) {
+    if ($this->isSpecializedChecker($model)) {
       return '';
     }
 
@@ -617,6 +631,9 @@ PROMPT;
     }
     $checker = (string) $this->settings()->get('checker_model');
 
+    if ($this->isDecisionModel($checker)) {
+      return $this->decideVerdict($claim, $passages, $checker) === 'SUPPORTED';
+    }
     if (str_contains(strtolower($checker), 'minicheck')) {
       $document = implode("\n", array_map(static fn ($p) => mb_substr($p, 0, 1000), $passages));
       $raw = $this->ask("Document: {$document}\nClaim: {$claim}", $checker);
@@ -629,6 +646,62 @@ PROMPT;
     ));
     $raw = strtoupper($this->ask(sprintf($this->prompt('verify', self::VERIFY_PROMPT), $evidenceBlock, ' according to the evidence', $claim), $checker));
     return (bool) preg_match('/\bSUPPORTED\b/', $raw);
+  }
+
+  /**
+   * Verdict from a decision model: a three-way choice over the evidence.
+   *
+   * @return string
+   *   SUPPORTED / UNSUPPORTED / CONTRADICTED; UNSUPPORTED when the call
+   *   fails, like every other checker path.
+   */
+  protected function decideVerdict(string $claim, array $passages, string $model): string {
+    $evidence = implode("\n- ", array_map(static fn ($p) => mb_substr($p, 0, 1000), $passages));
+    try {
+      $answers = $this->decide(
+        $model,
+        "Evidence:\n- {$evidence}\n\nClaim: {$claim}",
+        [
+          'verdict' => [
+            'type' => 'choice',
+            'instructions' => 'Judge the claim against the evidence only, not general knowledge.',
+            'criteria' => [
+              'SUPPORTED' => 'The evidence states or directly implies the claim.',
+              'CONTRADICTED' => 'The evidence states the opposite of the claim or is incompatible with it.',
+              'UNSUPPORTED' => 'The evidence neither confirms nor refutes the claim.',
+            ],
+          ],
+        ],
+      );
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Fact check decision call failed: @message', ['@message' => $e->getMessage()]);
+      return 'UNSUPPORTED';
+    }
+    $verdict = (string) ($answers['verdict']['choice'] ?? '');
+    return in_array($verdict, ['SUPPORTED', 'CONTRADICTED', 'UNSUPPORTED'], TRUE) ? $verdict : 'UNSUPPORTED';
+  }
+
+  /**
+   * Asks a decision model typed questions about a state.
+   */
+  protected function decide(string $model, string $state, array $questions): array {
+    return $this->providerManager->createInstance('universal')
+      ->decide($model, $state, $questions, ['ai_provider_universal_factcheck']);
+  }
+
+  /**
+   * TRUE for a model on a System One (decision) server.
+   */
+  protected function isDecisionModel(string $model): bool {
+    return $model !== '' && $this->providerManager->createInstance('universal')->isDecisionModel($model);
+  }
+
+  /**
+   * TRUE for checkers that cannot batch, extract or write analyses.
+   */
+  protected function isSpecializedChecker(string $model): bool {
+    return str_contains(strtolower($model), 'minicheck') || $this->isDecisionModel($model);
   }
 
   /**

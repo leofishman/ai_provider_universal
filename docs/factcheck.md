@@ -10,7 +10,7 @@ Any chat model reachable through a configured server works as extractor or check
 
 1. **Claim extraction.** The *extractor model* splits the text into atomic factual claims (JSON list, capped by *Maximum claims per answer*). Opinions and hedges are ignored. If extraction fails the text passes — verification must never break inference.
 2. **Evidence retrieval** per claim — a cascade (see below).
-3. **Verdict** per claim by the *checker model*: `SUPPORTED`, `UNSUPPORTED` or `CONTRADICTED`. Checkers whose id contains `minicheck` (Bespoke-MiniCheck) are driven through their native `Document/Claim → Yes/No` interface; they need an evidence source and a separate extractor.
+3. **Verdict** per claim by the *checker model*: `SUPPORTED`, `UNSUPPORTED` or `CONTRADICTED`. Checkers whose id contains `minicheck` (Bespoke-MiniCheck) are driven through their native `Document/Claim → Yes/No` interface; they need an evidence source and a separate extractor. **Decision models** (any model on a `typesafe` server: TypeSafe Jev, self-hosted Laya) are handled the same way but asked a typed three-way choice over the evidence, so unlike MiniCheck they can also return `CONTRADICTED`.
 4. **Distrust check** per claim (only when distrusted domains and a Tavily key are configured): the claim is searched *only on negative-reputation domains*. If those sites assert it, the claim is marked **tainted** — misinformation sites echoing a claim is evidence against it.
 5. **Score**: `(supported − 0.5 × tainted) / total`, floored at 0. An answer with no factual claims scores 1.0.
 
@@ -157,6 +157,7 @@ For fact-checking the key is **specialization + low per-claim cost**, because yo
 | Role            | Recommended (local / self-hosted)          | Why (cost/benefit)                          | Alternative (API)          |
 |-----------------|--------------------------------------------|---------------------------------------------|----------------------------|
 | **Checker**     | `bespoke-minicheck` (or any MiniCheck)    | Tiny specialized NLI model. Extremely cheap, excellent at SUPPORTED/NO for claims. | — (local is best here)    |
+| **Checker** (decision model) | Laya (`laya-english` / `laya-typed-decisions`) behind the System One wrapper | NLI-trained, CPU-friendly, three-way verdict incl. CONTRADICTED. Needs evidence and a separate extractor, like MiniCheck. | TypeSafe Jev (`typesafe` backend, hosted) |
 | **Extractor**   | Qwen2.5-14B / Gemma-2-27B / Llama-3.1-8B  | Good JSON/structured output at low cost. Use 7-14B quantized for speed. | Groq (`groq` backend) Llama-3.3-70B / 3.1-8B-instant (very fast) |
 | **AI-detection** (detector) | Same as checker or any cheap 7B model | Heuristic only — no need for a strong model. | Use checker as fallback |
 | **Evidence embedding** | nomic-embed-text, bge-large-en-v1.5     | Strong retrieval quality vs size. Use in your AI Search index. | —                         |
@@ -258,7 +259,7 @@ One knob moves all the cost/quality levers together:
 | Discrepancy analysis | off | unsettled claims | unsettled claims |
 | Verdict cache | 6 h | 1 h | none |
 
-Worst-case LLM calls for a 5-claim answer: ~2 (`fast`), ~4 + analyses (`balanced`), ~16 (`thorough`). Cached claims cost nothing on re-scan; any settings change invalidates the cache. MiniCheck checkers cannot batch and always use per-claim verdict calls.
+Worst-case LLM calls for a 5-claim answer: ~2 (`fast`), ~4 + analyses (`balanced`), ~16 (`thorough`). Cached claims cost nothing on re-scan; any settings change invalidates the cache. MiniCheck and decision-model checkers cannot batch and always use per-claim verdict calls.
 
 ## Smart routing + factcheck
 

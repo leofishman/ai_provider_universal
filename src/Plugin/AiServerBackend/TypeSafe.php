@@ -33,9 +33,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * confidence. It is exposed as chat so any AI core caller can reach it:
  *
  * - The conversation (every non-system turn) becomes the state.
- * - The questions come from the model's extra request parameters
- *   (`questions:` in YAML, fixed per model entity) or, per call, from the
- *   system prompt as a JSON object. Extra parameters win.
+ * - The questions come, per call, from the system prompt as a JSON object,
+ *   or else from the model's extra request parameters (`questions:` in
+ *   YAML, the model's default question set).
  * - The answer text is the JSON "answers" object, so callers decode it the
  *   same way they decode structured output from an LLM.
  *
@@ -159,13 +159,15 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
     }
 
     [$system, $state] = $this->splitInput($input);
-    // AI core delivers a ChatInput system prompt twice (as the prompt and,
-    // via the provider's system role, as a system message), and a caller may
-    // add plain-text system turns: the first part that decodes wins.
-    $questions = $configuration['questions'] ?? NULL;
+    // Per-call questions override the model's default set. AI core delivers
+    // a ChatInput system prompt twice (as the prompt and, via the provider's
+    // system role, as a system message), and a caller may add plain-text
+    // system turns: the first part that decodes wins.
+    $questions = NULL;
     foreach ($system as $part) {
       $questions ??= is_array($decoded = Json::decode($part)) && $decoded !== [] ? $decoded : NULL;
     }
+    $questions ??= $configuration['questions'] ?? NULL;
     if (!is_array($questions) || $questions === []) {
       throw new AiRequestErrorException('TypeSafe needs questions: set "questions" in the model\'s extra request parameters, or send them as a JSON object in the system prompt. See https://docs.typesafe.ai/primitives');
     }

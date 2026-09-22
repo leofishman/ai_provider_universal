@@ -17,6 +17,10 @@ use Psr\Log\LoggerInterface;
  *   names a model entity id, a (typically tiny, local) model classifies the
  *   prompt instead. Any failure falls back to the heuristic — classification
  *   must never break or delay routing more than one cheap call.
+ *
+ * A decision model (TypeSafe Jev, self-hosted Laya) as classifier is asked a
+ * typed choice instead of the chat prompt: no text to parse, and a single
+ * forward pass is cheaper than any chat model.
  */
 class ComplexityClassifier {
 
@@ -32,6 +36,23 @@ class ComplexityClassifier {
    * Reasoning-style cues that mark a prompt as complex.
    */
   protected const COMPLEX_PATTERNS = '/```|\bstep[- ]by[- ]step\b|\bprove\b|\bderive\b|\btheorem\b|\brefactor\b|\barchitect/i';
+
+  /**
+   * Question asked when the classifier is a decision model.
+   *
+   * A two-way choice, not a yes/no: contrasting both descriptions separates
+   * simple from complex prompts far better (Laya scored every prompt below
+   * 0.5 on the equivalent noul question). Labels are "small" / "large":
+   * Laya picked them up better than "simple" / "complex".
+   */
+  public const CLASSIFIER_QUESTION = [
+    'type' => 'choice',
+    'instructions' => 'Which kind of model does this task need?',
+    'criteria' => [
+      'small' => 'A small language model: factual lookup, short rewrite, simple question.',
+      'large' => 'A large language model: reasoning, code, math, long context or multi-step work.',
+    ],
+  ];
 
   /**
    * System prompt for the model strategy. The reply is one word.
@@ -77,6 +98,14 @@ class ComplexityClassifier {
    */
   protected function modelClassify(string $text, string $model): string {
     $provider = $this->aiProviderManager->createInstance('universal');
+    if ($provider->isDecisionModel($model)) {
+      $answers = $provider->decide($model, $text, ['tier' => self::CLASSIFIER_QUESTION], ['complexity_classifier']);
+      return match ($answers['tier']['choice'] ?? NULL) {
+        'small' => 'simple',
+        'large' => 'complex',
+        default => throw new \UnexpectedValueException('Decision model returned no tier choice.'),
+      };
+    }
     $system = trim((string) $this->configFactory->get('ai_provider_universal_router.settings')->get('prompts.classifier')) ?: self::CLASSIFIER_PROMPT;
     $provider->setChatSystemRole($system);
     $input = new ChatInput([new ChatMessage('user', $text)]);

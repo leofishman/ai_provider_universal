@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Form;
 
+use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai_provider_universal\Utility\PromptPlaceholders;
 use Drupal\ai_provider_universal_factcheck\Event\FactcheckNotificationEvent;
 use Drupal\ai_provider_universal_factcheck\Service\AdminNotifier;
@@ -35,6 +36,11 @@ class SettingsForm extends ConfigFormBase {
   protected AdminNotifier $adminNotifier;
 
   /**
+   * The AI provider manager.
+   */
+  protected AiProviderPluginManager $aiProviderManager;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -42,6 +48,7 @@ class SettingsForm extends ConfigFormBase {
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->moduleHandler = $container->get('module_handler');
     $instance->adminNotifier = $container->get(AdminNotifier::class);
+    $instance->aiProviderManager = $container->get('ai.provider');
     return $instance;
   }
 
@@ -103,7 +110,7 @@ class SettingsForm extends ConfigFormBase {
     $form['checker_model'] = [
       '#type' => 'select',
       '#title' => $this->t('Checker model'),
-      '#description' => $this->t('Model that judges each claim. A small fast local model is usually enough. Specialized checkers like Bespoke-MiniCheck are auto-detected by name, but they require an evidence index and a separate extractor model.'),
+      '#description' => $this->t('Model that judges each claim. A small fast local model is usually enough. Specialized checkers are auto-detected — Bespoke-MiniCheck by name, decision models (Jev, Laya) by their TypeSafe server — but they require an evidence index and a separate extractor model.'),
       '#options' => $model_options,
       '#empty_option' => $this->t('- Disabled -'),
       '#default_value' => $config->get('checker_model'),
@@ -323,8 +330,9 @@ class SettingsForm extends ConfigFormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     parent::validateForm($form, $form_state);
     $checker = (string) $form_state->getValue('checker_model');
-    if (str_contains(strtolower($checker), 'minicheck') && !$form_state->getValue('extractor_model')) {
-      $form_state->setErrorByName('extractor_model', $this->t('MiniCheck cannot extract claims; pick a general chat model as extractor.'));
+    $decision = $checker !== '' && $this->aiProviderManager->createInstance('universal')->isDecisionModel($checker);
+    if ((str_contains(strtolower($checker), 'minicheck') || $decision) && !$form_state->getValue('extractor_model')) {
+      $form_state->setErrorByName('extractor_model', $this->t('MiniCheck and decision models (Jev, Laya) cannot extract claims; pick a general chat model as extractor.'));
     }
 
     foreach ($this->promptDefinitions() as $key => $definition) {

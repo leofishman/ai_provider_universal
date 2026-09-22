@@ -153,7 +153,7 @@ Jev is a *System One* model: it does not generate text. It takes a **state** and
 | Chat side | System One side |
 |---|---|
 | Non-system turns | `state`. A single turn is sent as-is; a conversation becomes `role: text` lines. |
-| Model's **extra request parameters** `questions:` (fixed per model entity) — or, per call, a JSON object in the system prompt | `questions`. Extra parameters win. A call with neither is refused before any request. |
+| Per call, a JSON object in the system prompt — or else the model's **extra request parameters** `questions:` (its default set) | `questions`. The per-call set wins. A call with neither is refused before any request. |
 | Message text | The JSON `answers` object; the full response (including the `model` version) is the raw output. |
 | Token usage | `usage.input_tokens` / `output_tokens`. |
 

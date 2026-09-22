@@ -222,6 +222,26 @@ final class TypeSafeBackendTest extends KernelTestBase {
   }
 
   /**
+   * Tests that per-call questions override the model's default set.
+   */
+  public function testPerCallQuestionsOverrideModelDefaults(): void {
+    $this->mockRequests([$this->systemOneResponse()]);
+
+    $perCall = ['complex' => ['type' => 'noul', 'instructions' => 'The task needs reasoning']];
+    $this->backend()->chat(
+      [
+        ['role' => 'system', 'content' => json_encode($perCall)],
+        ['role' => 'user', 'content' => 'Hi'],
+      ],
+      'jev-latest',
+      $this->typeSafeServer(),
+      ['questions' => self::QUESTIONS],
+    );
+
+    $this->assertSame($perCall, $this->lastPayload()['questions']);
+  }
+
+  /**
    * Tests that a call without questions fails before any request.
    */
   public function testMissingQuestionsIsRefused(): void {
