@@ -39,6 +39,7 @@ A backend whose service speaks a different protocol additionally implements `AiI
 | `grok` | Grok (xAI) | `api.x.ai/v1` | no (fixed) | `/v1/models` | Generic heuristics | Basic hardcoded table for grok-2 / grok-beta |
 | `anthropic` | Anthropic Claude — **native Messages API** | `api.anthropic.com/v1` | no (fixed; a host points at a gateway) | `GET /v1/models`, paginated | `chat` only (the Messages API serves nothing else) | Hardcoded table per Claude generation + `supported_features` (tools / reasoning / vision) |
 | `deepseek` | DeepSeek | `api.deepseek.com` | no (fixed) | `/v1/models` (ids only) | Generic heuristics | Hardcoded table for `deepseek-chat` / `deepseek-reasoner` (price, context, quality tier). Bills peak/off-peak, so the backend also reports a **price multiplier** (`getPriceMultiplier()`) that smart routing applies at decision time — list price 00:30-16:30 UTC, flat per-model discount outside that window. Stored costs stay at list price |
+| `typesafe` | TypeSafe Jev — **native System One API** | `api.typesafe.ai/v1` | no (fixed; a host points at a gateway) | `GET /v1/models` (model cards keyed by `name`) | `chat` only | List input price (USD 42 per billion tokens); quality tier 1. No output price is published |
 
 > ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons. **Groq** reads prices live from `/v1/models` (same idea as OpenRouter).
 
@@ -127,7 +128,7 @@ Chat requests are dispatched over the OpenAI REST protocol by default. A backend
 
 The choice is per backend and invisible from the outside: model entities, the server form, smart routing, usage limits, fact check and content governance behave identically either way. Backends that do not implement the interface — including backends contributed by other modules — keep the OpenAI path unchanged.
 
-Shipped native backend: **`anthropic`**.
+Shipped native backends: **`anthropic`** and **`typesafe`**.
 
 | Anthropic feature | How it is reached |
 |---|---|
@@ -144,6 +145,34 @@ Two consequences worth knowing:
 
 - **OpenAI-only parameters are dropped, not forwarded.** `frequency_penalty`, `presence_penalty`, `logit_bias`, `seed`, `n`, `response_format` and friends have no Messages API equivalent, and Anthropic rejects unknown parameters — forwarding them would turn a harmless generic setting into a failed request. `stop` is translated to `stop_sequences`. Everything else passes through.
 - **Only chat is native.** Anthropic serves no embeddings, speech or image generation, so `detectOperationTypes()` reports `chat` only. Other operation types still dispatch over the OpenAI protocol, so requesting one from a server on a native backend is **refused with an explanation** (`AiMissingFeatureException`) instead of being sent to an endpoint that does not exist — which is what you would hit if you ticked, say, *Embeddings* in the model's operation-type overrides.
+
+### TypeSafe (Jev)
+
+Jev is a *System One* model: it does not generate text. It takes a **state** and a set of typed **questions** — `noul` (probability a statement is true), `choice` (one option from a set, with per-option probabilities) and `score` (a level on a rubric) — and returns typed answers with calibrated confidence ([docs](https://docs.typesafe.ai/primitives)). It is exposed as chat so any AI core caller can reach it:
+
+| Chat side | System One side |
+|---|---|
+| Non-system turns | `state`. A single turn is sent as-is; a conversation becomes `role: text` lines. |
+| Model's **extra request parameters** `questions:` (fixed per model entity) — or, per call, a JSON object in the system prompt | `questions`. Extra parameters win. A call with neither is refused before any request. |
+| Message text | The JSON `answers` object; the full response (including the `model` version) is the raw output. |
+| Token usage | `usage.input_tokens` / `output_tokens`. |
+
+```yaml
+questions:
+  is_urgent:
+    type: noul
+    instructions: The message conveys urgency or time-sensitivity
+  department:
+    type: choice
+    instructions: Which team should handle this
+    criteria:
+      billing: Payment or subscription issues
+      technical: Bugs or integration problems
+```
+
+The host is only needed for a self-hosted server speaking the same protocol — for example the open-source [Laya](https://github.com/NandhaKishorM/laya) behind a small wrapper exposing `GET /v1/models` and `POST /v1/systemone`. Only `jev*` model ids get Jev's list price; self-hosted models stay free.
+
+Only `model`, `state` and `questions` are sent; sampling, reasoning and other chat parameters are ignored. Streaming is refused (`AiMissingFeatureException`). Because Jev is by far the cheapest model in most catalogs, **leave it out of the candidates of smart routes that serve free-form chat** — a route with no explicit candidates considers every chat model, and Jev cannot answer a prompt that carries no questions.
 
 ## Model filtering
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **`typesafe` backend** (TypeSafe Jev, native System One API): typed decisions — yes/no probability, choice, score — with calibrated confidence, exposed as chat. The conversation becomes the state; questions come from the model's extra request parameters (`questions:`) or a JSON system prompt; the answer text is the JSON `answers` object. Discovery reads `/v1/models` and prefills Jev's list input price (only for `jev*` ids). Also works with self-hosted servers speaking the same protocol — verified end to end against Laya behind a System One-compatible wrapper; not yet verified against the live TypeSafe API. A bridge until the `decision` operation type lands in AI core.
+
 ## 1.0.0-beta3 — 2026-08-26
 
 - **Native (non-OpenAI) inference**: backends can now own chat execution through the opt-in `AiInferenceBackendInterface`, so a service that does not speak the OpenAI REST protocol works end to end instead of only appearing in the catalog. Opt-in and additive — backends that do not implement it, including ones contributed by other modules, are dispatched exactly as before. The pre-call gate, per-server usage limits, usage recording, smart routing, fact check and governance stay shared by both paths.

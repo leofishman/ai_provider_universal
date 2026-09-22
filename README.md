@@ -27,10 +27,11 @@ Protocol-specific logic lives in **AiServerBackend plugins**. The module ships w
 | `grok` | Grok / xAI | fixed `api.x.ai/v1` | Small hardcoded table for grok-2 family |
 | `anthropic` | Anthropic Claude — **native Messages API**, not OpenAI-compatible | fixed `api.anthropic.com/v1` | Paginated catalog + price/context/feature table per Claude generation |
 | `deepseek` | DeepSeek | fixed `api.deepseek.com` | Hardcoded price/context table; off-peak discount applied when routing on cost |
+| `typesafe` | TypeSafe Jev — **native System One API**: typed decisions (yes/no probability, choice, score), not text | fixed `api.typesafe.ai/v1` | `/v1/models` catalog + list input price |
 
 Full reference (capability detection, forms, filters, moderation parsers): [docs/servers-and-models.md](docs/servers-and-models.md).
 
-Backends are not limited to the OpenAI REST protocol: a backend that implements `AiInferenceBackendInterface` owns chat execution itself (that is how `anthropic` speaks the native Messages API), while everything else — the pre-call gate, usage limits, smart routing, fact check, governance — stays shared. Other modules can contribute more backends by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — multi-server UI and discovery come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md).
+Backends are not limited to the OpenAI REST protocol: a backend that implements `AiInferenceBackendInterface` owns chat execution itself (that is how `anthropic` speaks the native Messages API and `typesafe` the System One API), while everything else — the pre-call gate, usage limits, smart routing, fact check, governance — stays shared. Other modules can contribute more backends by dropping a plugin in `Plugin/AiServerBackend` that implements `AiServerBackendInterface` — multi-server UI and discovery come for free. See [docs/adding-a-backend.md](docs/adding-a-backend.md).
 
 ## Requirements
 
