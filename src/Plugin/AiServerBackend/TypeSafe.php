@@ -61,6 +61,11 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
   protected const DEFAULT_BASE_URI = 'https://api.typesafe.ai/v1';
 
   /**
+   * Seconds to wait for the connection itself (not the answer).
+   */
+  protected const CONNECT_TIMEOUT = 3;
+
+  /**
    * Jev list price: USD 42 per billion input tokens.
    *
    * No output price is published. Only ids starting with "jev" get it: the
@@ -297,7 +302,12 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
    *   The decoded response.
    */
   protected function request(AiUniversalServerInterface $server, array $payload): array {
-    $client = $this->httpClientFactory->fromOptions(['timeout' => $server->getTimeout() ?: 60]);
+    // A short connect timeout keeps a dead host from burning the whole
+    // request timeout before routing can fail over to another server.
+    $client = $this->httpClientFactory->fromOptions([
+      'timeout' => $server->getTimeout() ?: 60,
+      'connect_timeout' => static::CONNECT_TIMEOUT,
+    ]);
     try {
       $response = $client->request('POST', rtrim($this->getBaseUri($server), '/') . '/systemone', [
         'headers' => ['Content-Type' => 'application/json'] + $this->authHeaders($server),

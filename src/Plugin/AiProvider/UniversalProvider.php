@@ -7,8 +7,10 @@ use Drupal\ai\Attribute\AiProvider;
 use Drupal\ai\Base\OpenAiBasedProviderClientBase;
 use Drupal\ai\Exception\AiMissingFeatureException;
 use Drupal\ai\Exception\AiQuotaException;
+use Drupal\ai\Exception\AiRateLimitException;
 use Drupal\ai\Exception\AiRequestErrorException;
 use Drupal\ai\Exception\AiSetupFailureException;
+use GuzzleHttp\Exception\ConnectException;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\ai\OperationType\Chat\ChatOutput;
@@ -757,14 +759,21 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    *   Answers in the System One shape.
    */
   protected function normalizeAnswers(array $answers, array $questions): array {
+    // Chat models drop the ids surprisingly often — Gemma 3 answers a single
+    // question as {"1": 0.95}. When the count still matches, the answers are
+    // taken in the order the questions were asked.
+    $positional = count($answers) === count($questions) ? array_values($answers) : [];
+
     $shaped = [];
+    $index = 0;
     foreach ($questions as $id => $question) {
-      if (!isset($answers[$id])) {
+      $answer = $answers[$id] ?? $positional[$index] ?? NULL;
+      $index++;
+      if ($answer === NULL) {
         continue;
       }
       // A model that ignores "nothing else" answers {"noul": 0.9} or
       // {"answer": "billing"}; unwrap before using the value.
-      $answer = $answers[$id];
       $type = $question['type'] ?? 'noul';
       if (is_array($answer)) {
         $answer = $answer[$type] ?? $answer['answer'] ?? $answer['choice'] ?? $answer['score'] ?? reset($answer);
@@ -867,6 +876,10 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       );
       return $output;
     }
+    catch (\Throwable $e) {
+      $this->reportUnreachable($server, $e);
+      throw $e;
+    }
     finally {
       foreach ($previous_config as $param => [$had, $value]) {
         if ($had) {
@@ -878,6 +891,43 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       }
       $this->clearActiveServer();
     }
+  }
+
+  /**
+   * Tells the router that a server just failed in a way routing can avoid.
+   *
+   * Only failures another candidate could dodge: an unreachable host, a
+   * rate limit, an exhausted quota. A request the service rejected as
+   * invalid would be rejected by every candidate, so it is not reported.
+   *
+   * The router (optional) then drops that server's models from the
+   * candidate pool for a short while, which is what turns "the cheapest
+   * model is down" into a route to the next one instead of a repeated
+   * timeout.
+   *
+   * @param \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface|null $server
+   *   The server the call went to, if any.
+   * @param \Throwable $e
+   *   The failure.
+   */
+  protected function reportUnreachable(?AiUniversalServerInterface $server, \Throwable $e): void {
+    if (!$server instanceof AiUniversalServerInterface
+      || !$this->serviceContainer->has('ai_provider_universal_router.health')) {
+      return;
+    }
+    $transport = $e instanceof AiRateLimitException
+      || $e instanceof AiQuotaException
+      || $e instanceof ConnectException
+      || $e->getPrevious() instanceof ConnectException
+      // Guzzle wraps cURL failures in a RequestException with no response,
+      // and backends re-wrap them in AI core exceptions.
+      || (bool) preg_match('/cURL error|Connection (refused|timed out)|timed out after/i', $e->getMessage());
+    if (!$transport) {
+      return;
+    }
+
+    $this->serviceContainer->get('ai_provider_universal_router.health')
+      ->markDown($server->id(), substr($e->getMessage(), 0, 100));
   }
 
   /**

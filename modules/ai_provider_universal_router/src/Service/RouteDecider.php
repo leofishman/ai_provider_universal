@@ -52,6 +52,7 @@ class RouteDecider {
     protected UsageLimitEnforcer $limitEnforcer,
     protected ComplexityClassifier $classifier,
     protected ModelCatalog $modelCatalog,
+    protected ServerHealth $serverHealth,
   ) {}
 
   /**
@@ -194,6 +195,10 @@ class RouteDecider {
     return array_filter($models, fn (AiUniversalModelInterface $m) =>
       in_array($operationType, $m->getEffectiveOperationTypes(), TRUE)
       && !array_diff($required, $m->getSupportedFeatures())
+      // A server that just failed to answer is skipped while the mark
+      // lasts, so the next call routes around it instead of paying its
+      // timeout again.
+      && !$this->serverHealth->isDown($m->getServerId())
       && (!isset($servers[$m->getServerId()])
         || !$this->limitEnforcer->isServerOverLimit($servers[$m->getServerId()])));
   }

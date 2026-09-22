@@ -509,6 +509,41 @@ final class UniversalProviderTest extends KernelTestBase {
   }
 
   /**
+   * Tests that answers keyed by position still land on their question.
+   *
+   * Chat models drop the ids often enough to matter: Gemma 3 answers a
+   * single question as {"1": 0.95}.
+   */
+  public function testDecideAcceptsAnswersThatLostTheirIds(): void {
+    $this->createAnthropicServerAndModel();
+    $this->installSchema('ai_provider_universal', ['ai_provider_universal_usage']);
+    $this->mockHttpClientResponses([
+      new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+        'id' => 'msg_01',
+        'role' => 'assistant',
+        'model' => 'claude-sonnet-4-5',
+        'content' => [['type' => 'text', 'text' => '{"1": 0.95, "2": "billing"}']],
+        'stop_reason' => 'end_turn',
+        'usage' => ['input_tokens' => 12, 'output_tokens' => 5],
+      ])),
+    ]);
+
+    $answers = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'claude'])
+      ->decide('claude.sonnet', 'Refund today.', [
+        'urgent' => ['type' => 'noul', 'instructions' => 'The message is urgent'],
+        'team' => [
+          'type' => 'choice',
+          'instructions' => 'Which team',
+          'criteria' => ['billing' => 'Payments'],
+        ],
+      ]);
+
+    $this->assertSame(0.95, $answers['urgent']['noul']);
+    $this->assertSame('billing', $answers['team']['choice']);
+  }
+
+  /**
    * Tests text classification on a chat model, through the same fallback.
    */
   public function testTextClassificationOnChatModel(): void {

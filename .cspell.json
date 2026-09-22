@@ -25,6 +25,7 @@
     "signups",
     "uvicorn",
     "noul",
+    "chatcmpl",
     "systemone",
     "Tagify",
     "typesafe",

@@ -14,6 +14,7 @@ services:
       - '@Drupal\ai_provider_universal_router\Service\UsageLimitEnforcer'
       - '@Drupal\ai_provider_universal_router\Service\ComplexityClassifier'
       - '@Drupal\ai_provider_universal\Service\ModelCatalog'
+      - '@Drupal\ai_provider_universal_router\Service\ServerHealth'
 
   Drupal\ai_provider_universal_router\Service\ComplexityClassifier:
     class: Drupal\ai_provider_universal_router\Service\ComplexityClassifier
@@ -40,6 +41,17 @@ services:
   ai_provider_universal_router.decider:
     alias: Drupal\ai_provider_universal_router\Service\RouteDecider
 
+  Drupal\ai_provider_universal_router\Service\ServerHealth:
+    class: Drupal\ai_provider_universal_router\Service\ServerHealth
+    arguments:
+      - '@cache.default'
+      - '@datetime.time'
+      - '@logger.channel.ai_provider_universal_router'
+
   # Stable alias consumed by the provider for usage limit enforcement.
   ai_provider_universal_router.limits:
     alias: Drupal\ai_provider_universal_router\Service\UsageLimitEnforcer
+
+  # Stable alias consumed by the provider to report unreachable servers.
+  ai_provider_universal_router.health:
+    alias: Drupal\ai_provider_universal_router\Service\ServerHealth

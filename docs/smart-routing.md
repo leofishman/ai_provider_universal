@@ -55,6 +55,22 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    `laya-multilingual`; every miss called a complex prompt simple (an
    under-powered model, never an overspend). Pair it with the route
    verifier to catch those, and check it against your own traffic first.
+1b. **Skip servers that just failed.** When a call fails in a way another
+   candidate could avoid — an unreachable host, a rate limit, an exhausted
+   quota — the provider marks that server down for **60 seconds** and the
+   router drops its models from the candidate pool, next to the daily-limit
+   check. No health check runs on the happy path: probing every server
+   before every decision would cost a request when nothing is wrong, so the
+   failures the module already hits are what feed it. The mark expires by
+   itself, so a restarted server is picked up again without intervention
+   (`ai_provider_universal_router.health`, backed by `cache.default`).
+
+   Native backends also use a short **connect timeout** (3s), so a dead host
+   fails fast instead of burning the full request timeout. Measured with a
+   route over [Laya, Gemma 3 4B] and Laya stopped: the first call failed in
+   3.0s (30s before), the next two answered through Gemma in ~1.3s, and once
+   the mark expired routing returned to Laya.
+
 2. **Pick the required tier**: the route's simple or complex tier,
    depending on step 1.
 3. **Load candidates** (`candidateModels()`): the route's explicit list, or
