@@ -187,7 +187,7 @@ The question sent per label is `The text mentions or concerns "%s".`; override i
 
 A decision is a **shape of question, not a capability of one model**. `UniversalProvider::decide($model_id, $state, $questions)` takes the same question set for any model: a decision model answers it in one forward pass, and every other model is prompted for the same answers as JSON (fences and surrounding prose are tolerated). The answers come back in the same shape either way, minus the calibrated probabilities a chat model cannot give — a `choice` from a chat model carries no `confidence` key rather than an invented number, so code that gates on confidence can tell the difference.
 
-That is what makes failover work: a smart route can hold Jev *and* a chat model as candidates for the same job, and `text_classification` works on both. Verified live on Laya; the chat path is covered by kernel tests, and tiny models (≤1B) return nothing parseable, which surfaces as empty answers.
+That is what makes failover work: a smart route can hold Jev *and* a chat model as candidates for the same job, and `text_classification` works on both. Verified live on Laya and on Gemma 3 4B through Ollama (`urgent` 0.82 with confidence on Laya, a bare 1.0 from Gemma — a chat model's numbers are not calibrated). Tiny models (≤1B) return nothing parseable, which surfaces as empty answers.
 
 #### Self-hosting Laya
 

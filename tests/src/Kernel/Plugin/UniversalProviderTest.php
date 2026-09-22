@@ -444,6 +444,71 @@ final class UniversalProviderTest extends KernelTestBase {
   }
 
   /**
+   * Tests that the questions reach a model over the OpenAI protocol too.
+   *
+   * They travel as a system message, not as the input's system prompt: AI
+   * core's OpenAI path only reads the prompt ProviderProxy copies onto the
+   * plugin, and ::decide() calls chat directly, so a system prompt set there
+   * reached a native backend but silently vanished on the OpenAI one.
+   */
+  public function testDecideSendsQuestionsAsSystemMessageOverOpenAi(): void {
+    $etm = $this->container->get('entity_type.manager');
+    $etm->getStorage('ai_universal_server')->create([
+      'id' => 'local',
+      'label' => 'Local',
+      'backend' => 'openai_compatible',
+      'host_name' => 'http://llama',
+      'port' => '8080',
+      'timeout' => 30,
+    ])->save();
+    $etm->getStorage('ai_universal_model')->create([
+      'id' => 'local.gemma',
+      'label' => 'Gemma',
+      'server_id' => 'local',
+      'raw_model_id' => 'gemma3:4b',
+      'detected_operation_types' => ['chat'],
+    ])->save();
+    $this->installSchema('ai_provider_universal', ['ai_provider_universal_usage']);
+
+    $this->mockHttpClientResponses([
+      new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+        'id' => 'chatcmpl-1',
+        'object' => 'chat.completion',
+        'created' => 1,
+        'model' => 'gemma3:4b',
+        'choices' => [
+          [
+            'index' => 0,
+            'message' => ['role' => 'assistant', 'content' => '{"urgent": 0.9}'],
+            'finish_reason' => 'stop',
+          ],
+        ],
+        'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 3, 'total_tokens' => 13],
+      ])),
+    ]);
+    // The mocked factory hands out one client; record what goes through it.
+    $requests = [];
+    $this->container->get('http_client_factory')->fromOptions([])->getConfig('handler')
+      ->push(function (callable $handler) use (&$requests) {
+        return function ($request, array $options) use ($handler, &$requests) {
+          $requests[] = $request;
+          return $handler($request, $options);
+        };
+      });
+
+    $answers = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'local'])
+      ->decide('local.gemma', 'Refund today or I cancel.', [
+        'urgent' => ['type' => 'noul', 'instructions' => 'The message is urgent'],
+      ]);
+
+    $this->assertSame(['type' => 'noul', 'noul' => 0.9], $answers['urgent']);
+    $payload = json_decode((string) $requests[0]->getBody(), TRUE);
+    $this->assertSame('system', $payload['messages'][0]['role']);
+    $this->assertStringContainsString('QUESTIONS:', $payload['messages'][0]['content']);
+  }
+
+  /**
    * Tests text classification on a chat model, through the same fallback.
    */
   public function testTextClassificationOnChatModel(): void {

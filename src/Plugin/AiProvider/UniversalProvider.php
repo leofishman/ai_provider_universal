@@ -674,10 +674,16 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     // ponytail: rides chat (the typesafe bridge), keeping the pre-call gate,
     // usage limits and usage recording. Switch to the `decision` operation
     // type once it lands in AI core; callers keep this signature.
-    $input = new ChatInput([new ChatMessage('user', $state)]);
-    $input->setSystemPrompt($this->isDecisionModel($model_id)
-      ? Json::encode($questions)
-      : $this->decisionPrompt($questions));
+    // The questions travel as a system message, not as the input's system
+    // prompt: AI core's OpenAI path only reads the prompt that ProviderProxy
+    // copies onto the plugin, and this call bypasses the proxy, so a prompt
+    // set here would silently never reach a chat model.
+    $input = new ChatInput([
+      new ChatMessage('system', $this->isDecisionModel($model_id)
+        ? Json::encode($questions)
+        : $this->decisionPrompt($questions)),
+      new ChatMessage('user', $state),
+    ]);
     $raw = $this->chat($input, $model_id, $tags)->getNormalized()->getText();
 
     $answers = Json::decode($raw);
