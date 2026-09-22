@@ -181,7 +181,13 @@ $provider->textClassification(new TextClassificationInput($text, ['billing', 'te
 // billing=0.94  sales=0.11  technical support=0.09
 ```
 
-The question sent per label is `The text mentions or concerns "%s".`; override it with `setConfiguration(['classification_question' => '...'])` before the call. Questions with their own instructions and criteria — several different ones about the same state — need the chat bridge above, or the `decision` operation type once it lands.
+The question sent per label is `The text mentions or concerns "%s".`; override it with `setConfiguration(['classification_question' => '...'])` before the call. Questions with their own instructions and criteria — several different ones about the same state — need `decide()` below, or the `decision` operation type once it lands.
+
+#### Any model can answer typed questions
+
+A decision is a **shape of question, not a capability of one model**. `UniversalProvider::decide($model_id, $state, $questions)` takes the same question set for any model: a decision model answers it in one forward pass, and every other model is prompted for the same answers as JSON (fences and surrounding prose are tolerated). The answers come back in the same shape either way, minus the calibrated probabilities a chat model cannot give — a `choice` from a chat model carries no `confidence` key rather than an invented number, so code that gates on confidence can tell the difference.
+
+That is what makes failover work: a smart route can hold Jev *and* a chat model as candidates for the same job, and `text_classification` works on both. Verified live on Laya; the chat path is covered by kernel tests, and tiny models (≤1B) return nothing parseable, which surfaces as empty answers.
 
 #### Self-hosting Laya
 

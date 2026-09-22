@@ -402,14 +402,78 @@ final class UniversalProviderTest extends KernelTestBase {
   }
 
   /**
-   * Tests that text classification is refused on a non-decision model.
+   * Tests that a chat model answers the same typed questions as a decision.
+   *
+   * That equivalence is what lets a route fail over between the two.
    */
-  public function testTextClassificationRefusedOnChatModel(): void {
+  public function testDecideFallsBackToJsonPromptOnChatModels(): void {
     $this->createAnthropicServerAndModel();
+    $this->installSchema('ai_provider_universal', ['ai_provider_universal_usage']);
+    // Prose and a code fence around the JSON, as chat models tend to answer.
+    $this->mockHttpClientResponses([
+      new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+        'id' => 'msg_01',
+        'role' => 'assistant',
+        'model' => 'claude-sonnet-4-5',
+        'content' => [
+          [
+            'type' => 'text',
+            'text' => "Sure!\n```json\n{\"urgent\": 0.8, \"team\": {\"choice\": \"billing\"}}\n```",
+          ],
+        ],
+        'stop_reason' => 'end_turn',
+        'usage' => ['input_tokens' => 12, 'output_tokens' => 5],
+      ])),
+    ]);
 
-    $this->expectException(AiMissingFeatureException::class);
-    $this->container->get('ai.provider')->createInstance('universal')
-      ->textClassification(new TextClassificationInput('Hi', ['a']), 'claude.sonnet');
+    $answers = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'claude'])
+      ->decide('claude.sonnet', 'Charged twice, refund today.', [
+        'urgent' => ['type' => 'noul', 'instructions' => 'The message is urgent'],
+        'team' => [
+          'type' => 'choice',
+          'instructions' => 'Which team handles this',
+          'criteria' => ['billing' => 'Payments', 'technical' => 'Bugs'],
+        ],
+      ]);
+
+    $this->assertSame(['type' => 'noul', 'noul' => 0.8], $answers['urgent']);
+    $this->assertSame(['type' => 'choice', 'choice' => 'billing'], $answers['team']);
+    // No invented confidence: a chat model has none to report.
+    $this->assertArrayNotHasKey('confidence', $answers['team']);
+  }
+
+  /**
+   * Tests text classification on a chat model, through the same fallback.
+   */
+  public function testTextClassificationOnChatModel(): void {
+    $this->createAnthropicServerAndModel();
+    $this->installSchema('ai_provider_universal', ['ai_provider_universal_usage']);
+    $this->mockHttpClientResponses([
+      new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+        'id' => 'msg_01',
+        'role' => 'assistant',
+        'model' => 'claude-sonnet-4-5',
+        'content' => [[
+          'type' => 'text',
+          'text' => (string) json_encode([
+            'label_' . md5('billing') => 0.9,
+            'label_' . md5('weather') => 0.1,
+          ]),
+        ],
+        ],
+        'stop_reason' => 'end_turn',
+        'usage' => ['input_tokens' => 12, 'output_tokens' => 5],
+      ])),
+    ]);
+
+    $output = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'claude'])
+      ->textClassification(new TextClassificationInput('Charged twice.', ['weather', 'billing']), 'claude.sonnet');
+
+    $items = $output->getNormalized();
+    $this->assertSame(['billing', 'weather'], array_map(static fn ($i) => $i->getLabel(), $items));
+    $this->assertSame(0.9, $items[0]->getConfidenceScore());
   }
 
   /**
