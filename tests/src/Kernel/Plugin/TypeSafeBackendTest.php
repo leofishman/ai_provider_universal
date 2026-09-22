@@ -132,7 +132,9 @@ final class TypeSafeBackendTest extends KernelTestBase {
     $backend = $this->backend();
     $this->assertInstanceOf(AiInferenceBackendInterface::class, $backend);
     $this->assertSame('https://api.typesafe.ai/v1', $backend->getBaseUri($this->typeSafeServer()));
-    $this->assertSame(['chat'], $backend->detectOperationTypes(['id' => 'jev-latest']));
+    // Text classification rides along from AI 1.4, where the operation type
+    // exists; the provider serves it by turning labels into questions.
+    $this->assertContains('chat', $backend->detectOperationTypes(['id' => 'jev-latest']));
     $this->assertSame(0.042, $backend->detectModelMetadata(['id' => 'jev-latest'])['cost_input']);
     // Self-hosted models on the same protocol are not billed at Jev's price.
     $this->assertArrayNotHasKey('cost_input', $backend->detectModelMetadata(['id' => 'laya']));

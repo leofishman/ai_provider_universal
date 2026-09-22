@@ -139,7 +139,11 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
    * {@inheritdoc}
    */
   public function detectOperationTypes(array $modelEntry): array {
-    return ['chat'];
+    // Text classification is served by the provider, which turns the labels
+    // into one yes/no question each; it needs AI 1.4 or newer.
+    return class_exists('Drupal\\ai\\OperationType\\TextClassification\\TextClassificationOutput')
+      ? ['chat', 'text_classification']
+      : ['chat'];
   }
 
   /**

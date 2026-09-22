@@ -8,6 +8,7 @@ use Drupal\ai\Exception\AiMissingFeatureException;
 use Drupal\ai\Exception\AiRequestErrorException;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
+use Drupal\ai\OperationType\TextClassification\TextClassificationInput;
 use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
@@ -354,6 +355,61 @@ final class UniversalProviderTest extends KernelTestBase {
       'stop_reason' => 'end_turn',
       'usage' => ['input_tokens' => 12, 'output_tokens' => 5],
     ]));
+  }
+
+  /**
+   * Tests text classification on a decision model: labels become questions.
+   */
+  public function testTextClassificationOnDecisionModel(): void {
+    $etm = $this->container->get('entity_type.manager');
+    $etm->getStorage('ai_universal_server')->create([
+      'id' => 'jev',
+      'label' => 'TypeSafe',
+      'backend' => 'typesafe',
+      'host_name' => '',
+      'port' => '',
+      'timeout' => 60,
+    ])->save();
+    $etm->getStorage('ai_universal_model')->create([
+      'id' => 'jev.latest',
+      'label' => 'Jev',
+      'server_id' => 'jev',
+      'raw_model_id' => 'jev-latest',
+      'detected_operation_types' => ['chat', 'text_classification'],
+    ])->save();
+
+    $this->mockHttpClientResponses([
+      new Response(200, [], (string) json_encode([
+        'model' => 'jev-1.13.0',
+        'answers' => [
+          'label_' . md5('billing') => ['type' => 'noul', 'noul' => 0.91],
+          'label_' . md5('weather') => ['type' => 'noul', 'noul' => 0.02],
+        ],
+        'usage' => ['input_tokens' => 20, 'output_tokens' => 2],
+      ])),
+    ]);
+
+    $provider = $this->container->get('ai.provider')->createInstance('universal');
+    $output = $provider->textClassification(
+      new TextClassificationInput('I was charged twice for March.', ['weather', 'billing']),
+      'jev.latest',
+    );
+
+    // Ranked most confident first.
+    $items = $output->getNormalized();
+    $this->assertSame(['billing', 'weather'], array_map(static fn ($i) => $i->getLabel(), $items));
+    $this->assertSame(0.91, $items[0]->getConfidenceScore());
+  }
+
+  /**
+   * Tests that text classification is refused on a non-decision model.
+   */
+  public function testTextClassificationRefusedOnChatModel(): void {
+    $this->createAnthropicServerAndModel();
+
+    $this->expectException(AiMissingFeatureException::class);
+    $this->container->get('ai.provider')->createInstance('universal')
+      ->textClassification(new TextClassificationInput('Hi', ['a']), 'claude.sonnet');
   }
 
   /**

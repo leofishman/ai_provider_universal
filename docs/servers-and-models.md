@@ -172,6 +172,17 @@ questions:
 
 The host is only needed for a self-hosted server speaking the same protocol — for example the open-source [Laya](https://github.com/NandhaKishorM/laya) behind a small wrapper exposing `GET /v1/models` and `POST /v1/systemone`. Only `jev*` model ids get Jev's list price; self-hosted models stay free.
 
+#### Text classification
+
+From AI 1.4 these models also serve the **`text_classification`** operation, which is how the rest of the ecosystem (Tagify AI, automators, …) reaches a classifier today. The provider turns each label into one yes/no question and sends them in a single request, then returns the labels ranked by probability. Nothing to configure: discovery reports the operation type, and only decision models are offered for it.
+
+```php
+$provider->textClassification(new TextClassificationInput($text, ['billing', 'technical support', 'sales']), 'laya.laya_english');
+// billing=0.94  sales=0.11  technical support=0.09
+```
+
+The question sent per label is `The text mentions or concerns "%s".`; override it with `setConfiguration(['classification_question' => '...'])` before the call. Questions with their own instructions and criteria — several different ones about the same state — need the chat bridge above, or the `decision` operation type once it lands.
+
 #### Self-hosting Laya
 
 [Laya](https://github.com/NandhaKishorM/laya) is an open-source decision model with the same question and answer shapes, small enough (322M-421M parameters) to run on CPU — about half a second per call on a desktop CPU. It ships as a Python library, so it needs a small HTTP wrapper. Run it with Docker (CPU PyTorch keeps the image small):

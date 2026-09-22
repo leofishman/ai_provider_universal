@@ -22,6 +22,8 @@ use Drupal\ai\OperationType\Rerank\ReRankInput;
 use Drupal\ai\OperationType\Rerank\ReRankInterface;
 use Drupal\ai\OperationType\Rerank\ReRankOutput;
 use Drupal\ai\OperationType\SpeechToText\SpeechToTextInput;
+use Drupal\ai\OperationType\TextClassification\TextClassificationItem;
+use Drupal\ai\OperationType\TextClassification\TextClassificationOutput;
 use Drupal\ai\OperationType\SpeechToText\SpeechToTextOutput;
 use Drupal\ai\OperationType\TextToImage\TextToImageInput;
 use Drupal\ai\OperationType\TextToImage\TextToImageInterface;
@@ -67,7 +69,16 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   /**
    * All operation types this provider can support.
    */
-  const SUPPORTED_OPERATION_TYPES = ['chat', 'embeddings', 'speech_to_text', 'rerank', 'moderation', 'text_to_image'];
+  const SUPPORTED_OPERATION_TYPES = [
+    'chat',
+    'embeddings',
+    'speech_to_text',
+    'rerank',
+    'moderation',
+    'text_to_image',
+    // Served by decision models only, and only from AI 1.4.
+    'text_classification',
+  ];
 
   /**
    * Map from moderation model name patterns to parser classes.
@@ -566,6 +577,76 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       : NULL;
     return $server instanceof AiUniversalServerInterface
       && $this->modelCatalog->getBackend($server) instanceof TypeSafe;
+  }
+
+  /**
+   * Classifies text against labels, using a decision model.
+   *
+   * Signature and behaviour of AI core's TextClassificationInterface, which
+   * the class cannot implement: the interface ships from AI 1.4 and the
+   * module supports 1.3. AI core matches providers on
+   * getSupportedOperationTypes(), not on the interface, so the operation is
+   * dispatched all the same.
+   *
+   * @param string|object $input
+   *   A TextClassificationInput (AI 1.4+) or plain text.
+   * @param string $model_id
+   *   A decision model entity id (see ::isDecisionModel()).
+   * @param array $tags
+   *   Call tags.
+   *
+   * @return object
+   *   A TextClassificationOutput: one item per label, most confident first.
+   *
+   * @throws \Drupal\ai\Exception\AiMissingFeatureException
+   *   On AI 1.3, or when the model is not a decision model.
+   */
+  public function textClassification(string|object $input, string $model_id, array $tags = []): object {
+    // The interface and its classes only exist from AI 1.4, while the module
+    // supports 1.3: the method is declared without implementing
+    // TextClassificationInterface, and AI core dispatches it all the same
+    // (providers are matched on getSupportedOperationTypes(), not on the
+    // interface). Only decision models serve it; anything else would go
+    // over the OpenAI protocol.
+    if (!class_exists(TextClassificationOutput::class)) {
+      throw new AiMissingFeatureException('Text classification needs AI 1.4 or newer.');
+    }
+    if (!$this->isDecisionModel($model_id)) {
+      throw new AiMissingFeatureException(sprintf('Model "%s" does not serve text classification through this provider.', $model_id));
+    }
+
+    $text = is_string($input) ? $input : $input->getText();
+    $labels = is_string($input) ? [] : $input->getLabels();
+    if (!$labels) {
+      throw new AiRequestErrorException('A decision model needs the labels to classify against; pass them on the input.');
+    }
+
+    // One yes/no question per label, all in one request: that is what a
+    // System One model is for. The question is overridable like every other
+    // provider setting (setConfiguration(['classification_question' => ...])),
+    // with a %s placeholder for the label.
+    $template = (string) ($this->configuration['classification_question'] ?? 'The text mentions or concerns "%s".');
+    $questions = [];
+    foreach ($labels as $label) {
+      $questions['label_' . md5($label)] = [
+        'type' => 'noul',
+        'instructions' => sprintf($template, $label),
+      ];
+    }
+
+    $answers = $this->decide($model_id, $text, $questions, $tags);
+
+    $items = [];
+    foreach ($labels as $label) {
+      $items[] = new TextClassificationItem(
+        $label,
+        (float) ($answers['label_' . md5($label)]['noul'] ?? 0.0),
+      );
+    }
+    // Most confident first, like a classifier's ranked labels.
+    usort($items, static fn ($a, $b) => $b->getConfidenceScore() <=> $a->getConfidenceScore());
+
+    return new TextClassificationOutput($items, $answers, []);
   }
 
   /**
