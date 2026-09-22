@@ -8,7 +8,7 @@ Backends can live in this module or in any other module: the plugin discovery pi
 
 1. **OpenAI-compatible service** (Fireworks, OpenRouter, Ollama, Groq, Together, Mistral, ...): extend `OpenAiCompatible` and override only what differs. Chat, embeddings and streaming already work end to end, because the provider executes requests over the OpenAI protocol. This is the common case — usually under 100 lines. Use `OpenRouter` / `Groq` (live catalog pricing + modalities), `Ollama` (native side-channel enrichment), or `Fireworks` (hardcoded price table + fixed endpoint) as a template.
 
-2. **Native protocol** (Anthropic, Gemini, ...): extend `AiServerBackendPluginBase`, implement `AiServerBackendInterface` for discovery, and additionally implement **`AiInferenceBackendInterface`** to own chat execution. Without that second interface a backend still gets discovery and the full UI, but its chat calls go over the OpenAI protocol — which is exactly right for case 1 and wrong for a native API. Use `Anthropic` as the template.
+2. **Native protocol** (Anthropic, Gemini, ...): extend `AiServerBackendPluginBase`, implement `AiServerBackendInterface` for discovery, and additionally implement **`AiInferenceBackendInterface`** to own chat execution. Without that second interface a backend still gets discovery and the full UI, but its chat calls go over the OpenAI protocol — which is exactly right for case 1 and wrong for a native API. Use `Anthropic` as the template, or `TypeSafe` for a small one (no streaming, no tools, one request shape).
 
 ## The interface
 

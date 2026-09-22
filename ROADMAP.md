@@ -112,6 +112,18 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       paginated GET /v1/models, price/context/feature table per generation.
       Not yet verified against the live API — mapping is covered by kernel
       tests with mocked HTTP.
+- [x] **`typesafe` backend** (native): TypeSafe System One decision models
+      (Jev) exposed as chat — conversation as state, questions from extra
+      request parameters or a JSON system prompt, JSON answers as text.
+      Verified end to end against self-hosted Laya; not yet against the
+      live TypeSafe API (signups paused).
+- [ ] **`decision` operation type**: optional submodule implementing the
+      `decision` operation (drupal/ai_decision: yes_no / choice / score) on
+      the universal provider, native in the `typesafe` backend, so
+      automators, the explorer and agents reach Jev / Laya and smart routes
+      fail over between them. On hold until it is settled whether the
+      operation type moves into AI core. Fact check checkers (MiniCheck,
+      Jev, Laya) could then become interchangeable `yes_no` decisions.
 - [ ] OpenRouter embeddings discovery: embedding models are not in
       `/v1/models` but on a separate `/embeddings/models` catalog endpoint;
       override `listModels()` in the `openrouter` backend to fetch both and

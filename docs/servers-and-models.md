@@ -172,6 +172,58 @@ questions:
 
 The host is only needed for a self-hosted server speaking the same protocol — for example the open-source [Laya](https://github.com/NandhaKishorM/laya) behind a small wrapper exposing `GET /v1/models` and `POST /v1/systemone`. Only `jev*` model ids get Jev's list price; self-hosted models stay free.
 
+#### Self-hosting Laya
+
+[Laya](https://github.com/NandhaKishorM/laya) is an open-source decision model with the same question and answer shapes, small enough (322M-421M parameters) to run on CPU — about half a second per call on a desktop CPU. It ships as a Python library, so it needs a small HTTP wrapper. Run it with Docker (CPU PyTorch keeps the image small):
+
+```python
+# server.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from laya import Router
+
+router = Router(preload=True)  # every checkpoint resident (~3 GB RAM)
+app = FastAPI()
+# "laya" lets Laya's router pick the checkpoint by language; others force one.
+MODELS = {"laya": None, "laya-english": "english", "laya-multilingual": "multilingual", "laya-typed-decisions": "typed-decisions"}
+
+class Request(BaseModel):
+    state: object
+    questions: dict
+    model: str = "laya"
+
+@app.get("/v1/models")
+def models():
+    return {"models": [{"name": m} for m in MODELS]}
+
+@app.post("/v1/systemone")
+def systemone(req: Request):
+    if req.model not in MODELS:
+        raise HTTPException(404, {"error_type": "not_found", "message": f"Unknown model {req.model}"})
+    kwargs = {"model": MODELS[req.model]} if MODELS[req.model] else {}
+    res = router.predict(req.state, req.questions, **kwargs)
+    return {"model": req.model, "answers": res["answers"], "usage": {"input_tokens": 0, "output_tokens": 0}}
+```
+
+```dockerfile
+FROM python:3.12-slim
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+ && pip install --no-cache-dir laya fastapi "uvicorn[standard]"
+WORKDIR /app
+COPY server.py .
+ENV HF_HOME=/cache
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8095"]
+```
+
+```bash
+docker build -t laya-systemone .
+docker run -d --name laya --restart unless-stopped -p 8095:8095 -v laya-hf-cache:/cache laya-systemone
+```
+
+Then add a server with the `typesafe` backend, host `http://<machine>` and port `8095`, no key. On Apple Silicon, [laya-mlx](https://github.com/mizorewww/laya-mlx) runs the same model natively (~13 ms per decision) behind the same wrapper.
+
+Laya does not count tokens (usage is recorded as zero), and its router sends Spanish and other Latin-script text to the English checkpoint when it cannot tell the language — pick `laya-multilingual` explicitly for non-English content. As with any decision model, check its confidence against real cases before setting thresholds: it can be confidently wrong.
+
 Only `model`, `state` and `questions` are sent; sampling, reasoning and other chat parameters are ignored. Streaming is refused (`AiMissingFeatureException`). Because Jev is by far the cheapest model in most catalogs, **leave it out of the candidates of smart routes that serve free-form chat** — a route with no explicit candidates considers every chat model, and Jev cannot answer a prompt that carries no questions.
 
 ## Model filtering
