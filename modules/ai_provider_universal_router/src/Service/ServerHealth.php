@@ -27,12 +27,18 @@ use Psr\Log\LoggerInterface;
 class ServerHealth {
 
   /**
-   * How long a server stays marked down, in seconds.
+   * How long a server stays marked down after its first failure, in seconds.
    *
    * Long enough to route around a restart, short enough that a recovered
-   * server is tried again without anyone intervening.
+   * server is tried again without anyone intervening. Each failure in a row
+   * doubles it, up to MAX_DOWN_TTL.
    */
   protected const DOWN_TTL = 60;
+
+  /**
+   * Ceiling for the doubled mark, in seconds.
+   */
+  protected const MAX_DOWN_TTL = 960;
 
   /**
    * Cache id prefix for the marks.
@@ -46,7 +52,12 @@ class ServerHealth {
   ) {}
 
   /**
-   * Marks a server as unreachable for the next DOWN_TTL seconds.
+   * Marks a server as unreachable, for longer on each failure in a row.
+   *
+   * 60s, 120s, 240s ... up to MAX_DOWN_TTL. A failure counts as "in a row"
+   * when it comes within one mark's length after the previous mark expired
+   * — the server came back and fell over again. After that quiet window the
+   * count starts over, so nothing has to be written on the happy path.
    *
    * @param string $serverId
    *   The ai_universal_server entity id.
@@ -57,14 +68,19 @@ class ServerHealth {
     if ($this->isDown($serverId)) {
       return;
     }
-    $this->cache->set(
-      self::CID_PREFIX . $serverId,
-      TRUE,
-      $this->time->getRequestTime() + self::DOWN_TTL,
-    );
-    $this->logger->warning('Server @server is being skipped by smart routing for @ttl seconds: @reason', [
+    $previous = $this->cache->get(self::CID_PREFIX . $serverId);
+    $failures = ($previous->data['failures'] ?? 0) + 1;
+    $ttl = min(self::DOWN_TTL * 2 ** ($failures - 1), self::MAX_DOWN_TTL);
+    $until = $this->time->getRequestTime() + $ttl;
+    // The item outlives the mark by one mark's length, to remember the count.
+    $this->cache->set(self::CID_PREFIX . $serverId, [
+      'until' => $until,
+      'failures' => $failures,
+    ], $until + $ttl);
+    $this->logger->warning('Server @server is being skipped by smart routing for @ttl seconds (failure @n in a row): @reason', [
       '@server' => $serverId,
-      '@ttl' => self::DOWN_TTL,
+      '@ttl' => $ttl,
+      '@n' => $failures,
       '@reason' => $reason ?: 'unreachable',
     ]);
   }
@@ -73,7 +89,8 @@ class ServerHealth {
    * Whether a server is currently marked down.
    */
   public function isDown(string $serverId): bool {
-    return (bool) $this->cache->get(self::CID_PREFIX . $serverId);
+    $item = $this->cache->get(self::CID_PREFIX . $serverId);
+    return ($item->data['until'] ?? 0) > $this->time->getRequestTime();
   }
 
   /**

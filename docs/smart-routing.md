@@ -59,7 +59,9 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    candidate could avoid — an unreachable host, a rate limit, an exhausted
    quota — the provider marks that server down for **60 seconds** and the
    router drops its models from the candidate pool, next to the daily-limit
-   check. No health check runs on the happy path: probing every server
+   check. A server that falls over again right after its mark expires is
+   marked for twice as long (60s, 120s, 240s ... capped at 16 minutes); after
+   a quiet spell as long as its last mark, the count starts over. No health check runs on the happy path: probing every server
    before every decision would cost a request when nothing is wrong, so the
    failures the module already hits are what feed it. The mark expires by
    itself, so a restarted server is picked up again without intervention
