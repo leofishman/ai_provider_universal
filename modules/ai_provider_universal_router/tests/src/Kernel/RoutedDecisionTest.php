@@ -7,6 +7,8 @@ namespace Drupal\Tests\ai_provider_universal_router\Kernel;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\ai_provider_universal\Kernel\Traits\HttpClientMockTrait;
 use Drupal\ai_provider_universal\Plugin\AiProvider\UniversalProvider;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -96,6 +98,67 @@ final class RoutedDecisionTest extends KernelTestBase {
     $payload = json_decode((string) $requests[0]->getBody(), TRUE);
     $this->assertSame('noul', $payload['questions']['urgent']['type']);
     $this->assertSame(0.7, $answers['urgent']['noul']);
+  }
+
+  /**
+   * Tests that the call that finds a candidate down is answered by the next.
+   *
+   * The breaker only helps later calls; without a retry the first one after
+   * an outage fails even though the route has another candidate.
+   */
+  public function testDecideRetriesNextCandidateWhenOneIsDown(): void {
+    $etm = $this->container->get('entity_type.manager');
+    foreach (['jev' => '', 'laya' => 'http://laya.test'] as $id => $host) {
+      $etm->getStorage('ai_universal_server')->create([
+        'id' => $id,
+        'label' => $id,
+        'backend' => 'typesafe',
+        'host_name' => $host,
+        'port' => $host ? '8095' : '',
+        'timeout' => 60,
+      ])->save();
+      $etm->getStorage('ai_universal_model')->create([
+        'id' => $id . '.latest',
+        'label' => $id,
+        'server_id' => $id,
+        'raw_model_id' => $id . '-latest',
+        'detected_operation_types' => ['chat'],
+      ])->save();
+    }
+    $this->installSchema('ai_provider_universal', ['ai_provider_universal_usage']);
+    $this->installSchema('ai_provider_universal_router', ['ai_universal_router_log']);
+    $etm->getStorage('ai_universal_route')->create([
+      'id' => 'decisions',
+      'label' => 'Decisions',
+      'operation_type' => 'chat',
+      'candidates' => ['jev.latest', 'laya.latest'],
+    ])->save();
+
+    $this->mockHttpClientResponses([
+      new ConnectException('cURL error 7: Connection refused', new Request('POST', 'http://down.test')),
+      new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+        'model' => 'laya',
+        'answers' => ['urgent' => ['type' => 'noul', 'noul' => 0.7]],
+        'usage' => ['input_tokens' => 9, 'output_tokens' => 1],
+      ])),
+    ]);
+    $requests = [];
+    $this->container->get('http_client_factory')->fromOptions([])->getConfig('handler')
+      ->push(function (callable $handler) use (&$requests) {
+        return function ($request, array $options) use ($handler, &$requests) {
+          $requests[] = $request;
+          return $handler($request, $options);
+        };
+      });
+
+    $answers = $this->container->get('ai.provider')->createInstance('universal')
+      ->decide('route.decisions', 'Refund today or I cancel.', [
+        'urgent' => ['type' => 'noul', 'instructions' => 'The message is urgent'],
+      ]);
+
+    $this->assertSame(0.7, $answers['urgent']['noul']);
+    $this->assertCount(2, $requests);
+    $this->assertNotSame((string) $requests[0]->getUri()->getHost(), (string) $requests[1]->getUri()->getHost());
   }
 
 }

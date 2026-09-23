@@ -551,7 +551,16 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       }
     }
 
-    $output = $this->doChat($input, $model_id, $tags);
+    try {
+      $output = $this->doChat($input, $model_id, $tags);
+    }
+    catch (\Throwable $e) {
+      if ($route_id === NULL) {
+        throw $e;
+      }
+      $model_id = $this->nextRouteCandidate('route.' . $route_id, $model_id, $input, $e);
+      $output = $this->doChat($input, $model_id, $tags);
+    }
 
     if ($route_id !== NULL) {
       $output = $this->maybeEscalate($route_id, $input, $model_id, $output, $tags);
@@ -680,7 +689,21 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     // A smart route is resolved here rather than inside ::chat(), because
     // the question shape depends on which candidate wins: a route that
     // lands on a decision model must send typed questions, not a prompt.
-    $model_id = $this->resolveRoutedModel($model_id, $state, 'chat');
+    $route = $model_id;
+    $model_id = $this->resolveRoutedModel($route, $state, 'chat');
+    try {
+      return $this->decideOn($model_id, $state, $questions, $tags);
+    }
+    catch (\Throwable $e) {
+      $next = $this->nextRouteCandidate($route, $model_id, $state, $e);
+      return $this->decideOn($next, $state, $questions, $tags);
+    }
+  }
+
+  /**
+   * Asks one concrete model; see ::decide().
+   */
+  protected function decideOn(string $model_id, string $state, array $questions, array $tags): array {
     // The questions travel as a system message, not as the input's system
     // prompt: AI core's OpenAI path only reads the prompt that ProviderProxy
     // copies onto the plugin, and this call bypasses the proxy, so a prompt
@@ -891,6 +914,54 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       }
       $this->clearActiveServer();
     }
+  }
+
+  /**
+   * Picks the route's next candidate after its first choice just failed.
+   *
+   * Without this the call that finds a server down still fails, and only the
+   * next one routes around it. The breaker has already marked the server
+   * (::reportUnreachable()), so resolving the route again skips it: one
+   * retry, no probing. Anything else is rethrown untouched.
+   *
+   * @param string $model_id
+   *   The model id the caller asked for ("route.<id>" or a plain model).
+   * @param string $failed
+   *   The model the route resolved to, which just failed.
+   * @param mixed $input
+   *   The input, for re-resolving the route.
+   * @param \Throwable $e
+   *   The failure.
+   *
+   * @return string
+   *   Another model entity id from the same route.
+   *
+   * @throws \Throwable
+   *   $e, when the failure is not one routing can avoid or no other
+   *   candidate is left.
+   */
+  protected function nextRouteCandidate(string $model_id, string $failed, mixed $input, \Throwable $e): string {
+    $model = $this->entityTypeManager->getStorage('ai_universal_model')->load($failed);
+    if (!str_starts_with($model_id, 'route.')
+      || !$model instanceof AiUniversalModelInterface
+      || !$this->serviceContainer->has('ai_provider_universal_router.health')
+      || !$this->serviceContainer->get('ai_provider_universal_router.health')->isDown($model->getServerId())) {
+      throw $e;
+    }
+    try {
+      $next = $this->resolveRoutedModel($model_id, $input, 'chat');
+    }
+    catch (\Throwable) {
+      throw $e;
+    }
+    if ($next === $failed) {
+      throw $e;
+    }
+    $this->loggerFactory->get('ai_provider_universal')->notice(
+      'Route @route: @failed failed (@message), retrying on @next.',
+      ['@route' => $model_id, '@failed' => $failed, '@message' => $e->getMessage(), '@next' => $next],
+    );
+    return $next;
   }
 
   /**

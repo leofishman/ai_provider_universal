@@ -65,6 +65,12 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    itself, so a restarted server is picked up again without intervention
    (`ai_provider_universal_router.health`, backed by `cache.default`).
 
+   The call that finds the server down is not lost either: once the mark is
+   set, the route is resolved again and the request retried **once** on the
+   next candidate (chat and `decide()`, which re-picks the question shape for
+   the new model). Failures the breaker does not mark — a 400, say — are not
+   retried.
+
    Native backends also use a short **connect timeout** (3s), so a dead host
    fails fast instead of burning the full request timeout. Measured with a
    route over [Laya, Gemma 3 4B] and Laya stopped: the first call failed in
