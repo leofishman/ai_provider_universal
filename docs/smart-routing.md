@@ -61,8 +61,8 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    router drops its models from the candidate pool, next to the daily-limit
    check. A server that falls over again right after its mark expires is
    marked for twice as long (60s, 120s, 240s ... capped at 16 minutes); after
-   a quiet spell as long as its last mark, the count starts over. No health check runs on the happy path: probing every server
-   before every decision would cost a request when nothing is wrong, so the
+   a quiet spell as long as its last mark, the count starts over. No health
+   check runs on the happy path: probing every server before every decision would cost a request when nothing is wrong, so the
    failures the module already hits are what feed it. The mark expires by
    itself, so a restarted server is picked up again without intervention
    (`ai_provider_universal_router.health`, backed by `cache.default`).
@@ -72,6 +72,11 @@ All decision logic lives in `modules/ai_provider_universal_router/src/Service/Ro
    next candidate (chat and `decide()`, which re-picks the question shape for
    the new model). Failures the breaker does not mark — a 400, say — are not
    retried.
+
+   Both are logged to watchdog: every mark as a warning on the
+   `ai_provider_universal_router` channel (server, seconds, failure count,
+   reason), every retry as a notice on `ai_provider_universal` (route, failed
+   model, next model).
 
    Native backends also use a short **connect timeout** (3s), so a dead host
    fails fast instead of burning the full request timeout. Measured with a
@@ -195,7 +200,7 @@ submodule is disabled.
 | `ModelPreCallEvent` (`ai_provider_universal.model_pre_call`) | Before every inference call, after smart-route resolution — the model id is always a concrete `ai_universal_model` entity id. | Block the call (`block($reason)`: custom quota schemes, business hours, compliance) or swap the model (`setModelId()`). The usage-limit enforcement in this submodule is a plain service call, but your own policies belong here. |
 | `ModelPostCallEvent` (`ai_provider_universal.model_post_call`) | After every successful chat call. | Read model id, token usage, latency (ms) and caller tags for custom telemetry, cost alerting or dashboards. Read-only; failed calls dispatch `AiExceptionEvent` instead. Provenance skips internal tool tags (`InternalChatTags`). |
 | `ModelsDiscoveredEvent` (`ai_provider_universal.models_discovered`) | During discovery, after detection and defaults, before persistence. | Enrich or correct the discovered set via `getModels()`/`setModels()` — inject site pricing, adjust tiers, drop models — without writing a backend plugin. Manual UI edits are still never clobbered. |
-| `AiExceptionEvent` (AI core) | When a provider call throws. | Implement failover: catch the failure, re-issue against another provider/model. This is the AI-core seam — the module deliberately ships no failover of its own. |
+| `AiExceptionEvent` (AI core) | When a provider call throws. | Failover *across providers* (e.g. universal → another AI provider module): catch the failure, re-issue elsewhere. Within this provider, smart routes already fail over between candidates (step 1b). |
 
 ## Recommended model mix for cost / benefit (2026)
 
