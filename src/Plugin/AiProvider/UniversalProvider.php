@@ -83,6 +83,18 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   ];
 
   /**
+   * AI core capability => catalog feature that proves it (discovery).
+   *
+   * A capability missing here is never used to hide a model.
+   */
+  const CAPABILITY_FEATURES = [
+    'chat_tools' => 'tools',
+    'chat_with_image_vision' => 'vision',
+    'chat_json_output' => 'json_mode',
+    'chat_structured_response' => 'structured_outputs',
+  ];
+
+  /**
    * Map from moderation model name patterns to parser classes.
    */
   const MODERATION_PARSERS = [
@@ -242,6 +254,9 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    * {@inheritdoc}
    */
   public function isUsable(?string $operation_type = NULL, array $capabilities = []): bool {
+    if ($capabilities !== [] && $this->getConfiguredModels($operation_type, $capabilities) === []) {
+      return FALSE;
+    }
     $server = $this->getServerEntity();
 
     if ($server) {
@@ -451,7 +466,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     // Specific server context (a concrete server_id was injected): a flat list
     // is unambiguous.
     if ($server) {
-      return $this->modelCatalog->getModelsForServer($server->id(), $operation_type);
+      return $this->filterByCapabilities($this->modelCatalog->getModelsForServer($server->id(), $operation_type), $capabilities);
     }
 
     // Generic context (e.g. the AI settings default-providers form aggregates
@@ -464,6 +479,46 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     foreach ($this->modelCatalog->getModelsGroupedByServer($operation_type) as $server_label => $models) {
       foreach ($models as $model_id => $raw_id) {
         $options[$model_id] = $server_label . ': ' . $raw_id;
+      }
+    }
+    return $this->filterByCapabilities($options, $capabilities);
+  }
+
+  /**
+   * Drops the models known to lack one of the requested capabilities.
+   *
+   * Operation types ticked by hand keep a model (the site vouched for it);
+   * otherwise discovery decides, hiding a model only when its catalog lists
+   * features without the one needed. Smart routes are never filtered. AI
+   * core's own model override (ai.settings:models) cannot hold our dotted
+   * model ids, so it is not read. See docs/model-capabilities.md.
+   *
+   * @param array<string, string> $options
+   *   Model options keyed by model entity id.
+   * @param \Drupal\ai\Enum\AiModelCapability[] $capabilities
+   *   The capabilities every returned model must have.
+   *
+   * @return array<string, string>
+   *   The options that remain.
+   */
+  protected function filterByCapabilities(array $options, array $capabilities): array {
+    if ($capabilities === []) {
+      return $options;
+    }
+    $models = $this->entityTypeManager->getStorage('ai_universal_model')->loadMultiple(array_keys($options));
+
+    /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
+    foreach ($models as $id => $model) {
+      $features = $model->getSupportedFeatures();
+      if ($model->getOperationTypes() !== [] || $features === []) {
+        continue;
+      }
+      foreach ($capabilities as $capability) {
+        $feature = self::CAPABILITY_FEATURES[$capability->value] ?? NULL;
+        if ($feature !== NULL && !in_array($feature, $features, TRUE)) {
+          unset($options[$id]);
+          break;
+        }
       }
     }
     return $options;

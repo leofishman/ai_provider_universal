@@ -1,6 +1,6 @@
 # Model capabilities: filtering and the coming `decision` operation
 
-Status: **proposed** (2026-09-25). Nothing described under "Change" is implemented yet.
+Status: **implemented** (2026-09-25) for chat capabilities. The `decision` part (last section) waits for AI core.
 
 This is a decision record: what changes, why, what was discussed and rejected, and what else it touches. Update it when the change lands or when AI core's `decision` operation moves.
 
@@ -46,20 +46,20 @@ Checked in this order; the first rule that applies decides:
 
 | Model | Result |
 |---|---|
-| AI core's stored model config (`ai.settings:models`) has a value for the capability | that value: TRUE keeps, FALSE drops |
 | Has a manual operation-type override | always kept (the user vouched for it) |
 | Discovery reported features, including the mapped one | kept |
 | Discovery reported features, but not the mapped one | **dropped** |
 | Discovery reported no features at all (server without a catalog) | kept, as today |
 | Capability we have no mapping for | kept, as today |
 
-Mapping from AI core capabilities to our catalog features (starting set; extend as backends report more):
+Mapping from AI core capabilities to our catalog features (starting set; extend as backends report more). Today only the `groq` and `anthropic` backends report features, so every other backend is unaffected. `groq` publishes vision as an input modality, so its discovery adds `vision` when `input_modalities` contains `image`. `anthropic` reports `tools` and `vision` but no JSON mode, which matches its backend: it does not send `response_format`.
 
 | `AiModelCapability` | Feature |
 |---|---|
 | `chat_tools` | `tools` |
 | `chat_with_image_vision` | `vision` |
-| `chat_json_output`, `chat_structured_response` | `response_format` |
+| `chat_json_output` | `json_mode` |
+| `chat_structured_response` | `structured_outputs` |
 | `decision_*` (later) | same key: the `typesafe` backend reports them at discovery |
 
 Filtering by operation type still happens first, exactly as today. Smart routes (virtual `route.*` models) are not filtered by capability.
@@ -71,17 +71,18 @@ Filtering by operation type still happens first, exactly as today. Smart routes 
 3. **A new per-model "capabilities" override field** (detected + override + effective, mirroring operation types). Works, but adds a config field, schema and form section for a problem not yet seen. Deferred: add it if a wrong detection shows up that the rule below cannot fix.
 4. **A global "filter models by capability" switch on the provider.** Simple, but all or nothing. Rejected in favour of 5.
 5. **Chosen: reuse the operation-type override as the escape hatch.** Ticking operation types by hand on a model means "trust me about this model", so capability filtering skips it. No new configuration. Cost: the checkbox now carries two meanings; its description on the server form must say so.
-6. **Also chosen: honour AI core's own capability override.** AI core already stores per-model settings, capabilities included, in `ai.settings:models` (`[provider][operation_type][model_id]`), edited through the provider's model form (`AbstractModelFormBase`). `loadModelConfig()` prefers a stored entry over asking the provider. Two limits, and how we handle them:
+6. **Honour AI core's own capability override. Chosen, then rejected while implementing.** AI core already stores per-model settings, capabilities included, in `ai.settings:models` (`[provider][operation_type][model_id]`), edited through the provider's model form (`AbstractModelFormBase`). `loadModelConfig()` prefers a stored entry over asking the provider. Two limits, and how we handle them:
    - *Only `loadModelConfig()` reads it; `getConfiguredModels()`, `modelSupportsCapabilities()` and `isUsable()` never do.* We read `getModelsConfig()` inside our filter, so a stored value wins there too. This is plain config read with AI core's own getter: no core patch, no new storage, no recursion (it does not call `getConfiguredModels()`).
    - *For providers with predefined models (ours) the model form is locked unless `$settings['ai_override_models'] = TRUE;` is in `settings.php`.* So this path is for sites that already use AI core's override; option 5 stays as the override that needs no `settings.php` change.
 
-   Why both: 6 is where anyone who knows AI core looks first, and it is per capability (it can also say "no"); 5 needs no settings flag and lives next to the rest of our model settings. Order: 6, then 5, then discovery. To verify when implementing: that the model form route is reachable for our provider, and which keys it writes when a capability is left unticked (FALSE vs absent).
+   Why it was chosen: it is where anyone who knows AI core looks first, and it is per capability (it can also say "no").
+
+   **Why it was dropped:** `AiModelSettingsForm::submitForm()` stores the entry under the raw model id as a config key, and Drupal config keys cannot contain a dot. Every `ai_universal_model` id is `<server>.<model>`, so saving the form for one of our models throws `ConfigValueException` ("key contains a dot which is not supported"). The override can never hold data for this provider, so reading it would be dead code. Found by the kernel test when it tried to store one. Revisit if AI core ever encodes model ids in that config; until then option 5 is the only override.
 
 ## Impact and risks
 
 - **Behaviour change:** selects that require a capability (vision, tools, JSON) will show fewer models on servers that publish a catalog. That is the point, but a site may notice a model "disappearing". Fix: tick its operation types by hand.
 - **Wrong or partial catalogs:** a backend that reports features but omits one the model has will hide that model for that capability until the override is ticked.
-- **Sites that already saved model settings through AI core's form** see those capability values respected everywhere, not only in `loadModelConfig()`. A stored FALSE that nobody noticed before will now hide the model for that capability.
 - **`loadModelConfig()` flags** become real instead of all TRUE; code reading `chat_*` flags from model config gets honest values.
 - **Not touched:** chat execution, routing, usage limits, the pre-call gate, discovery, stored config.
 

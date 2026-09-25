@@ -103,6 +103,11 @@ class Groq extends OpenAiCompatible {
 
     $features = $modelEntry['supported_features'] ?? NULL;
     if (is_array($features) && $features !== []) {
+      // Vision is published as an input modality, not a feature; capability
+      // filtering (see docs/model-capabilities.md) looks for it here.
+      if (in_array('image', (array) ($modelEntry['input_modalities'] ?? []), TRUE)) {
+        $features[] = 'vision';
+      }
       $normalized = [];
       foreach ($features as $feature) {
         if (is_string($feature) && $feature !== '') {

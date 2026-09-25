@@ -366,7 +366,7 @@ class AiUniversalServerForm extends EntityForm {
       $element[$key]['operation_types'] = [
         '#type'          => 'checkboxes',
         '#title'         => $this->t('Operation types'),
-        '#description'   => $this->t('Auto-detected: <em>@types</em>. Leave unchecked to use auto-detection.', ['@types' => $auto_label]),
+        '#description'   => $this->t('Auto-detected: <em>@types</em>. Leave unchecked to use auto-detection. Ticking any also stops the model from being hidden when a feature asks for capabilities (vision, tools, JSON) its catalog does not list.', ['@types' => $auto_label]),
         '#options'       => $type_options,
         '#default_value' => $current_overrides,
       ];

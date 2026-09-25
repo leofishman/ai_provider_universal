@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\ai_provider_universal\Kernel\Plugin;
 
+use Drupal\ai\Enum\AiModelCapability;
 use Drupal\ai\Exception\AiMissingFeatureException;
 use Drupal\ai\Exception\AiRequestErrorException;
 use Drupal\ai\OperationType\Chat\ChatInput;
@@ -745,6 +746,50 @@ final class UniversalProviderTest extends KernelTestBase {
 
     // Embeddings has no extra configuration in the defaults.
     $this->assertSame([], $definition['embeddings']['configuration']);
+  }
+
+  /**
+   * Tests that capability requests hide only models known to lack them.
+   *
+   * See docs/model-capabilities.md for the rule order.
+   */
+  public function testCapabilityFiltering(): void {
+    $etm = $this->container->get('entity_type.manager');
+    $etm->getStorage('ai_universal_server')->create([
+      'id' => 'caps',
+      'label' => 'Caps',
+      'host_name' => 'http://127.0.0.1',
+      'port' => '8080',
+    ])->save();
+    $models = [
+      'no_vision' => [['tools'], []],
+      'vision' => [['tools', 'vision'], []],
+      'no_catalog' => [[], []],
+      'vouched' => [['tools'], ['chat']],
+    ];
+    foreach ($models as $name => [$features, $override]) {
+      $etm->getStorage('ai_universal_model')->create([
+        'id' => "caps.$name",
+        'label' => $name,
+        'server_id' => 'caps',
+        'raw_model_id' => $name,
+        'detected_operation_types' => ['chat'],
+        'operation_types' => $override,
+        'supported_features' => $features,
+      ])->save();
+    }
+    $provider = $this->container->get('ai.provider')
+      ->createInstance('universal', ['server_id' => 'caps']);
+    $vision = [AiModelCapability::ChatWithImageVision];
+
+    $kept = array_keys($provider->getConfiguredModels('chat', $vision));
+    sort($kept);
+    $this->assertSame(['caps.no_catalog', 'caps.vision', 'caps.vouched'], $kept);
+    // No capability asked: nothing hidden.
+    $this->assertCount(4, $provider->getConfiguredModels('chat'));
+    // A capability we cannot map never hides a model.
+    $this->assertCount(4, $provider->getConfiguredModels('chat', [AiModelCapability::ChatWithAudio]));
+    $this->assertTrue($provider->isUsable('chat', $vision));
   }
 
 }
