@@ -41,6 +41,7 @@ use Drupal\ai_provider_universal\Models\Moderation\ShieldGemma;
 use Drupal\ai_provider_universal\Plugin\AiServerBackend\TypeSafe;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
+use Drupal\ai_provider_universal\Utility\CoreModelConfig;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -487,11 +488,11 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
   /**
    * Drops the models known to lack one of the requested capabilities.
    *
-   * Operation types ticked by hand keep a model (the site vouched for it);
-   * otherwise discovery decides, hiding a model only when its catalog lists
-   * features without the one needed. Smart routes are never filtered. AI
-   * core's own model override (ai.settings:models) cannot hold our dotted
-   * model ids, so it is not read. See docs/model-capabilities.md.
+   * The first rule that applies decides, per model and capability: AI
+   * core's stored model settings (see CoreModelConfig), then operation types
+   * ticked by hand (the site vouched for the model), then discovery, which
+   * hides a model only when its catalog lists features without the one
+   * needed. Smart routes are never filtered. See docs/model-capabilities.md.
    *
    * @param array<string, string> $options
    *   Model options keyed by model entity id.
@@ -510,18 +511,43 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
     /** @var \Drupal\ai_provider_universal\Entity\AiUniversalModelInterface $model */
     foreach ($models as $id => $model) {
       $features = $model->getSupportedFeatures();
-      if ($model->getOperationTypes() !== [] || $features === []) {
-        continue;
-      }
+      $vouched = $model->getOperationTypes() !== [] || $features === [];
       foreach ($capabilities as $capability) {
+        $stored = CoreModelConfig::read($this->configFactory, $capability->getBaseOperationType(), $id);
         $feature = self::CAPABILITY_FEATURES[$capability->value] ?? NULL;
-        if ($feature !== NULL && !in_array($feature, $features, TRUE)) {
+        $has = isset($stored[$capability->value])
+          ? (bool) $stored[$capability->value]
+          : $vouched || $feature === NULL || in_array($feature, $features, TRUE);
+        if (!$has) {
           unset($options[$id]);
           break;
         }
       }
     }
     return $options;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Settings saved through AI core's model form live under an encoded key
+   * (see CoreModelConfig); the form still shows the real model id.
+   */
+  public function loadModelConfig(string $operation_type, string|NULL $model_id): array {
+    $config = parent::loadModelConfig($operation_type, $model_id);
+    $stored = $model_id ? CoreModelConfig::read($this->configFactory, $operation_type, $model_id) : [];
+    return $stored ? ['model_id' => $model_id] + $stored + $config : $config;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * AI core saves the entry under the submitted model id, and ours contain
+   * dots, which config keys reject; submit the encoded key instead.
+   */
+  public function validateModelsForm(array $form, $form_state): void {
+    $form_state->setValue('model_id', CoreModelConfig::key((string) $form_state->getValue('model_id')));
+    parent::validateModelsForm($form, $form_state);
   }
 
   /**

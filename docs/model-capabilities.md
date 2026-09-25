@@ -46,6 +46,7 @@ Checked in this order; the first rule that applies decides:
 
 | Model | Result |
 |---|---|
+| AI core's stored model settings (`ai.settings:models`) have a value for the capability | that value: TRUE keeps, FALSE drops |
 | Has a manual operation-type override | always kept (the user vouched for it) |
 | Discovery reported features, including the mapped one | kept |
 | Discovery reported features, but not the mapped one | **dropped** |
@@ -71,16 +72,26 @@ Filtering by operation type still happens first, exactly as today. Smart routes 
 3. **A new per-model "capabilities" override field** (detected + override + effective, mirroring operation types). Works, but adds a config field, schema and form section for a problem not yet seen. Deferred: add it if a wrong detection shows up that the rule below cannot fix.
 4. **A global "filter models by capability" switch on the provider.** Simple, but all or nothing. Rejected in favour of 5.
 5. **Chosen: reuse the operation-type override as the escape hatch.** Ticking operation types by hand on a model means "trust me about this model", so capability filtering skips it. No new configuration. Cost: the checkbox now carries two meanings; its description on the server form must say so.
-6. **Honour AI core's own capability override. Chosen, then rejected while implementing.** AI core already stores per-model settings, capabilities included, in `ai.settings:models` (`[provider][operation_type][model_id]`), edited through the provider's model form (`AbstractModelFormBase`). `loadModelConfig()` prefers a stored entry over asking the provider. Two limits, and how we handle them:
+6. **Also chosen: honour AI core's own capability override.** AI core already stores per-model settings, capabilities included, in `ai.settings:models` (`[provider][operation_type][model_id]`), edited through the provider's model form (`AbstractModelFormBase`). `loadModelConfig()` prefers a stored entry over asking the provider. Two limits, and how we handle them:
    - *Only `loadModelConfig()` reads it; `getConfiguredModels()`, `modelSupportsCapabilities()` and `isUsable()` never do.* We read `getModelsConfig()` inside our filter, so a stored value wins there too. This is plain config read with AI core's own getter: no core patch, no new storage, no recursion (it does not call `getConfiguredModels()`).
    - *For providers with predefined models (ours) the model form is locked unless `$settings['ai_override_models'] = TRUE;` is in `settings.php`.* So this path is for sites that already use AI core's override; option 5 stays as the override that needs no `settings.php` change.
 
    Why it was chosen: it is where anyone who knows AI core looks first, and it is per capability (it can also say "no").
 
-   **Why it was dropped:** `AiModelSettingsForm::submitForm()` stores the entry under the raw model id as a config key, and Drupal config keys cannot contain a dot. Every `ai_universal_model` id is `<server>.<model>`, so saving the form for one of our models throws `ConfigValueException` ("key contains a dot which is not supported"). The override can never hold data for this provider, so reading it would be dead code. Found by the kernel test when it tried to store one. Revisit if AI core ever encodes model ids in that config; until then option 5 is the only override.
+   **The dot problem, and how it is solved.** `AiModelSettingsForm::submitForm()` stores the entry under the submitted model id as a config key, and Drupal config keys cannot contain a dot. Every `ai_universal_model` id is `<server>.<model>`, so out of the box saving the form throws `ConfigValueException` ("key contains a dot which is not supported"); the kernel test found it. It was briefly dropped for that reason, then solved without touching AI core: `Utility\CoreModelConfig` owns the key (dots become `__`, so `laya.laya` is stored as `laya__laya`) and both ends of AI core's form already go through the provider:
+   - `validateModelsForm()` swaps the submitted id for the encoded key before AI core saves it (AI core's own validation only allows letters, digits, `-` and `_`, so the encoded key also passes it);
+   - `loadModelConfig()` reads the encoded entry back and shows the real id.
+   The filter reads the same entry through `CoreModelConfig::read()`. The key is never decoded (`__` may appear in a real id); every lookup starts from the raw id.
+
+   Limits, verified against AI 1.4.3 by submitting the real form:
+   - For providers with predefined models (ours) the form is locked unless `$settings['ai_override_models'] = TRUE;` is in `settings.php`. Locked, its checkboxes are disabled.
+   - Saving the form stores **every** capability of the model, not only the ones changed, so from then on that model ignores discovery for all of them. Deleting the entry from the same form returns it to discovery.
+
+   Why both 5 and 6: 6 is where anyone who knows AI core looks first, and it is per capability (it can also say "no"); 5 needs no settings flag and lives next to the rest of our model settings. Order: 6, then 5, then discovery.
 
 ## Impact and risks
 
+- **Sites that save model settings through AI core's form** (with `ai_override_models`) now see them respected everywhere, not only in `loadModelConfig()`; a capability left unchecked hides the model.
 - **Behaviour change:** selects that require a capability (vision, tools, JSON) will show fewer models on servers that publish a catalog. That is the point, but a site may notice a model "disappearing". Fix: tick its operation types by hand.
 - **Wrong or partial catalogs:** a backend that reports features but omits one the model has will hide that model for that capability until the override is ticked.
 - **`loadModelConfig()` flags** become real instead of all TRUE; code reading `chat_*` flags from model config gets honest values.

@@ -13,6 +13,7 @@ use Drupal\ai\OperationType\TextClassification\TextClassificationInput;
 use Drupal\ai_provider_universal\Event\ModelPreCallEvent;
 use Drupal\ai_provider_universal\Service\ModelCatalog;
 use Drupal\ai_provider_universal\Service\UsageTracker;
+use Drupal\ai_provider_universal\Utility\CoreModelConfig;
 use Drupal\KernelTests\KernelTestBase;
 use GuzzleHttp\Psr7\Response;
 use Drupal\Tests\ai_provider_universal\Kernel\Traits\HttpClientMockTrait;
@@ -766,6 +767,7 @@ final class UniversalProviderTest extends KernelTestBase {
       'vision' => [['tools', 'vision'], []],
       'no_catalog' => [[], []],
       'vouched' => [['tools'], ['chat']],
+      'stored_no' => [['vision'], []],
     ];
     foreach ($models as $name => [$features, $override]) {
       $etm->getStorage('ai_universal_model')->create([
@@ -778,6 +780,9 @@ final class UniversalProviderTest extends KernelTestBase {
         'supported_features' => $features,
       ])->save();
     }
+    // AI core's own model settings win over discovery.
+    CoreModelConfig::write($this->container->get('config.factory'), 'chat', 'caps.stored_no', ['chat_with_image_vision' => FALSE]);
+
     $provider = $this->container->get('ai.provider')
       ->createInstance('universal', ['server_id' => 'caps']);
     $vision = [AiModelCapability::ChatWithImageVision];
@@ -786,10 +791,16 @@ final class UniversalProviderTest extends KernelTestBase {
     sort($kept);
     $this->assertSame(['caps.no_catalog', 'caps.vision', 'caps.vouched'], $kept);
     // No capability asked: nothing hidden.
-    $this->assertCount(4, $provider->getConfiguredModels('chat'));
+    $this->assertCount(5, $provider->getConfiguredModels('chat'));
     // A capability we cannot map never hides a model.
-    $this->assertCount(4, $provider->getConfiguredModels('chat', [AiModelCapability::ChatWithAudio]));
+    $this->assertCount(5, $provider->getConfiguredModels('chat', [AiModelCapability::ChatWithAudio]));
     $this->assertTrue($provider->isUsable('chat', $vision));
+
+    // AI core's model form reads the stored entry back under the real id.
+    $config = $provider->loadModelConfig('chat', 'caps.stored_no');
+    $this->assertSame('caps.stored_no', $config['model_id']);
+    $this->assertFalse($config['chat_with_image_vision']);
+    $this->assertFalse($config['new_model']);
   }
 
 }
