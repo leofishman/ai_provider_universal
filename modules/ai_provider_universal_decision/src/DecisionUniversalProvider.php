@@ -43,6 +43,7 @@ class DecisionUniversalProvider extends UniversalProvider implements DecisionInt
     AiModelCapability::DecisionChoice,
     AiModelCapability::DecisionScore,
     AiModelCapability::DecisionMultipleQuestions,
+    AiModelCapability::DecisionStructuredState,
     AiModelCapability::DecisionStructuredInstructions,
     AiModelCapability::DecisionChoiceDescriptions,
     AiModelCapability::DecisionStructuredChoiceDescriptions,
@@ -60,9 +61,9 @@ class DecisionUniversalProvider extends UniversalProvider implements DecisionInt
    * {@inheritdoc}
    */
   public function getDecisionCapabilities(string $model_id): DecisionCapabilities {
-    // ponytail: structured state is not declared (the chat bridge carries the
-    // state as text) nor are image files; a smart route declares the baseline
-    // every System One model shares, its candidates are checked per call.
+    // ponytail: image files are not declared; a smart route declares the
+    // baseline every System One model shares, its candidates are checked per
+    // call.
     if (str_starts_with($model_id, 'route.')) {
       return new DecisionCapabilities(self::SYSTEM_ONE_CAPABILITIES);
     }
@@ -111,10 +112,22 @@ class DecisionUniversalProvider extends UniversalProvider implements DecisionInt
     $this->validateDecisionInput($input, $model_id);
 
     $questions = array_map(static fn ($question) => $question->toArray(), $input->getQuestions());
-    $output = $this->doChat(new ChatInput([
-      new ChatMessage('system', Json::encode($questions)),
-      new ChatMessage('user', $input->getState()),
-    ]), $model_id, $tags);
+    $state = $input->getState();
+    // A structured state reaches the typesafe backend through the
+    // configuration, so it is sent as JSON rather than as text; the chat turn
+    // still carries it encoded for logging and guardrails.
+    if (is_array($state)) {
+      $this->configuration['state'] = $state;
+    }
+    try {
+      $output = $this->doChat(new ChatInput([
+        new ChatMessage('system', Json::encode($questions)),
+        new ChatMessage('user', is_string($state) ? $state : Json::encode($state)),
+      ]), $model_id, $tags);
+    }
+    finally {
+      unset($this->configuration['state']);
+    }
     $data = $output->getRawOutput();
 
     // System One rounds probabilities to four decimals.

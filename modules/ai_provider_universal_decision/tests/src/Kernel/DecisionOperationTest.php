@@ -130,6 +130,34 @@ final class DecisionOperationTest extends KernelTestBase {
   }
 
   /**
+   * Tests that a structured state is sent as JSON, not as text.
+   */
+  public function testStructuredStateIsSentAsJson(): void {
+    $this->mockHttpClientResponses([
+      new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+        'model' => 'laya',
+        'answers' => ['refund' => ['type' => 'noul', 'noul' => 0.9]],
+      ])),
+    ]);
+    $requests = [];
+    $this->container->get('http_client_factory')->fromOptions([])->getConfig('handler')
+      ->push(function (callable $handler) use (&$requests) {
+        return function ($request, array $options) use ($handler, &$requests) {
+          $requests[] = $request;
+          return $handler($request, $options);
+        };
+      });
+
+    $state = ['message' => 'Charged twice, refund now.', 'plan' => 'pro'];
+    $output = $this->container->get('ai.provider')->createInstance('universal')->decision(new DecisionInput($state, [
+      'refund' => ['type' => 'noul', 'instructions' => 'The customer wants a refund.'],
+    ]), 'laya.laya');
+
+    $this->assertTrue($output->getNormalized()->getNoul('refund')->isLikely());
+    $this->assertSame($state, json_decode((string) $requests[0]->getBody(), TRUE)['state']);
+  }
+
+  /**
    * Tests that only decision models are offered for the operation.
    */
   public function testOnlyDecisionModelsAreConfigured(): void {

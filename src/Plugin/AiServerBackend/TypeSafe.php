@@ -187,7 +187,12 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
     if (!is_array($questions) || $questions === []) {
       throw new AiRequestErrorException('TypeSafe needs questions: set "questions" in the model\'s extra request parameters, or send them as a JSON object in the system prompt. See https://docs.typesafe.ai/primitives');
     }
-    if (trim($state) === '') {
+    // A structured state (AI core's Decision operation) cannot travel as a
+    // chat turn; the provider hands it over in the configuration instead.
+    if (is_array($configuration['state'] ?? NULL)) {
+      $state = $configuration['state'];
+    }
+    elseif (trim($state) === '') {
       throw new AiRequestErrorException('TypeSafe needs a state: the conversation has no user content.');
     }
 
