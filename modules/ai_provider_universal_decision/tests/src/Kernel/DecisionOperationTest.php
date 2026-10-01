@@ -46,10 +46,11 @@ final class DecisionOperationTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected function setUp(): void {
-    parent::setUp();
+    // Before installing: on older AI the provider swap would fatal.
     if (!interface_exists('Drupal\ai\OperationType\Decision\DecisionInterface')) {
       $this->markTestSkipped('The Decision operation needs AI 1.6 or newer.');
     }
+    parent::setUp();
     $this->installSchema('ai_provider_universal', ['ai_provider_universal_usage']);
     $etm = $this->container->get('entity_type.manager');
     $etm->getStorage('ai_universal_server')->create([

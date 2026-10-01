@@ -7,6 +7,11 @@ parameters:
   paths:
     - .
 
+  # The Decision submodule builds on AI 1.6, which CI does not install yet
+  # (composer resolves the latest stable). Drop this once AI 1.6 is stable.
+  excludePaths:
+    - modules/ai_provider_universal_decision
+
   fileExtensions:
     - php
     - module
