@@ -26,7 +26,7 @@ Protocol-specific logic lives in **AiServerBackend plugins**. The module ships w
 | `amazee` | amazee.ai managed LiteLLM | required (`litellm_api_url`) | Same as `litellm` (dedicated UX only) |
 | `grok` | Grok / xAI | fixed `api.x.ai/v1` | Small hardcoded table for grok-2 family |
 | `anthropic` | Anthropic Claude — **native Messages API**, not OpenAI-compatible | fixed `api.anthropic.com/v1` | Paginated catalog + price/context/feature table per Claude generation |
-| `deepseek` | DeepSeek | fixed `api.deepseek.com` | Hardcoded price/context table; off-peak discount applied when routing on cost |
+| `deepseek` | DeepSeek | fixed `api.deepseek.com` | Hardcoded price table; off-peak discount applied when routing on cost |
 | `typesafe` | TypeSafe Jev — **native System One API**: typed decisions (yes/no probability, choice, score), not text. Also self-hosted Laya. Serves `text_classification` (AI 1.4+) | fixed `api.typesafe.ai/v1` (host for self-hosted) | `/v1/models` catalog + Jev list input price |
 
 Full reference (capability detection, forms, filters, moderation parsers): [docs/servers-and-models.md](docs/servers-and-models.md).
@@ -111,7 +111,7 @@ If the connection test fails, the exact server response (e.g. `401 Unauthorized`
 
 With `ai_provider_universal_router` enabled, a **Smart Route** is a virtual model — pick "Auto: \<label\>" as the provider for an operation type and each request is routed to the cheapest candidate model whose quality tier satisfies the prompt: short/simple prompts get a low tier threshold, long or reasoning-flavored prompts (code fences, "step by step", "prove", "refactor", ...) get a higher one. Candidates on a server that has hit its daily usage limit, or that just failed to answer (unreachable, rate-limited), drop out automatically, so routing doubles as failover: the failing call is retried once on the next candidate, and a server that keeps failing is skipped for longer each time (60s doubling up to 16 min). No health checks on the happy path.
 
-Cost comparison is time-aware: a backend can report a price multiplier for the current moment, so providers that bill on a schedule are ranked at the price you would actually pay. `deepseek` uses this for its peak/off-peak window (list price 00:30-16:30 UTC, a flat per-model discount outside it), which means a DeepSeek model can win a route at night and lose it during the day, with no configuration and no cron. Stored costs stay at list price.
+Cost comparison is time-aware: a backend can report a price multiplier for the current moment, so providers that bill on a schedule are ranked at the price you would actually pay. `deepseek` uses this for its peak/off-peak schedule (list price 01:00-04:00 and 06:00-10:00 UTC on weekdays, half price at all other times, all weekend and on Chinese public holidays), which means a DeepSeek model can win a route off-peak and lose it at peak, with no configuration and no cron. Holidays come from a built-in list; `$settings['ai_provider_universal_deepseek_holidays_url']` can point at a JSON list of Beijing dates (`["2027-01-01", ...]` or `{"holidays": [...]}`), fetched at most once a day and merged with it. Stored costs stay at list price.
 
 A route can also name a **verifier model**: before returning, that model (typically a free local one) judges the answer with a single yes/no call, and a rejection retries the request once with the best candidate — a lightweight alternative to full fact-checking that enables local-first/verify/escalate routing at zero cost.
 

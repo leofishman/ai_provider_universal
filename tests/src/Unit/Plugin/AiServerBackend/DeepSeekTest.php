@@ -7,6 +7,7 @@ namespace Drupal\Tests\ai_provider_universal\Unit\Plugin\AiServerBackend;
 use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Plugin\AiServerBackend\DeepSeek;
 use Drupal\Core\Http\ClientFactory;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\State\StateInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -18,6 +19,15 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(DeepSeek::class)]
 #[Group('ai_provider_universal')]
 final class DeepSeekTest extends TestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    // No remote holiday source: the built-in list applies.
+    new Settings([]);
+  }
 
   /**
    * Builds the plugin with unused mocked services.
@@ -41,32 +51,31 @@ final class DeepSeekTest extends TestCase {
   }
 
   /**
-   * List prices come from the table; the discount is not baked in.
+   * List prices come from the table, at the peak rate.
    */
   public function testDetectModelMetadata(): void {
-    $meta = $this->backend()->detectModelMetadata(['id' => 'deepseek-reasoner']);
-    $this->assertSame(0.55, $meta['cost_input']);
-    $this->assertSame(2.19, $meta['cost_output']);
-    $this->assertArrayNotHasKey('off_peak', $meta);
+    $meta = $this->backend()->detectModelMetadata(['id' => 'deepseek-v4-pro']);
+    $this->assertSame(1.32, $meta['cost_input']);
+    $this->assertSame(3.96, $meta['cost_output']);
   }
 
   /**
-   * Off-peak window is 16:30-00:30 UTC, per model discount.
+   * Peak is 01-04 and 06-10 UTC on weekdays; the rest costs half.
    */
   public function testPriceMultiplier(): void {
     $backend = $this->backend();
-    $peak = strtotime('2026-08-17 12:00:00 UTC');
-    $offPeak = strtotime('2026-08-17 20:00:00 UTC');
-    $justAfterMidnight = strtotime('2026-08-17 00:15:00 UTC');
-    $justAfterWindow = strtotime('2026-08-17 00:45:00 UTC');
-
-    $this->assertSame(1.0, $backend->getPriceMultiplier('deepseek-chat', $peak));
-    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-chat', $offPeak));
-    $this->assertSame(0.25, $backend->getPriceMultiplier('deepseek-reasoner', $offPeak));
-    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-chat', $justAfterMidnight));
-    $this->assertSame(1.0, $backend->getPriceMultiplier('deepseek-chat', $justAfterWindow));
+    // Monday 2026-08-17.
+    $this->assertSame(1.0, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-08-17 02:00:00 UTC')));
+    $this->assertSame(1.0, $backend->getPriceMultiplier('deepseek-v4-pro', strtotime('2026-08-17 09:59:00 UTC')));
+    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-08-17 05:00:00 UTC')));
+    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-08-17 10:00:00 UTC')));
+    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-08-17 00:59:00 UTC')));
+    // Saturday 2026-08-22, inside a weekday peak window.
+    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-08-22 02:00:00 UTC')));
+    // Thursday 2026-10-01, National Day.
+    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-10-01 02:00:00 UTC')));
     // Unknown model: no discount.
-    $this->assertSame(1.0, $backend->getPriceMultiplier('some-other-model', $offPeak));
+    $this->assertSame(1.0, $backend->getPriceMultiplier('some-other-model', strtotime('2026-08-17 05:00:00 UTC')));
   }
 
 }
