@@ -1013,6 +1013,8 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    *   The input, for re-resolving the route.
    * @param \Throwable $e
    *   The failure.
+   * @param string $operation_type
+   *   The operation the route serves.
    *
    * @return string
    *   Another model entity id from the same route.
@@ -1021,7 +1023,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
    *   $e, when the failure is not one routing can avoid or no other
    *   candidate is left.
    */
-  protected function nextRouteCandidate(string $model_id, string $failed, mixed $input, \Throwable $e): string {
+  protected function nextRouteCandidate(string $model_id, string $failed, mixed $input, \Throwable $e, string $operation_type = 'chat'): string {
     $model = $this->entityTypeManager->getStorage('ai_universal_model')->load($failed);
     if (!str_starts_with($model_id, 'route.')
       || !$model instanceof AiUniversalModelInterface
@@ -1030,7 +1032,7 @@ class UniversalProvider extends OpenAiBasedProviderClientBase implements ReRankI
       throw $e;
     }
     try {
-      $next = $this->resolveRoutedModel($model_id, $input, 'chat');
+      $next = $this->resolveRoutedModel($model_id, $input, $operation_type);
     }
     catch (\Throwable) {
       throw $e;

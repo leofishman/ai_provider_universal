@@ -60,7 +60,7 @@ class AiUniversalRouteForm extends EntityForm {
         'embeddings' => $this->t('Embeddings'),
         'moderation' => $this->t('Moderation'),
         'rerank' => $this->t('Rerank'),
-      ],
+      ] + ($this->moduleHandler->moduleExists('ai_provider_universal_decision') ? ['decision' => $this->t('Decision')] : []),
       '#default_value' => $route->getOperationType(),
       '#ajax' => [
         'callback' => '::updateCandidates',

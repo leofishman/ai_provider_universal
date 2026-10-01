@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for ai_provider_universal_decision.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function ai_provider_universal_decision_requirements(string $phase): array {
+  // The provider subclass implements an interface that ships from AI 1.6:
+  // swapping it in on an older AI core would fatal on class load.
+  if ($phase !== 'install' || interface_exists('Drupal\ai\OperationType\Decision\DecisionInterface')) {
+    return [];
+  }
+  return [
+    'ai_provider_universal_decision' => [
+      'title' => t('AI Decision operation'),
+      'description' => t('AI Provider: Universal — Decision needs the AI module 1.6 or newer, which provides the Decision operation type.'),
+      'severity' => REQUIREMENT_ERROR,
+    ],
+  ];
+}
