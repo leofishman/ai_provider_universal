@@ -80,4 +80,17 @@ class UniversalProviderIntegrationTest extends BrowserTestBase {
     );
   }
 
+  /**
+   * Tests that a default endpoint only hides the host when it is fixed.
+   *
+   * TypeSafe defaults to its API but serves self-hosted Laya through a host;
+   * DeepSeek ignores the host. The same check decides whether saving wipes a
+   * typed host, which used to silently repoint Laya servers at TypeSafe.
+   */
+  public function testDefaultEndpointWithOptionalHost(): void {
+    $this->drupalGet('/admin/config/ai/providers/universal/add');
+    $this->assertSession()->pageTextContains('Endpoint: https://api.typesafe.ai/v1 when the host is empty.');
+    $this->assertSession()->pageTextContains('Endpoint: https://api.deepseek.com (API key required; host and port are not needed).');
+  }
+
 }

@@ -10,7 +10,7 @@ Fields on the server form:
 |---|---|
 | Server name / machine name | Label and permanent id (`ai_universal_server.id`). |
 | Backend | Protocol plugin — see the catalog below. Hidden when only one backend is installed. |
-| Host name | `http://host` or `https://host`. Hidden for backends with a fixed endpoint (OpenRouter, Hugging Face, Fireworks, Groq, Ollama Cloud, Grok), which show their endpoint as a hint instead. |
+| Host name | `http://host` or `https://host`. Hidden for backends with a fixed endpoint (Groq, Grok, DeepSeek), which show their endpoint as a hint instead. Backends with a default endpoint that also honour a host (TypeSafe, OpenRouter, Hugging Face, Fireworks, Anthropic, Ollama Cloud) show it as optional: empty uses the default, a host points the server at another one speaking the same protocol (self-hosted Laya, a gateway). |
 | Port | Optional; common local defaults are documented inline (Ollama 11434, llama.cpp 8080, vLLM 8000, LM Studio 1234, LiteLLM 4000). |
 | API Key | A [Key](https://www.drupal.org/project/key) entity, sent as `Authorization: Bearer` (the `anthropic` backend sends it as `x-api-key`, as that API requires). Required for hosted services; optional for unauthenticated local servers. The "create a new key" link opens in a new tab; the **Refresh keys** button re-populates the select without losing your form input. |
 | Timeout | Request timeout in seconds (default 600). |

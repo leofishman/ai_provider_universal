@@ -93,16 +93,26 @@ class AiUniversalServerForm extends EntityForm {
     // Face, ...): host/port stay hidden for them via #states and each shows
     // its endpoint instead. The backend plugin is the source of truth — its
     // getBaseUri() on a hostless server reveals the default.
+    // Some of them (TypeSafe, Ollama Cloud) also honour a host, pointing the
+    // server at another one speaking the same protocol: they keep host/port
+    // visible as optional fields.
     $defaultUris = [];
+    $overridable = [];
     foreach (array_keys($this->backendManager->getDefinitions()) as $backend_id) {
       if ($uri = $this->getBackendDefaultUri($backend_id)) {
         $defaultUris[$backend_id] = $uri;
+        if ($this->isHostOverridable($backend_id)) {
+          $overridable[] = $backend_id;
+        }
       }
     }
-    // OR-list of #states value conditions for backends that need a host.
+    // OR-list of #states value conditions for backends that show a host.
     $needsHost = array_map(
       static fn (string $id): array => ['value' => $id],
-      array_values(array_diff(array_keys($this->backendManager->getDefinitions()), array_keys($defaultUris))),
+      [
+        ...array_diff(array_keys($this->backendManager->getDefinitions()), array_keys($defaultUris)),
+        ...$overridable,
+      ],
     );
 
     $backendOptions = $this->backendManager->getOptions();
@@ -124,7 +134,9 @@ class AiUniversalServerForm extends EntityForm {
           'visible' => [':input[name="backend"]' => ['value' => $backend_id]],
         ],
         'text' => [
-          '#markup' => $this->t('Endpoint: %uri (API key required; host and port are not needed).', ['%uri' => $uri]),
+          '#markup' => in_array($backend_id, $overridable, TRUE)
+            ? $this->t('Endpoint: %uri when the host is empty. Set a host and port to use another server speaking the same protocol (for example a self-hosted one).', ['%uri' => $uri])
+            : $this->t('Endpoint: %uri (API key required; host and port are not needed).', ['%uri' => $uri]),
         ],
       ];
     }
@@ -289,12 +301,12 @@ class AiUniversalServerForm extends EntityForm {
    * hostless server yields the fixed service endpoint (OpenRouter, Hugging
    * Face, ...) or '' for backends that require a configured host.
    */
-  protected function getBackendDefaultUri(string $backend_id): string {
+  protected function getBackendDefaultUri(string $backend_id, string $host = ''): string {
     try {
       $backend = $this->backendManager->createInstance($backend_id);
       /** @var \Drupal\ai_provider_universal\Entity\AiUniversalServerInterface $blank */
       $blank = $this->entityTypeManager->getStorage('ai_universal_server')->create([
-        'host_name' => '',
+        'host_name' => $host,
         'port' => '',
       ]);
       return $backend->getBaseUri($blank);
@@ -302,6 +314,18 @@ class AiUniversalServerForm extends EntityForm {
     catch (\Throwable) {
       return '';
     }
+  }
+
+  /**
+   * TRUE when a backend with a default endpoint also honours a host.
+   *
+   * Asked the same way as the default: a probe host that changes the base
+   * URI means the host is used (TypeSafe, Ollama Cloud); one that does not
+   * means the endpoint is fixed (DeepSeek).
+   */
+  protected function isHostOverridable(string $backend_id): bool {
+    $default = $this->getBackendDefaultUri($backend_id);
+    return $default !== '' && $this->getBackendDefaultUri($backend_id, 'http://host.invalid') !== $default;
   }
 
   /**
@@ -530,7 +554,8 @@ class AiUniversalServerForm extends EntityForm {
     // Host/port are hidden (#states) for backends with a fixed endpoint, but
     // hidden fields still submit: drop stale values typed before a backend
     // switch so they never reach the entity.
-    if ($this->getBackendDefaultUri((string) $form_state->getValue('backend'))) {
+    $backend_id = (string) $form_state->getValue('backend');
+    if ($this->getBackendDefaultUri($backend_id) && !$this->isHostOverridable($backend_id)) {
       $form_state->setValue('host_name', '');
       $form_state->setValue('port', '');
     }
