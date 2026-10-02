@@ -8,6 +8,11 @@ use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Plugin\AiServerBackend\DeepSeek;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\Site\Settings;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
 use Drupal\Core\State\StateInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -25,8 +30,8 @@ final class DeepSeekTest extends TestCase {
    */
   protected function setUp(): void {
     parent::setUp();
-    // No remote holiday source: the built-in list applies.
-    new Settings([]);
+    // No status service: the built-in schedule applies.
+    new Settings(['ai_provider_universal_deepseek_status_url' => '']);
   }
 
   /**
@@ -74,8 +79,70 @@ final class DeepSeekTest extends TestCase {
     $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-08-22 02:00:00 UTC')));
     // Thursday 2026-10-01, National Day.
     $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-10-01 02:00:00 UTC')));
+    // Versioned ids get the same price entry.
+    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-v4.1-flash', strtotime('2026-08-17 05:00:00 UTC')));
     // Unknown model: no discount.
     $this->assertSame(1.0, $backend->getPriceMultiplier('some-other-model', strtotime('2026-08-17 05:00:00 UTC')));
+  }
+
+  /**
+   * The status service decides "now", once per transition.
+   */
+  public function testStatusServiceAnswersForNow(): void {
+    new Settings(['ai_provider_universal_deepseek_status_url' => 'https://status.test/v1/status']);
+    $requests = [];
+    $stack = HandlerStack::create(new MockHandler([
+      new Response(200, [], (string) json_encode([
+        'peak' => TRUE,
+        'nextTransition' => ['at' => gmdate('c', time() + 3600), 'peak' => FALSE],
+      ])),
+    ]));
+    $stack->push(Middleware::history($requests));
+    $factory = $this->createMock(ClientFactory::class);
+    $factory->method('fromOptions')->willReturn(new Client(['handler' => $stack]));
+    $stored = NULL;
+    $state = $this->createMock(StateInterface::class);
+    $state->method('get')->willReturnCallback(function () use (&$stored) {
+      return $stored;
+    });
+    $state->method('set')->willReturnCallback(function ($key, $value) use (&$stored) {
+      $stored = $value;
+    });
+    $backend = new DeepSeek([], 'deepseek', [], $factory, $state);
+
+    $this->assertSame(1.0, $backend->getPriceMultiplier('deepseek-flash'));
+    // Cached until the transition: no second request.
+    $this->assertSame(1.0, $backend->getPriceMultiplier('deepseek-flash'));
+    $this->assertCount(1, $requests);
+    // Any other moment is computed locally (Saturday: off-peak).
+    $this->assertSame(0.5, $backend->getPriceMultiplier('deepseek-flash', strtotime('2026-08-22 02:00:00 UTC')));
+    $this->assertCount(1, $requests);
+  }
+
+  /**
+   * An unreachable service falls back to the schedule and is not retried.
+   */
+  public function testStatusServiceFailureFallsBack(): void {
+    new Settings(['ai_provider_universal_deepseek_status_url' => 'https://status.test/v1/status']);
+    $requests = [];
+    $stack = HandlerStack::create(new MockHandler([new Response(500)]));
+    $stack->push(Middleware::history($requests));
+    $factory = $this->createMock(ClientFactory::class);
+    $factory->method('fromOptions')->willReturn(new Client(['handler' => $stack]));
+    $stored = NULL;
+    $state = $this->createMock(StateInterface::class);
+    $state->method('get')->willReturnCallback(function () use (&$stored) {
+      return $stored;
+    });
+    $state->method('set')->willReturnCallback(function ($key, $value) use (&$stored) {
+      $stored = $value;
+    });
+    $backend = new DeepSeek([], 'deepseek', [], $factory, $state);
+
+    $local = $this->backend()->getPriceMultiplier('deepseek-flash');
+    $this->assertSame($local, $backend->getPriceMultiplier('deepseek-flash'));
+    $this->assertSame($local, $backend->getPriceMultiplier('deepseek-flash'));
+    $this->assertCount(1, $requests);
   }
 
 }

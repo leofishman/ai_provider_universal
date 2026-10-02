@@ -49,7 +49,8 @@ class DeepSeek extends OpenAiCompatible {
       'cost_output' => 3.96,
       'quality_tier' => 5,
     ],
-    'deepseek-flash' => [
+    // Matches deepseek-flash and versioned ids such as deepseek-v4.1-flash.
+    'flash' => [
       'cost_input' => 0.30,
       'cost_output' => 1.20,
       'quality_tier' => 4,
@@ -69,9 +70,10 @@ class DeepSeek extends OpenAiCompatible {
   /**
    * Chinese public holidays (Beijing dates), billed off-peak all day.
    *
-   * The fallback when no holiday source is configured or reachable; see
-   * holidays(). Make-up workdays need no entry: DeepSeek bills weekends
-   * off-peak regardless. Source: State Council notice of 2025-11-04.
+   * Used by the local calculation, the fallback when the status service is
+   * disabled or unreachable (see remotePeak()). Make-up workdays need no
+   * entry: DeepSeek bills weekends off-peak regardless. Source: State
+   * Council notice of 2025-11-04.
    */
   protected const HOLIDAYS = [
     '2026-01-01', '2026-01-02', '2026-01-03',
@@ -86,9 +88,14 @@ class DeepSeek extends OpenAiCompatible {
   ];
 
   /**
-   * State key caching the remote holiday list.
+   * Default peak status service (https://seekpeak.dev, by SteffenR).
    */
-  protected const HOLIDAYS_STATE = 'ai_provider_universal.deepseek_holidays';
+  protected const STATUS_URL = 'https://api.seekpeak.dev/v1/status';
+
+  /**
+   * State key caching the last status answer.
+   */
+  protected const STATUS_STATE = 'ai_provider_universal.deepseek_status';
 
   /**
    * {@inheritdoc}
@@ -130,8 +137,16 @@ class DeepSeek extends OpenAiCompatible {
 
   /**
    * TRUE when the given timestamp is billed at the off-peak rate.
+   *
+   * The status service answers for the current moment, holidays included;
+   * any other moment, or a service that does not answer, is computed
+   * locally from the schedule and the built-in holiday list.
    */
   protected function isOffPeak(int $timestamp): bool {
+    $peak = $this->remotePeak($timestamp);
+    if ($peak !== NULL) {
+      return !$peak;
+    }
     $minutes = ((int) gmdate('H', $timestamp)) * 60 + (int) gmdate('i', $timestamp);
     $inWindow = FALSE;
     foreach (self::PEAK_WINDOWS as [$start, $end]) {
@@ -143,48 +158,58 @@ class DeepSeek extends OpenAiCompatible {
     // Every peak window falls on the same calendar day in Beijing (09:00 to
     // 18:00 there), so the weekday and the holiday are read in Beijing time.
     $beijing = (new \DateTimeImmutable('@' . $timestamp))->setTimezone(new \DateTimeZone('Asia/Shanghai'));
-    return (int) $beijing->format('N') >= 6 || in_array($beijing->format('Y-m-d'), $this->holidays(), TRUE);
+    return (int) $beijing->format('N') >= 6 || in_array($beijing->format('Y-m-d'), self::HOLIDAYS, TRUE);
   }
 
   /**
-   * The Chinese public holidays, from the configured source or the fallback.
+   * Whether DeepSeek bills peak right now, per the status service.
    *
-   * A site can point $settings['ai_provider_universal_deepseek_holidays_url']
-   * at a JSON list of Beijing dates ("YYYY-MM-DD"), bare or under a
-   * "holidays" key. It is fetched at most once a day, only when a call falls
-   * in a peak window, and merged with HOLIDAYS; a failed fetch keeps the
-   * last good list and is retried the next day.
+   * The service answers {"peak": bool, "nextTransition": {"at": ISO 8601}},
+   * so one answer stays valid until the next transition: a handful of
+   * requests a day. A failure is retried after an hour, meanwhile the local
+   * calculation applies. $settings['ai_provider_universal_deepseek_status_url']
+   * points at another service with the same answer; '' disables it.
    *
-   * @return string[]
-   *   Holiday dates.
+   * @param int $timestamp
+   *   The moment asked about.
+   *
+   * @return bool|null
+   *   TRUE at peak, FALSE off-peak, NULL when the service cannot tell (it is
+   *   disabled or unreachable, or $timestamp is not now).
    */
-  protected function holidays(): array {
-    $url = (string) Settings::get('ai_provider_universal_deepseek_holidays_url', '');
-    if ($url === '') {
-      return self::HOLIDAYS;
+  protected function remotePeak(int $timestamp): ?bool {
+    $url = (string) Settings::get('ai_provider_universal_deepseek_status_url', self::STATUS_URL);
+    $now = time();
+    if ($url === '' || abs($timestamp - $now) > 60) {
+      return NULL;
     }
-    $cached = $this->state->get(self::HOLIDAYS_STATE, ['checked' => 0, 'dates' => []]);
-    if (time() - $cached['checked'] > 86400) {
-      $cached['checked'] = time();
-      try {
-        // ponytail: fetched in the routing path, once a day with a 2s cap;
-        // move to cron if that first call's latency ever matters.
-        $data = Json::decode((string) $this->httpClientFactory->fromOptions(['timeout' => 2, 'connect_timeout' => 2])
-          ->request('GET', $url, ['headers' => ['Accept' => 'application/json']])->getBody());
-        $dates = is_array($data) ? ($data['holidays'] ?? $data) : NULL;
-        if (is_array($dates)) {
-          $cached['dates'] = array_values(array_filter($dates, static fn ($d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)));
-        }
-      }
-      catch (\Throwable $e) {
-        $this->loggerFactory?->get('ai_provider_universal')->warning(
-          'DeepSeek holiday list could not be fetched from @url: @message. Using the last known list.',
-          ['@url' => $url, '@message' => $e->getMessage()],
-        );
-      }
-      $this->state->set(self::HOLIDAYS_STATE, $cached);
+    $cached = $this->state->get(self::STATUS_STATE) ?: [];
+    if (isset($cached['peak']) && $timestamp >= $cached['checked'] && $timestamp < $cached['until']) {
+      return $cached['peak'];
     }
-    return array_unique([...self::HOLIDAYS, ...$cached['dates']]);
+    if ($now < ($cached['retry'] ?? 0)) {
+      return NULL;
+    }
+    try {
+      // ponytail: fetched in the routing path with a 5s cap, at most once
+      // per transition; move to cron if that call's latency ever matters.
+      $data = Json::decode((string) $this->httpClientFactory->fromOptions(['timeout' => 5, 'connect_timeout' => 3])
+        ->request('GET', $url, ['headers' => ['Accept' => 'application/json']])->getBody());
+      $until = strtotime((string) ($data['nextTransition']['at'] ?? ''));
+      if (!is_bool($data['peak'] ?? NULL) || !$until || $until <= $now) {
+        throw new \UnexpectedValueException('unexpected answer');
+      }
+      $this->state->set(self::STATUS_STATE, ['peak' => $data['peak'], 'checked' => $now, 'until' => $until]);
+      return $data['peak'];
+    }
+    catch (\Throwable $e) {
+      $this->state->set(self::STATUS_STATE, ['retry' => $now + 3600]);
+      $this->loggerFactory?->get('ai_provider_universal')->warning(
+        'DeepSeek peak status could not be read from @url: @message. Using the built-in schedule for an hour.',
+        ['@url' => $url, '@message' => $e->getMessage()],
+      );
+      return NULL;
+    }
   }
 
 }

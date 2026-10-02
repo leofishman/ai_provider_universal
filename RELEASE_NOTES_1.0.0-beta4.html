@@ -15,7 +15,7 @@
 <h3>Fixes</h3>
 <ul>
   <li><strong>The server form no longer wipes the host of a self-hosted server on a hosted backend.</strong> Host and port were hidden for every backend with a default endpoint and cleared on save, so editing a self-hosted Laya server (backend <code>typesafe</code>) in the UI silently sent its calls to api.typesafe.ai. Backends whose default can be overridden (TypeSafe, OpenRouter, Hugging Face, Fireworks, Anthropic, Ollama Cloud) now show host and port as optional fields; fixed endpoints (Groq, Grok, DeepSeek) keep hiding them.</li>
-  <li><strong>DeepSeek's current billing schedule.</strong> Peak is now 01:00–04:00 and 06:00–10:00 UTC on weekdays; weekends and Chinese public holidays are off-peak all day, at half price for every model. The old 16:30–00:30 UTC window made the router rank DeepSeek at the wrong price for most of the day. The price table moves to <code>deepseek-flash</code> and <code>deepseek-v4-pro</code>. Holidays come from a built-in 2026 list; <code>$settings['ai_provider_universal_deepseek_holidays_url']</code> can point at a JSON list of Beijing dates (<code>["2026-10-01", …]</code> or <code>{"holidays": […]}</code>), fetched at most once a day, with the built-in list as fallback.</li>
+  <li><strong>DeepSeek's current billing schedule.</strong> Peak is now 01:00–04:00 and 06:00–10:00 UTC on weekdays; weekends and Chinese public holidays are off-peak all day, at half price for every model. The old 16:30–00:30 UTC window made the router rank DeepSeek at the wrong price for most of the day. The price table moves to <code>deepseek-flash</code> and <code>deepseek-v4-pro</code>. The current state comes from <a href="https://seekpeak.dev">SeekPeak</a>'s status API (thanks, SteffenR), cached until its next transition — a handful of requests a day — so Chinese public holidays need no maintenance; when it does not answer, the schedule and a built-in 2026 holiday list apply. <code>$settings['ai_provider_universal_deepseek_status_url']</code> points at another service with the same answer; <code>''</code> disables it.</li>
 </ul>
 
 <h3>Upgrading</h3>
@@ -30,7 +30,7 @@
 <ul>
   <li>Jev has not been verified against the live TypeSafe API (signups were paused); everything decision-related is verified end to end against self-hosted Laya, and against Jev's documented wire format with mocked HTTP.</li>
   <li>The Decision submodule targets AI 1.6.x-dev, whose interfaces may still change; it is excluded from drupal.org CI's static analysis until AI 1.6 is stable. Image files in decisions are not supported yet.</li>
-  <li>The built-in Chinese holiday list covers 2026 only.</li>
+  <li>The built-in Chinese holiday list, used only when SeekPeak does not answer, covers 2026 only.</li>
 </ul>
 
 <h3>Requirements</h3>
