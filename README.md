@@ -27,7 +27,7 @@ Protocol-specific logic lives in **AiServerBackend plugins**. The module ships w
 | `grok` | Grok / xAI | fixed `api.x.ai/v1` | Small hardcoded table for grok-2 family |
 | `anthropic` | Anthropic Claude — **native Messages API**, not OpenAI-compatible | fixed `api.anthropic.com/v1` | Paginated catalog + price/context/feature table per Claude generation |
 | `deepseek` | DeepSeek | fixed `api.deepseek.com` | Hardcoded price table; off-peak discount applied when routing on cost |
-| `typesafe` | TypeSafe Jev — **native System One API**: typed decisions (yes/no probability, choice, score), not text. Also self-hosted Laya. Serves `text_classification` (AI 1.4+) and, with the decision submodule, AI core's `decision` operation (AI 1.6+) | fixed `api.typesafe.ai/v1` (host for self-hosted) | `/v1/models` catalog + Jev list input price |
+| `typesafe` | TypeSafe Jev — **native System One API**: typed decisions (yes/no probability, choice, score), not text. Also self-hosted Laya. Serves `text_classification` (AI 1.4+) and, with the decision submodule, AI core's `decision` operation (AI 1.6+) | `api.typesafe.ai/v1` by default; set a host for any other System One server (e.g. self-hosted Laya) | `/v1/models` catalog + Jev list input price |
 
 Full reference (capability detection, forms, filters, moderation parsers): [docs/servers-and-models.md](docs/servers-and-models.md).
 
