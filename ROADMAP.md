@@ -117,13 +117,14 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       request parameters or a JSON system prompt, JSON answers as text.
       Verified end to end against self-hosted Laya; not yet against the
       live TypeSafe API (signups paused).
-- [ ] **`decision` operation type**: optional submodule implementing the
-      `decision` operation (drupal/ai_decision: yes_no / choice / score) on
-      the universal provider, native in the `typesafe` backend, so
-      automators, the explorer and agents reach Jev / Laya and smart routes
-      fail over between them. On hold until it is settled whether the
-      operation type moves into AI core. Fact check checkers (MiniCheck,
-      Jev, Laya) could then become interchangeable `yes_no` decisions.
+- [x] **`decision` operation type**: optional `ai_provider_universal_decision`
+      submodule implementing AI core's `decision` operation (AI 1.6+,
+      noul / choice / score) on the universal provider, riding the
+      `typesafe` backend, so guardrails, automators and the Decision
+      explorer reach Jev / Laya, and smart routes of type decision fail over
+      between them. Verified live against Laya; not yet against the live
+      TypeSafe API. Next: fact check checkers (MiniCheck, Jev, Laya) as
+      interchangeable decisions; image files.
 - [ ] OpenRouter embeddings discovery: embedding models are not in
       `/v1/models` but on a separate `/embeddings/models` catalog endpoint;
       override `listModels()` in the `openrouter` backend to fetch both and

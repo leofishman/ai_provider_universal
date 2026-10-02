@@ -39,7 +39,7 @@ A backend whose service speaks a different protocol additionally implements `AiI
 | `grok` | Grok (xAI) | `api.x.ai/v1` | no (fixed) | `/v1/models` | Generic heuristics | Basic hardcoded table for grok-2 / grok-beta |
 | `anthropic` | Anthropic Claude — **native Messages API** | `api.anthropic.com/v1` | no (fixed; a host points at a gateway) | `GET /v1/models`, paginated | `chat` only (the Messages API serves nothing else) | Hardcoded table per Claude generation + `supported_features` (tools / reasoning / vision) |
 | `deepseek` | DeepSeek | `api.deepseek.com` | no (fixed) | `/v1/models` (ids only) | Generic heuristics | Hardcoded table for `deepseek-flash` / `deepseek-v4-pro` (price, quality tier). Bills peak/off-peak, so the backend also reports a **price multiplier** (`getPriceMultiplier()`) that smart routing applies at decision time — list price 01:00-04:00 and 06:00-10:00 UTC on weekdays, half price otherwise, including weekends and Chinese public holidays (built-in list, optionally extended from `$settings['ai_provider_universal_deepseek_holidays_url']`). Stored costs stay at list price |
-| `typesafe` | TypeSafe Jev — **native System One API** | `api.typesafe.ai/v1` | no (fixed; a host points at a gateway) | `GET /v1/models` (model cards keyed by `name`) | `chat` only | List input price (USD 42 per billion tokens); quality tier 1. No output price is published |
+| `typesafe` | TypeSafe Jev — **native System One API** | `api.typesafe.ai/v1` | no (fixed; a host points at a gateway) | `GET /v1/models` (model cards keyed by `name`) | `chat`; `text_classification` (AI 1.4+); `decision` (AI 1.6+) | List input price (USD 42 per billion tokens); quality tier 1. No output price is published |
 
 > ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons. **Groq** reads prices live from `/v1/models` (same idea as OpenRouter).
 
@@ -181,13 +181,38 @@ $provider->textClassification(new TextClassificationInput($text, ['billing', 'te
 // billing=0.94  sales=0.11  technical support=0.09
 ```
 
-The question sent per label is `The text mentions or concerns "%s".`; override it with `setConfiguration(['classification_question' => '...'])` before the call. Questions with their own instructions and criteria — several different ones about the same state — need `decide()` below, or the `decision` operation type once it lands.
+The question sent per label is `The text mentions or concerns "%s".`; override it with `setConfiguration(['classification_question' => '...'])` before the call. Questions with their own instructions and criteria — several different ones about the same state — need `decide()` below, or AI core's Decision operation.
 
 #### Any model can answer typed questions
 
 A decision is a **shape of question, not a capability of one model**. `UniversalProvider::decide($model_id, $state, $questions)` takes the same question set for any model: a decision model answers it in one forward pass, and every other model is prompted for the same answers as JSON (fences and surrounding prose are tolerated). The answers come back in the same shape either way, minus the calibrated probabilities a chat model cannot give — a `choice` from a chat model carries no `confidence` key rather than an invented number, so code that gates on confidence can tell the difference.
 
 That is what makes failover work: a smart route can hold Jev *and* a chat model as candidates for the same job, and `text_classification` works on both. Verified live on Laya and on Gemma 3 4B through Ollama (`urgent` 0.82 with confidence on Laya, a bare 1.0 from Gemma — a chat model's numbers are not calibrated). Tiny models (≤1B) return nothing parseable, which surfaces as empty answers.
+
+#### AI core's Decision operation (AI 1.6+)
+
+AI 1.6 adds a `decision` operation type to AI core, used by its guardrails, the Decision automators and the Decision explorer. Enable the experimental **`ai_provider_universal_decision`** submodule to serve it; it refuses to install on older AI. Then run `drush aipdm` so existing System One models are listed under the operation (discovery reports it from AI 1.6).
+
+```php
+use Drupal\ai\OperationType\Decision\DecisionInput;
+
+$output = \Drupal::service('ai.provider')->createInstance('universal')->decision(new DecisionInput(
+  ['message' => 'Charged twice this month, refund now.', 'plan' => 'pro'],
+  [
+    'refund' => ['type' => 'noul', 'instructions' => 'The customer wants a refund.'],
+    'topic' => ['type' => 'choice', 'instructions' => 'What is the message about?', 'criteria' => ['billing' => 'payments', 'bug' => 'software defect', 'other' => NULL]],
+  ],
+), 'laya.laya');
+$output->getNormalized()->getNoul('refund')->getProbability();
+$output->getNormalized()->getChoice('topic')->getChoice();
+```
+
+- **Only decision models are offered** for the operation: a chat model has no calibrated probabilities to fill a typed answer with. Use `decide()` to mix both.
+- **Each model declares its capabilities** (`getDecisionCapabilities()`), and every request is validated against them before it is sent. All System One models declare the three question types, several questions per call, a structured (array) state — sent to the model as JSON — and structured instructions, choice descriptions and score levels. Only Jev declares criteria on yes/no questions; for Laya such a request fails with `AiMissingFeatureException` instead of being sent (see the portability note below). Image files are not declared yet.
+- **Smart routes of type Decision** list decision models as candidates; a call whose server is down is retried once on the next candidate, as for chat. A route declares the capabilities every System One model shares; each candidate is validated again when it is picked.
+- Calls go through the chat bridge, so the pre-call gate, usage limits and usage recording apply unchanged.
+
+The operation is still changing upstream; the submodule is excluded from drupal.org CI's static analysis until AI 1.6 is stable.
 
 #### Self-hosting Laya
 
@@ -239,7 +264,7 @@ docker run -d --name laya --restart unless-stopped -p 8095:8095 -v laya-hf-cache
 
 Then add a server with the `typesafe` backend, host `http://<machine>` and port `8095`, no key. On Apple Silicon, [laya-mlx](https://github.com/mizorewww/laya-mlx) runs the same model natively (~13 ms per decision) behind the same wrapper.
 
-**Question fields are not portable across decision models.** Laya rejects a plain-string `criteria` on a yes/no question outright (its own shape is `{"true": ..., "false": ...}`), and even in the shape it accepts, the field narrows its scores: measured here on `laya-english` over 8 messages, the gap between urgent and calm ones fell from 0.81 to 0.63 — accuracy held, but every threshold tuned without the field moves. Jev documents the field and behaves. The backend therefore drops `criteria` from yes/no questions when the target model is Laya and logs a warning, so one question set stays portable across both; `choice` and `score` criteria are never touched, since those questions are meaningless without their options.
+**Question fields are not portable across decision models.** Laya rejects a plain-string `criteria` on a yes/no question outright (its own shape is `{"true": ..., "false": ...}`), and even in the shape it accepts, the field narrows its scores: measured here on `laya-english` over 8 messages, the gap between urgent and calm ones fell from 0.81 to 0.63 — accuracy held, but every threshold tuned without the field moves. Jev documents the field and behaves. Over chat, `decide()` and `text_classification`, the backend therefore drops `criteria` from yes/no questions when the target model is Laya and logs a warning, so one question set stays portable across both (AI core's Decision operation refuses the request instead, since its contract is that declared features are honoured); `choice` and `score` criteria are never touched, since those questions are meaningless without their options.
 
 Asking several questions in one request is safe: another integrator measured 9 questions batched against the same 9 asked separately over 300 items and found an average difference of 0.011, the same variation as repeating one question twice (5 of 300 crossed the yes/no threshold). Batching mainly saves time and money.
 

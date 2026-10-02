@@ -27,7 +27,7 @@ Protocol-specific logic lives in **AiServerBackend plugins**. The module ships w
 | `grok` | Grok / xAI | fixed `api.x.ai/v1` | Small hardcoded table for grok-2 family |
 | `anthropic` | Anthropic Claude — **native Messages API**, not OpenAI-compatible | fixed `api.anthropic.com/v1` | Paginated catalog + price/context/feature table per Claude generation |
 | `deepseek` | DeepSeek | fixed `api.deepseek.com` | Hardcoded price table; off-peak discount applied when routing on cost |
-| `typesafe` | TypeSafe Jev — **native System One API**: typed decisions (yes/no probability, choice, score), not text. Also self-hosted Laya. Serves `text_classification` (AI 1.4+) | fixed `api.typesafe.ai/v1` (host for self-hosted) | `/v1/models` catalog + Jev list input price |
+| `typesafe` | TypeSafe Jev — **native System One API**: typed decisions (yes/no probability, choice, score), not text. Also self-hosted Laya. Serves `text_classification` (AI 1.4+) and, with the decision submodule, AI core's `decision` operation (AI 1.6+) | fixed `api.typesafe.ai/v1` (host for self-hosted) | `/v1/models` catalog + Jev list input price |
 
 Full reference (capability detection, forms, filters, moderation parsers): [docs/servers-and-models.md](docs/servers-and-models.md).
 
@@ -51,10 +51,14 @@ composer require 'drupal/ai_provider_universal:^1.0@beta'
 drush pm:enable ai_provider_universal
 # optional submodules:
 drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck ai_provider_universal_governance
+# AI 1.6+ only (experimental): AI core's Decision operation for Jev / Laya
+drush pm:enable ai_provider_universal_decision
 ```
 
 Release notes:
 
+- **1.0.0-beta4** (changes since beta3): [RELEASE_NOTES_1.0.0-beta4.html](RELEASE_NOTES_1.0.0-beta4.html)
+- **1.0.0-beta3** (changes since beta2): [RELEASE_NOTES_1.0.0-beta3.html](RELEASE_NOTES_1.0.0-beta3.html)
 - **1.0.0-beta2** (changes since beta1): [RELEASE_NOTES_1.0.0-beta2.html](RELEASE_NOTES_1.0.0-beta2.html)
 - **1.0.0-beta1** (changes since alpha1): [RELEASE_NOTES_1.0.0-beta1.html](RELEASE_NOTES_1.0.0-beta1.html)
 
@@ -130,6 +134,18 @@ Each **server** can carry daily request/token limits — that is where the accou
 For rules beyond daily limits (business hours, per-role quotas), subscribe to the **pre-call gate**: `ModelPreCallEvent` fires before every inference call and lets any module block the call or swap the model. Its companions: `ModelPostCallEvent` fires after every successful chat call with token usage and latency (custom telemetry, cost alerting), and `ModelsDiscoveredEvent` lets you enrich or correct the discovered model set before it is persisted. See the events table in [docs/smart-routing.md](docs/smart-routing.md).
 
 Full details — enforcement model, thresholds, event reference, pre-call gate: [docs/usage-limits.md](docs/usage-limits.md).
+
+### Decision models (Jev, Laya)
+
+Decision models answer typed questions about a state — `noul` (probability a statement is true), `choice`, `score` — instead of generating text. Add a server with the `typesafe` backend: the hosted TypeSafe API (Jev), or any self-hosted server speaking the same System One protocol, such as Laya. How callers reach them depends on the AI version; **the submodule is only needed for AI core's Decision operation**:
+
+| AI version | How decision models are reached | Needs |
+|---|---|---|
+| 1.3+ | As `chat` (questions in the model's extra request parameters or a JSON system prompt, JSON answers back); `UniversalProvider::decide()` from code; router complexity classifier; fact check checker | nothing |
+| 1.4+ | Also `text_classification`: one yes/no question per label, labels ranked by probability (Tagify AI, classifier automators) | nothing |
+| 1.6+ | Also AI core's `decision` operation: guardrails, Decision automators, the Decision explorer; smart routes of type Decision fail over between decision models | `ai_provider_universal_decision` (experimental) |
+
+Full details — question shapes, capabilities per model, self-hosting Laya: [docs/servers-and-models.md](docs/servers-and-models.md#typesafe-jev).
 
 ### Fact check & content scan (fact check submodule)
 

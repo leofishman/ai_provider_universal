@@ -8,7 +8,7 @@ A route (`ai_universal_route` config entity, `modules/ai_provider_universal_rout
 
 | Field | Meaning | Default |
 |---|---|---|
-| Operation type | Which operation this route serves (chat, embeddings, moderation, rerank). | `chat` |
+| Operation type | Which operation this route serves (chat, embeddings, moderation, rerank; decision with the `ai_provider_universal_decision` submodule). | `chat` |
 | Candidate models | Explicit model pool. Empty = every model that supports the operation type. | empty |
 | Minimum tier for simple prompts | Quality tier (1–5) a candidate must reach for a prompt classified as simple. | 2 |
 | Minimum tier for complex prompts | Quality tier a candidate must reach for a prompt classified as complex. | 4 |
