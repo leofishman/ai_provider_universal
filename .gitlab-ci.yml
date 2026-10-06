@@ -24,3 +24,17 @@ phpstan:
   allow_failure: false
   before_script:
     - composer require --dev drush/drush
+
+# ponytail: copy of the template's exclude list plus the PHPStan turbo-ext
+# files that push the composer artifact over the upload limit (413). Drop
+# this block once gitlab_templates!528 (#3572444) is merged.
+.composer-base:
+  artifacts:
+    exclude:
+      - '.git'
+      - '.git/**/*'
+      - '$_WEB_ROOT/**/.git'
+      - '$_WEB_ROOT/**/.git/**/*'
+      - 'vendor/**/.git'
+      - 'vendor/**/.git/**/*'
+      - 'vendor/phpstan/phpstan/turbo-ext/**'
