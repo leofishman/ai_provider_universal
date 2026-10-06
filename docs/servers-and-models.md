@@ -148,7 +148,7 @@ Two consequences worth knowing:
 
 ### TypeSafe (Jev)
 
-Jev is a *System One* model: it does not generate text. It takes a **state** and a set of typed **questions** — `noul` (probability a statement is true), `choice` (one option from a set, with per-option probabilities) and `score` (a level on a rubric) — and returns typed answers with calibrated confidence ([docs](https://docs.typesafe.ai/primitives)). It is exposed as chat so any AI core caller can reach it:
+Jev is a *System One* model: it does not generate text. It takes a **state** and a set of typed **questions** — `noul` (probability a statement is true *of the state*), `choice` (one option from a set, with per-option probabilities) and `score` (a level on a rubric) — and returns typed answers with calibrated confidence ([docs](https://docs.typesafe.ai/primitives)). The state is the model's only source of truth: it has no world knowledge, so "is this statement factual?" over a bare statement scores near random (0.1–0.3 for true and false alike on `laya-english`). Put the evidence in the state and phrase the question against it — e.g. state = the conversation plus `Candidate memory: The user lives in Berlin.`, question = `The conversation states the candidate memory about the user.` On a short conversation that separated true facts (0.94–0.96) from clear falsehoods (0.01–0.10), but a subtle misattribution (whose diet) still scored 0.78; for that, an NLI model is the better fit. The fact-check checker follows this pattern: each claim is judged against retrieved sources ([factcheck](factcheck.md)). It is exposed as chat so any AI core caller can reach it:
 
 | Chat side | System One side |
 |---|---|

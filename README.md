@@ -137,7 +137,7 @@ Full details — enforcement model, thresholds, event reference, pre-call gate: 
 
 ### Decision models (Jev, Laya)
 
-Decision models answer typed questions about a state — `noul` (probability a statement is true), `choice`, `score` — instead of generating text. Add a server with the `typesafe` backend: the hosted TypeSafe API (Jev), or any self-hosted server speaking the same System One protocol, such as Laya. How callers reach them depends on the AI version; **the submodule is only needed for AI core's Decision operation**:
+Decision models answer typed questions about a state — `noul` (probability a statement is true *of that state*), `choice`, `score` — instead of generating text. They judge only what the state contains, not the world: asked whether a bare statement is factual, they return near-random scores. Pass the evidence as the state (the conversation, the retrieved sources) and ask about the candidate. Add a server with the `typesafe` backend: the hosted TypeSafe API (Jev), or any self-hosted server speaking the same System One protocol, such as Laya. How callers reach them depends on the AI version; **the submodule is only needed for AI core's Decision operation**:
 
 | AI version | How decision models are reached | Needs |
 |---|---|---|
