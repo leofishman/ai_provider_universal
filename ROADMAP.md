@@ -298,6 +298,28 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 - [ ] Move fact-check capabilities to plugins (vs services) — **Content
       governance Phase 5** (ScanCheck plugins; evaluate with Guardrail reuse).
 - [ ] MCP integration, the Drupal AI way.
+- [x] `PageFetcher` service: URL fetch (SSRF guard on every redirect hop)
+      and HTML-to-text, shared by the standalone form and future submodules.
+- [ ] **`ai_provider_universal_terms` submodule (1.1.x)**: analyzes terms
+      and privacy policies into a short report (data collected and shared,
+      retention, auto-renewal, arbitration, jurisdiction, license over
+      content), each point quoting its clause; quotes not found in the text
+      are dropped. Depends on factcheck (input form, `PageFetcher`, scan
+      profiles) but has its own pipeline: clauses are judged against the
+      document itself, not external evidence. Clause classification fits
+      decision models (`choice` with the clause as state). Three uses:
+      - **Own terms** on multi-site or multi-tenant setups: a scan profile re-checks each
+        site's policy (AI-use disclosure for art. 50, retention, third
+        parties), tied to governance.
+      - **Any terms**, pasted or by URL, like the standalone fact check.
+      - **Catalogue service** for Lapacho's terms plugin: re-fetch popular
+        terms on a schedule, normalize and hash the text, re-analyze only
+        what changed, keep every version ("what changed since you
+        accepted"), export the catalogue as a versioned file and answer
+        lookups by hash prefix.
+      Blocked on Lapacho's measurement step (which model finds which clause,
+      at what context size) — see `lapacho/ROADMAP.md`, "Read the terms
+      before accepting them".
 - [x] Factcheck admin notifications: AdminNotifier + FactcheckNotificationEvent
       (ECA/Message seam) with optional default mail via notify_email.
 

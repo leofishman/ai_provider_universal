@@ -36,6 +36,11 @@ services:
     parent: logger.channel_base
     arguments: ['ai_provider_universal_factcheck']
 
+  Drupal\ai_provider_universal_factcheck\Service\PageFetcher:
+    class: Drupal\ai_provider_universal_factcheck\Service\PageFetcher
+    arguments:
+      - '@http_client'
+
   Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer:
     class: Drupal\ai_provider_universal_factcheck\Service\ReadabilityScorer
 

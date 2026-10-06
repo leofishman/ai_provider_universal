@@ -4,7 +4,8 @@ namespace Drupal\ai_provider_universal_factcheck\Form;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
-use GuzzleHttp\ClientInterface;
+use Drupal\ai_provider_universal_factcheck\Exception\PageFetchException;
+use Drupal\ai_provider_universal_factcheck\Service\PageFetcher;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -17,16 +18,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class StandaloneFactCheckForm extends ContentScanForm {
 
   /**
-   * The HTTP client, for fetching URLs to scan.
+   * Fetches URLs to scan.
    */
-  protected ClientInterface $httpClient;
+  protected PageFetcher $pageFetcher;
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     $instance = parent::create($container);
-    $instance->httpClient = $container->get('http_client');
+    $instance->pageFetcher = $container->get(PageFetcher::class);
     return $instance;
   }
 
@@ -81,15 +82,15 @@ class StandaloneFactCheckForm extends ContentScanForm {
     $url = trim((string) $form_state->getValue('url'));
     $subject = $url ?: $this->t('Pasted text');
 
-    $raw = $url ? $this->fetchUrl($url) : (string) $form_state->getValue('text');
-    if ($raw === NULL) {
-      // fetchUrl() already reported the error.
+    try {
+      $text = $url
+        ? $this->pageFetcher->fetchText($url)
+        : $this->pageFetcher->toText((string) $form_state->getValue('text'));
+    }
+    catch (PageFetchException $e) {
+      $this->messenger()->addError($e->userMessage);
       return;
     }
-    // Drop non-content markup before stripping tags, so menus/scripts don't
-    // pollute the scanned text.
-    $raw = preg_replace('/<(script|style|nav|header|footer)\b[^>]*>.*?<\/\1>/is', ' ', $raw);
-    $text = trim(preg_replace('/\s+/', ' ', strip_tags($raw)));
     if (mb_strlen($text) < 10) {
       $this->messenger()->addWarning($this->t('No usable text found — nothing to scan.'));
       return;
@@ -103,43 +104,6 @@ class StandaloneFactCheckForm extends ContentScanForm {
       'subject' => (string) $subject,
       'url' => $url ?: NULL,
     ], 'scan_standalone');
-  }
-
-  /**
-   * Fetches a URL, NULL on failure (with a message shown to the user).
-   *
-   * Guards against SSRF: only http/https, and the host must not resolve
-   * to a loopback, private or link-local address (blocks cloud metadata
-   * endpoints and internal services).
-   */
-  protected function fetchUrl(string $url): ?string {
-    $parts = parse_url($url);
-    $host = $parts['host'] ?? '';
-    if (!filter_var($url, FILTER_VALIDATE_URL)
-      || !in_array($parts['scheme'] ?? '', ['http', 'https'], TRUE)
-      || $host === '') {
-      $this->messenger()->addError($this->t('Only public http(s) URLs can be scanned.'));
-      return NULL;
-    }
-    // ponytail: resolve-then-fetch leaves a DNS-rebinding window; a
-    // pinning HTTP middleware is the upgrade if this ever guards more
-    // than a permissioned admin form.
-    $ip = gethostbyname($host);
-    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-      $this->messenger()->addError($this->t('The URL resolves to a private or reserved address and cannot be scanned.'));
-      return NULL;
-    }
-    try {
-      $response = $this->httpClient->request('GET', $url, ['timeout' => 30]);
-      return (string) $response->getBody();
-    }
-    catch (\Throwable $e) {
-      $this->messenger()->addError($this->t('Could not fetch %url: @message', [
-        '%url' => $url,
-        '@message' => $e->getMessage(),
-      ]));
-      return NULL;
-    }
   }
 
 }
