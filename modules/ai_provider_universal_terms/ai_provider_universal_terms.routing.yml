@@ -6,3 +6,9 @@ ai_provider_universal_terms.analyze:
   requirements:
     _permission: 'use terms analyzer'
     _format: json
+    # A JSON body only: a cross-site form cannot send one without a CORS
+    # preflight.
+    _content_type_format: json
+    # Cookie-authenticated callers must send X-CSRF-Token (from
+    # /session/token); other authentication is not affected.
+    _csrf_request_header_token: 'TRUE'

@@ -334,6 +334,12 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
             llama.cpp Qwen that is `chat_template_kwargs.enable_thinking:
             false` in its extra parameters; `reasoning_effort: none` does
             not turn it off.
+      - [x] Hardening (2026-10-07): JSON bodies only (`_content_type_format`)
+            and `X-CSRF-Token` for cookie sessions; `PageFetcher` reads at
+            most 5 MB; docs in `docs/terms.md`.
+      - [ ] **Before anonymous access (x402):** DNS pinning in
+            `PageFetcher` (connect to the address that was checked) and a
+            per-user/IP request limit via the flood service.
       - [ ] Settings form (model, chunk size, max length); today `drush cset`.
       - [ ] Severity per finding (`taxonomy.json` has the rubric), once it is
             measured.

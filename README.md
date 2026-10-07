@@ -198,6 +198,12 @@ you want site policy (see the design doc).
 Full design, Art. 50 mapping and phases:
 [docs/content-governance.md](docs/content-governance.md).
 
+### Terms & privacy analyzer (terms submodule)
+
+`ai_provider_universal_terms` reads terms of service or a privacy policy, pasted or by URL, and returns findings in 19 categories (arbitration, data sharing, auto-renewal, …), each quoting the clause it comes from; quotes not found in the text are dropped. First slice: a JSON API (`POST /api/terms/analyze`) behind the `use terms analyzer` permission. Not legal advice.
+
+Full details — pipeline, categories, configuration, API, security notes: [docs/terms.md](docs/terms.md).
+
 ## Relation to ai_provider_llama_cpp
 
 This module is the evolution of [ai_provider_llama_cpp](https://www.drupal.org/project/ai_provider_llama_cpp) 2.x, which is no longer maintained. Both can be installed side by side; there is no automated migration — re-create your servers here and remove the old provider when done.

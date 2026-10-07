@@ -65,6 +65,32 @@ class PageFetcherTest extends UnitTestCase {
   }
 
   /**
+   * Oversized responses are refused, announced or not.
+   */
+  public function testOversizedResponsesAreRefused(): void {
+    $big = str_repeat('a', PageFetcher::MAX_BYTES + 1);
+    // Announced by Content-Length: refused before the body is read.
+    try {
+      $this->fetcher([new Response(200, ['Content-Length' => (string) strlen($big)], 'small')])->fetch('http://93.184.215.14/');
+      $this->fail('An announced oversized body was accepted.');
+    }
+    catch (PageFetchException $e) {
+      $this->assertStringContainsString('larger than 5 MB', $e->getMessage());
+    }
+    // Not announced: cut off while reading.
+    $this->expectException(PageFetchException::class);
+    $this->fetcher([new Response(200, [], $big)])->fetch('http://93.184.215.14/');
+  }
+
+  /**
+   * The log message carries the URL, not raw placeholders.
+   */
+  public function testExceptionMessageIsFilledIn(): void {
+    $e = PageFetchException::fetchFailed('https://example.com/x', new \RuntimeException('boom'));
+    $this->assertSame('Could not fetch https://example.com/x: boom', $e->getMessage());
+  }
+
+  /**
    * Page chrome and scripts are dropped; whitespace is normalized.
    */
   public function testFetchTextStripsChrome(): void {

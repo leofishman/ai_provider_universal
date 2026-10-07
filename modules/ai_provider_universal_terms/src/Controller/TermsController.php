@@ -38,7 +38,7 @@ class TermsController extends ControllerBase {
         $text = $this->pageFetcher->fetchText($url);
       }
       catch (PageFetchException $e) {
-        return $this->error(422, $e->getMessage());
+        return $this->error(422, strip_tags((string) $e->userMessage));
       }
     }
     if (trim($text) === '') {

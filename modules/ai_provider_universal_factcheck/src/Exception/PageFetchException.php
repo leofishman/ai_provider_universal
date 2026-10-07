@@ -13,7 +13,8 @@ class PageFetchException extends \RuntimeException {
     public readonly TranslatableMarkup $userMessage,
     ?\Throwable $previous = NULL,
   ) {
-    parent::__construct($userMessage->getUntranslatedString(), 0, $previous);
+    // The log message is the English text with its placeholders filled.
+    parent::__construct(strtr($userMessage->getUntranslatedString(), $userMessage->getArguments()), 0, $previous);
   }
 
   /**
@@ -28,6 +29,16 @@ class PageFetchException extends \RuntimeException {
    */
   public static function internalAddress(): static {
     return new static(new TranslatableMarkup('The URL resolves to a private or reserved address and cannot be scanned.'));
+  }
+
+  /**
+   * The response is larger than the fetcher accepts.
+   */
+  public static function tooLarge(string $url, int $bytes): static {
+    return new static(new TranslatableMarkup('%url is larger than @size MB and was not fetched.', [
+      '%url' => $url,
+      '@size' => round($bytes / 1000000, 1),
+    ]));
   }
 
   /**

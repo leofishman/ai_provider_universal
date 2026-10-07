@@ -14,6 +14,11 @@ use GuzzleHttp\ClientInterface;
  */
 class PageFetcher {
 
+  /**
+   * Largest response read, in bytes; the rest is never loaded into memory.
+   */
+  public const MAX_BYTES = 5000000;
+
   public function __construct(
     protected ClientInterface $httpClient,
   ) {}
@@ -36,13 +41,16 @@ class PageFetcher {
    * endpoints and internal services).
    *
    * @throws \Drupal\ai_provider_universal_factcheck\Exception\PageFetchException
-   *   When the URL is not public http(s) or the fetch fails.
+   *   When the URL is not public http(s), the response is larger than
+   *   MAX_BYTES or the fetch fails.
    */
   public function fetch(string $url): string {
     $this->assertPublicUrl($url);
     try {
-      return (string) $this->httpClient->request('GET', $url, [
+      $response = $this->httpClient->request('GET', $url, [
         'timeout' => 30,
+        // Streamed, so an oversized body is cut off instead of loaded whole.
+        'stream' => TRUE,
         // Every redirect hop gets the same check, or a public URL could
         // bounce the request to an internal address.
         'allow_redirects' => [
@@ -50,7 +58,19 @@ class PageFetcher {
           'protocols' => ['http', 'https'],
           'on_redirect' => fn($request, $response, $uri) => $this->assertPublicUrl((string) $uri),
         ],
-      ])->getBody();
+      ]);
+      if ((int) $response->getHeaderLine('Content-Length') > static::MAX_BYTES) {
+        throw PageFetchException::tooLarge($url, static::MAX_BYTES);
+      }
+      $body = $response->getBody();
+      $data = '';
+      while (!$body->eof() && strlen($data) <= static::MAX_BYTES) {
+        $data .= $body->read(65536);
+      }
+      if (strlen($data) > static::MAX_BYTES) {
+        throw PageFetchException::tooLarge($url, static::MAX_BYTES);
+      }
+      return $data;
     }
     catch (PageFetchException $e) {
       throw $e;
