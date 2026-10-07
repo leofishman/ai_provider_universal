@@ -14,6 +14,8 @@ First slice: a JSON API and the analyzer service. A settings form, a standalone 
 
 The prompt, the fence and the 19 categories are the ones measured in Lapacho's terms-eval (2026-10-06: F1 0.89 on Spanish documents with Qwen3.6-35B-A3B, reasoning off, temperature 0). Change them only with a new measurement.
 
+> **Spanish only, for now.** The prompt and the category descriptions are Spanish, verbatim from that measurement, so the quality above holds for **Spanish documents only**. English (or any other language) terms are analyzed with the same Spanish prompt, untested, and the `description` of each finding comes back in Spanish whatever the site's language. An English prompt measured on English documents, and translatable category descriptions, are planned (see ROADMAP).
+
 ## Categories
 
 From `data/taxonomy.json`:

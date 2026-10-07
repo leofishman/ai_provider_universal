@@ -340,6 +340,13 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
       - [ ] **Before anonymous access (x402):** DNS pinning in
             `PageFetcher` (connect to the address that was checked) and a
             per-user/IP request limit via the flood service.
+      - [ ] **English and other languages.** The prompt and the category
+            descriptions are Spanish, measured only on Spanish documents.
+            (a) Category descriptions in English in `taxonomy.json`, Spanish
+            through the `.po`, so the API answers in the site's language.
+            (b) An English prompt, measured in terms-eval on English
+            documents (UNFAIR-ToS and the TOS_Dataset on Hugging Face), picked by the
+            document's language. Do (b) before announcing the submodule.
       - [ ] Settings form (model, chunk size, max length); today `drush cset`.
       - [ ] Severity per finding (`taxonomy.json` has the rubric), once it is
             measured.

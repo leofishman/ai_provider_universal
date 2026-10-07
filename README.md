@@ -200,7 +200,7 @@ Full design, Art. 50 mapping and phases:
 
 ### Terms & privacy analyzer (terms submodule)
 
-`ai_provider_universal_terms` reads terms of service or a privacy policy, pasted or by URL, and returns findings in 19 categories (arbitration, data sharing, auto-renewal, …), each quoting the clause it comes from; quotes not found in the text are dropped. First slice: a JSON API (`POST /api/terms/analyze`) behind the `use terms analyzer` permission. Not legal advice.
+`ai_provider_universal_terms` reads terms of service or a privacy policy, pasted or by URL, and returns findings in 19 categories (arbitration, data sharing, auto-renewal, …), each quoting the clause it comes from; quotes not found in the text are dropped. Measured on Spanish documents only, and category descriptions come back in Spanish for now. First slice: a JSON API (`POST /api/terms/analyze`) behind the `use terms analyzer` permission. Not legal advice.
 
 Full details — pipeline, categories, configuration, API, security notes: [docs/terms.md](docs/terms.md).
 
