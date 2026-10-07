@@ -9,8 +9,9 @@ view factcheck results:
 
 use standalone fact check:
   title: 'Use the standalone fact check page and block'
-  description: 'Scan arbitrary URLs or pasted text. Model-based checks spend LLM/API budget.'
+  description: 'Scan arbitrary URLs or pasted text: the site fetches any public URL given. Model-based checks spend LLM/API budget.'
+  restrict access: true
 
 run content scan:
   title: 'Run content scans'
-  description: 'Use the Content scan tab on nodes (fact check, readability, AI likelihood, plagiarism). The user still needs update access to the node.'
+  description: 'Use the Content scan tab on nodes (fact check, readability, AI likelihood, plagiarism). The user still needs view access to the node.'

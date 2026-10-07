@@ -512,13 +512,17 @@ class ContentScanForm extends FormBase {
       foreach ($plag as $match) {
         $rows[] = [
           $match['sentence'],
-          [
-            'data' => [
-              '#type' => 'link',
-              '#title' => $match['title'] ?: $match['url'],
-              '#url' => Url::fromUri($match['url']),
-            ],
-          ],
+          // The URL comes from a search API: only http(s) becomes a link,
+          // anything else (empty, javascript:, ...) is shown as text.
+          preg_match('#^https?://#i', $match['url'])
+            ? [
+              'data' => [
+                '#type' => 'link',
+                '#title' => $match['title'] ?: $match['url'],
+                '#url' => Url::fromUri($match['url']),
+              ],
+            ]
+            : $match['title'] ?: $match['url'],
           $match['snippet'],
         ];
       }

@@ -298,7 +298,7 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 - [x] Cache + invalidation for trusted-site lookups: persistent cache keyed
       by the `node_list:trusted_site` tag — zero manual invalidation.
 - [x] Permission granularity, first pass: `administer factcheck settings` +
-      `run content scan` (on top of node update access). Per check type /
+      `run content scan` (on top of node view access). Per check type /
       per bundle granularity can come with scan profiles.
 - [ ] Move fact-check capabilities to plugins (vs services) — **Content
       governance Phase 5** (ScanCheck plugins; evaluate with Guardrail reuse).

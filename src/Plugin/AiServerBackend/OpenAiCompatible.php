@@ -236,6 +236,11 @@ class OpenAiCompatible extends AiServerBackendPluginBase implements ContainerFac
    * Looks up (and caches) a HuggingFace repo's pipeline_tag.
    */
   protected function getHfPipelineTag(string $repo): ?string {
+    // The repo name comes from the server's response and goes into the URL
+    // path: only "org/name" shapes are looked up.
+    if (!preg_match('#^[\w.-]+/[\w.-]+$#', $repo)) {
+      return NULL;
+    }
     $cache = $this->state->get('ai_provider_universal.hf_tag_cache', []);
     if (array_key_exists($repo, $cache)) {
       return $cache[$repo];

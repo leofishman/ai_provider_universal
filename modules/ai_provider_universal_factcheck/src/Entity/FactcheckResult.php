@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_provider_universal_factcheck\Entity;
 
+use Drupal\ai_provider_universal_factcheck\Access\FactcheckResultAccessControlHandler;
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -21,8 +22,9 @@ use Drupal\views\EntityViewsData;
   label: new TranslatableMarkup('Fact check result'),
   label_collection: new TranslatableMarkup('Fact check results'),
   base_table: 'aip_factcheck_result',
-  admin_permission: 'view factcheck results',
+  admin_permission: 'administer factcheck settings',
   handlers: [
+    'access' => FactcheckResultAccessControlHandler::class,
     'views_data' => EntityViewsData::class,
   ],
   entity_keys: [

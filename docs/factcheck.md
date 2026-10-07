@@ -94,9 +94,9 @@ Every scan (tab or standalone) is also stored as an `aip_factcheck_result` entit
 | Permission | Grants |
 |---|---|
 | `administer factcheck settings` | The settings form (checker models, evidence index, API keys). `administer ai providers` also works, so provider admins need no extra grant. |
-| `run content scan` | The Content scan tab. The user **also** needs update access to the node — the permission narrows who may spend LLM/API budget, it does not widen content access. |
-| `use standalone fact check` | The standalone page and block above. |
-| `view factcheck results` | The stored scan history (results view, page and block). |
+| `run content scan` | The Content scan tab. The user **also** needs view access to the node — the permission narrows who may spend LLM/API budget, it does not widen content access. |
+| `use standalone fact check` | The standalone page and block above. Marked *restrict access*: the site fetches any public URL the user gives it and spends LLM/API budget on it. |
+| `view factcheck results` | The stored scan history (results view, page and block). Viewing only: changing or deleting results, including over JSON:API or REST, needs `administer factcheck settings`. |
 
 After enabling the module, grant `run content scan` to your editor roles — the tab is not visible without it.
 
