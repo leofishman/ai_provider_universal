@@ -522,7 +522,7 @@ class ContentScanForm extends FormBase {
                 '#url' => Url::fromUri($match['url']),
               ],
             ]
-            : $match['title'] ?: $match['url'],
+            : ($match['title'] ?: $match['url']),
           $match['snippet'],
         ];
       }
