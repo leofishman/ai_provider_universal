@@ -10,6 +10,8 @@ Backends can live in this module or in any other module: the plugin discovery pi
 
 2. **Native protocol** (Anthropic, Gemini, ...): extend `AiServerBackendPluginBase`, implement `AiServerBackendInterface` for discovery, and additionally implement **`AiInferenceBackendInterface`** to own chat execution. Without that second interface a backend still gets discovery and the full UI, but its chat calls go over the OpenAI protocol — which is exactly right for case 1 and wrong for a native API. Use `Anthropic` as the template, or `TypeSafe` for a small one (no streaming, no tools, one request shape).
 
+3. **Same kind of model, different wire format** (OpenAI's Decisions API next to System One): extend the existing native backend and translate at the edge — override the endpoint and `request()`, map the payload out and the response back to the parent's shape. Everything built on the parent (routing, the Decision operation, fact check) then works unchanged. `OpenAiDecisions` is the example: about 150 lines over `TypeSafe`.
+
 ## The interface
 
 `src/Backend/AiServerBackendInterface.php` — five methods (the base class provides no-op defaults for the last two):

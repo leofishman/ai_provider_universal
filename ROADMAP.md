@@ -125,6 +125,11 @@ Token-Efficient Routing Agent, starts 2026-07-06) and beyond. Team:
       between them. Verified live against Laya; not yet against the live
       TypeSafe API. Next: fact check checkers (MiniCheck, Jev, Laya) as
       interchangeable decisions; image files.
+- [x] **`openai_decisions` backend**: OpenAI's Decisions API (gpt-6-luna),
+      a `typesafe` subclass translating the wire format, so routes can mix
+      Luna with Jev or a local Laya. Precision is declared per backend.
+      Not verified live (no OpenAI key; OpenRouter has no decisions
+      endpoint): next is a live check of predicate and score questions.
 - [ ] OpenRouter embeddings discovery: embedding models are not in
       `/v1/models` but on a separate `/embeddings/models` catalog endpoint;
       override `listModels()` in the `openrouter` backend to fetch both and
