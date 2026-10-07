@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\ai_provider_universal\Kernel\Plugin;
 
-use Drupal\ai\OperationType\Decision\Value\AnswerFactory;
-use Drupal\ai\OperationType\Decision\Value\AnswerPrecision;
 use Drupal\ai_provider_universal\Backend\AiServerBackendManager;
 use Drupal\ai_provider_universal\Plugin\AiServerBackend\OpenAiDecisions;
 use Drupal\KernelTests\KernelTestBase;
@@ -210,17 +208,6 @@ final class OpenAiDecisionsBackendTest extends KernelTestBase {
     $this->assertSame(['high_decay' => 0.04, 'medium_decay' => 0.95], $answers['half_life']['probabilities']);
     $this->assertSame(['Cosmetic', 'Blocks work'], $answers['severity']['legend']);
     $this->assertSame(431, $output->getTokenUsage()->input);
-
-    // On AI 1.6+, the translated answers are valid Decision answers. The
-    // choice probabilities sum to 0.99, as in the live sample: they pass
-    // only because this backend declares no rounding precision.
-    if (class_exists(AnswerFactory::class)) {
-      $decimals = OpenAiDecisions::DECISION_PRECISION;
-      $precision = $decimals === NULL ? NULL : new AnswerPrecision($decimals);
-      foreach ($output->getRawOutput()['answers'] as $id => $answer) {
-        $this->assertSame($answer['type'], AnswerFactory::fromArray($answer, $precision)->getType(), $id);
-      }
-    }
   }
 
   /**

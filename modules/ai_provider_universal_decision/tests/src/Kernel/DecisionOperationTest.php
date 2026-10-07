@@ -10,6 +10,7 @@ use Drupal\ai\Exception\AiMissingFeatureException;
 use Drupal\ai\OperationType\Decision\DecisionInput;
 use Drupal\ai\OperationType\Decision\Value\ChoiceAnswer;
 use Drupal\ai\OperationType\Decision\Value\NoulAnswer;
+use Drupal\ai\OperationType\Decision\Value\ScoreAnswer;
 use Drupal\ai_provider_universal_decision\DecisionUniversalProvider;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -156,6 +157,75 @@ final class DecisionOperationTest extends KernelTestBase {
 
     $this->assertTrue($output->getNormalized()->getNoul('refund')->isLikely());
     $this->assertSame($state, json_decode((string) $requests[0]->getBody(), TRUE)['state']);
+  }
+
+  /**
+   * Tests Luna through the Decision operation, with OpenAI's rounding.
+   *
+   * The choice answer is the sample verified live in ai_provider_openai
+   * #3622163: its probabilities sum to 0.99, which System One's declared
+   * four decimals would reject.
+   */
+  public function testOpenAiDecisionsAnswersAreValid(): void {
+    $etm = $this->container->get('entity_type.manager');
+    $etm->getStorage('ai_universal_server')->create([
+      'id' => 'openai',
+      'label' => 'OpenAI',
+      'backend' => 'openai_decisions',
+      'host_name' => '',
+      'port' => '',
+      'timeout' => 60,
+    ])->save();
+    $etm->getStorage('ai_universal_model')->create([
+      'id' => 'openai.gpt-6-luna',
+      'label' => 'Luna',
+      'server_id' => 'openai',
+      'raw_model_id' => 'gpt-6-luna',
+      'detected_operation_types' => ['chat', 'decision'],
+    ])->save();
+    $this->mockHttpClientResponses([
+      new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+        'model' => 'gpt-6-luna',
+        'answers' => [
+          [
+            'type' => 'choice',
+            'name' => 'half_life',
+            'choice' => 'medium_decay',
+            'probabilities' => [
+              ['value' => 'high_decay', 'probability' => 0.04],
+              ['value' => 'medium_decay', 'probability' => 0.95],
+            ],
+            'confidence' => 0.93,
+          ],
+          ['type' => 'predicate', 'name' => 'urgent', 'probability' => 0.88],
+          [
+            'type' => 'score',
+            'name' => 'severity',
+            'score' => 0.9,
+            'probabilities' => [
+              ['value' => 0, 'label' => '0', 'probability' => 0.1],
+              ['value' => 1, 'label' => '1', 'probability' => 0.9],
+            ],
+            'confidence' => 0.8,
+          ],
+        ],
+        'usage' => ['input_tokens' => 431, 'output_tokens' => 0],
+      ])),
+    ]);
+
+    $response = $this->container->get('ai.provider')->createInstance('universal')->decision(new DecisionInput('text to classify', [
+      'half_life' => [
+        'type' => 'choice',
+        'instructions' => 'how to choose',
+        'criteria' => ['high_decay' => 'when to use this', 'medium_decay' => NULL],
+      ],
+      'urgent' => ['type' => 'noul', 'instructions' => 'The message is urgent.'],
+      'severity' => ['type' => 'score', 'instructions' => 'How severe is it', 'criteria' => ['Cosmetic', 'Blocks work']],
+    ]), 'openai.gpt-6-luna')->getNormalized();
+
+    $this->assertSame('medium_decay', $response->getChoice('half_life')->getChoice());
+    $this->assertEqualsWithDelta(0.88, $response->getNoul('urgent')->getProbability(), 0.0001);
+    $this->assertInstanceOf(ScoreAnswer::class, $response->getAnswer('severity'));
   }
 
   /**
