@@ -40,6 +40,7 @@ A backend whose service speaks a different protocol additionally implements `AiI
 | `anthropic` | Anthropic Claude — **native Messages API** | `api.anthropic.com/v1` | no (fixed; a host points at a gateway) | `GET /v1/models`, paginated | `chat` only (the Messages API serves nothing else) | Hardcoded table per Claude generation + `supported_features` (tools / reasoning / vision) |
 | `deepseek` | DeepSeek | `api.deepseek.com` | no (fixed) | `/v1/models` (ids only) | Generic heuristics | Hardcoded table for `deepseek-flash` / `deepseek-v4-pro` (price, quality tier). Bills peak/off-peak, so the backend also reports a **price multiplier** (`getPriceMultiplier()`) that smart routing applies at decision time — list price 01:00-04:00 and 06:00-10:00 UTC on weekdays, half price otherwise, including weekends and Chinese public holidays (current state from SeekPeak's status API, cached until its next transition, falling back to the schedule and a built-in holiday list; `$settings['ai_provider_universal_deepseek_status_url']` changes or disables it). Stored costs stay at list price |
 | `typesafe` | TypeSafe Jev — **native System One API** | `api.typesafe.ai/v1` | optional: empty = TypeSafe; a host points at any other System One server (self-hosted Laya, a gateway) | `GET /v1/models` (model cards keyed by `name`) | `chat`; `text_classification` (AI 1.4+); `decision` (AI 1.6+) | List input price (USD 42 per billion tokens); quality tier 1. No output price is published |
+| `openai_decisions` | OpenAI **Decisions API** (`gpt-6-luna`) | `api.openai.com/v1` | optional (a host points at a gateway) | `GET /v1/models`, filtered to `gpt-6-luna*` | Same as `typesafe` | List input price (USD 0.10 per million tokens), no output charge; quality tier 1 |
 
 > ⚠️ **Fireworks pricing is a maintained lookup table, not live data.** Verify against [fireworks.ai/pricing](https://fireworks.ai/pricing) when Fireworks ships a new model generation — stale prices skew smart-routing cost comparisons. **Groq** reads prices live from `/v1/models` (same idea as OpenRouter).
 
@@ -271,6 +272,26 @@ Asking several questions in one request is safe: another integrator measured 9 q
 Laya does not count tokens (usage is recorded as zero), and its router sends Spanish and other Latin-script text to the English checkpoint when it cannot tell the language — pick `laya-multilingual` explicitly for non-English content. As with any decision model, check its confidence against real cases before setting thresholds: it can be confidently wrong.
 
 Only `model`, `state` and `questions` are sent; sampling, reasoning and other chat parameters are ignored. Streaming is refused (`AiMissingFeatureException`). Because Jev is by far the cheapest model in most catalogs, **leave it out of the candidates of smart routes that serve free-form chat** — a route with no explicit candidates considers every chat model, and Jev cannot answer a prompt that carries no questions.
+
+### OpenAI Decisions (gpt-6-luna)
+
+OpenAI's [Decisions API](https://developers.openai.com/api/docs/guides/decisions) serves the same kind of model as System One: typed questions about an input, answered with calibrated probabilities. The `openai_decisions` backend extends `typesafe` and translates at the edge, so everything above applies unchanged — the question format, `decide()`, text classification, the Decision operation, smart routes, fact check and the router's classifier. A route can mix both protocols: a self-hosted Laya first and Luna as the fallback, or the other way round.
+
+| System One | OpenAI Decisions |
+|---|---|
+| `POST /v1/systemone` | `POST /v1/decisions` |
+| `state` | `input` (a structured state is sent as JSON) |
+| `questions: {id: {...}}` | `questions: [{name: id, ...}]` |
+| `noul` | `predicate` |
+| choice `criteria: {key: description}` | `choices: [{value, description}]` |
+| score `criteria: [description, ...]` | `levels: [{label, description}]` (labelled by index) |
+
+- **Not verified against the live API** (no key at hand): the request and response shapes follow the [documentation](https://developers.openai.com/api/docs/guides/decisions) and the sample verified live in [ai_provider_openai#3622163](https://www.drupal.org/project/ai_provider_openai/issues/3622163), which covers `choice` only. `predicate` and `score` follow the documentation alone.
+- Yes/no `criteria` have no counterpart: they are dropped with a warning, and the Decision operation does not declare them for Luna.
+- A **refusal** leaves its question unanswered: the Decision operation reports it, and a smart route fails over to its next candidate.
+- The API's rounding is not documented, so answers are validated with AI core's default tolerance (System One declares four decimals). The live sample's probabilities sum to 0.99.
+- An exhausted quota (OpenAI answers it with HTTP 429) maps to `AiQuotaException`, not a rate limit.
+- OpenRouter lists `openai/gpt-6-luna` only as a chat model: it bills output and returns no probabilities. Use an OpenAI key.
 
 ## Model filtering
 

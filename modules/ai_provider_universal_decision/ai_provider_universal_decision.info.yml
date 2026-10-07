@@ -1,6 +1,6 @@
 name: 'AI Provider: Universal — Decision'
 type: module
-description: 'Serves AI core''s Decision operation (AI 1.6+) from System One decision models (TypeSafe Jev, Laya, ...), with smart-route failover. Experimental: the operation is still changing upstream.'
+description: 'Serves AI core''s Decision operation (AI 1.6+) from decision models (TypeSafe Jev, Laya, OpenAI gpt-6-luna, ...), with smart-route failover. Experimental: the operation is still changing upstream.'
 core_version_requirement: ^11.1 || ^12
 package: AI Providers
 lifecycle: experimental

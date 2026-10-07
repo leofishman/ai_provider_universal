@@ -16,7 +16,9 @@ use Drupal\ai\OperationType\Decision\Value\AnswerFactory;
 use Drupal\ai\OperationType\Decision\Value\AnswerPrecision;
 use Drupal\ai\OperationType\Decision\Value\DecisionCapabilities;
 use Drupal\ai_provider_universal\Entity\AiUniversalModelInterface;
+use Drupal\ai_provider_universal\Entity\AiUniversalServerInterface;
 use Drupal\ai_provider_universal\Plugin\AiProvider\UniversalProvider;
+use Drupal\ai_provider_universal\Plugin\AiServerBackend\TypeSafe;
 use Drupal\Component\Serialization\Json;
 
 /**
@@ -130,8 +132,10 @@ class DecisionUniversalProvider extends UniversalProvider implements DecisionInt
     }
     $data = $output->getRawOutput();
 
-    // System One rounds probabilities to four decimals.
-    $precision = new AnswerPrecision(4);
+    // Each backend declares how its probabilities are rounded (System One:
+    // four decimals); unknown means AI core's default tolerance.
+    $decimals = $this->decisionPrecision($model_id);
+    $precision = $decimals === NULL ? NULL : new AnswerPrecision($decimals);
     $answers = [];
     foreach (array_keys($questions) as $id) {
       if (!isset($data['answers'][$id]) || !is_array($data['answers'][$id])) {
@@ -150,6 +154,18 @@ class DecisionUniversalProvider extends UniversalProvider implements DecisionInt
       $data,
       ['model' => $data['model'] ?? NULL],
     );
+  }
+
+  /**
+   * Decimals the model's backend rounds probabilities to, NULL if unknown.
+   */
+  protected function decisionPrecision(string $model_id): ?int {
+    $model = $this->entityTypeManager->getStorage('ai_universal_model')->load($model_id);
+    $server = $model instanceof AiUniversalModelInterface
+      ? $this->entityTypeManager->getStorage('ai_universal_server')->load($model->getServerId())
+      : NULL;
+    $backend = $server instanceof AiUniversalServerInterface ? $this->modelCatalog->getBackend($server) : NULL;
+    return $backend instanceof TypeSafe ? $backend::DECISION_PRECISION : TypeSafe::DECISION_PRECISION;
   }
 
   /**

@@ -66,6 +66,19 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
   protected const CONNECT_TIMEOUT = 3;
 
   /**
+   * Path of the decision endpoint, relative to the base URI.
+   */
+  protected const ENDPOINT = '/systemone';
+
+  /**
+   * Decimals the answers' probabilities are rounded to; NULL when unknown.
+   *
+   * System One rounds to four. AI core validates the distributions against
+   * it (see the decision submodule).
+   */
+  public const DECISION_PRECISION = 4;
+
+  /**
    * Jev list price: USD 42 per billion input tokens.
    *
    * No output price is published. Only ids starting with "jev" get it: the
@@ -321,7 +334,7 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
       'connect_timeout' => static::CONNECT_TIMEOUT,
     ]);
     try {
-      $response = $client->request('POST', rtrim($this->getBaseUri($server), '/') . '/systemone', [
+      $response = $client->request('POST', rtrim($this->getBaseUri($server), '/') . static::ENDPOINT, [
         'headers' => ['Content-Type' => 'application/json'] + $this->authHeaders($server),
         'json' => $payload,
       ]);
@@ -330,7 +343,7 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
       throw $this->mapException($e);
     }
     catch (\Throwable $e) {
-      throw new AiRequestErrorException('TypeSafe request failed: ' . $e->getMessage(), $e->getCode(), $e);
+      throw new AiRequestErrorException($this->getPluginDefinition()['label'] . ' request failed: ' . $e->getMessage(), $e->getCode(), $e);
     }
 
     return Json::decode($response->getBody()->getContents()) ?: [];
@@ -340,7 +353,9 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
    * Maps an HTTP failure to the AI core exception callers expect.
    *
    * Errors arrive as {"detail": {"error_type": ..., "message": ...}}; request
-   * validation failures (422) carry a list under "detail" instead.
+   * validation failures (422) carry a list under "detail" instead. OpenAI's
+   * shape, {"error": {"type": ..., "code": ..., "message": ...}}, is read
+   * the same way.
    *
    * @param \GuzzleHttp\Exception\RequestException $e
    *   The Guzzle exception.
@@ -351,8 +366,12 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
   protected function mapException(RequestException $e): \Throwable {
     $response = $e->getResponse();
     $status = $response?->getStatusCode() ?? 0;
-    $detail = $response ? (Json::decode((string) $response->getBody())['detail'] ?? NULL) : NULL;
-    $type = is_array($detail) ? (string) ($detail['error_type'] ?? '') : '';
+    $body = $response ? Json::decode((string) $response->getBody()) : NULL;
+    $detail = is_array($body) ? ($body['detail'] ?? $body['error'] ?? NULL) : NULL;
+    $type = is_array($detail) ? implode(' ', array_filter([
+      $detail['error_type'] ?? $detail['type'] ?? '',
+      $detail['code'] ?? '',
+    ], 'is_string')) : '';
     $message = match (TRUE) {
       is_array($detail) && isset($detail['message']) => (string) $detail['message'],
       is_array($detail) || is_string($detail) => Json::encode($detail),
@@ -360,13 +379,14 @@ class TypeSafe extends AiServerBackendPluginBase implements ContainerFactoryPlug
     };
 
     $this->loggerFactory?->get('ai_provider_universal')->error(
-      'TypeSafe request failed with status @status: @message',
-      ['@status' => $status, '@message' => $message],
+      '@backend request failed with status @status: @message',
+      ['@backend' => $this->getPluginDefinition()['label'], '@status' => $status, '@message' => $message],
     );
 
     return match (TRUE) {
-      $status === 429 => new AiRateLimitException($message),
+      // Before 429: OpenAI answers an exhausted quota with 429 too.
       $status === 402 || str_contains($type, 'quota') || str_contains($type, 'billing') => new AiQuotaException($message),
+      $status === 429 => new AiRateLimitException($message),
       $status === 401 || $status === 403 => new AiSetupFailureException($message),
       default => new AiRequestErrorException($message, $status, $e),
     };
