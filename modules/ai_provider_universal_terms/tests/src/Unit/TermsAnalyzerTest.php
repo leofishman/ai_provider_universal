@@ -21,6 +21,12 @@ use Psr\Log\LoggerInterface;
 #[Group('ai_provider_universal')]
 class TermsAnalyzerTest extends UnitTestCase {
 
+  /**
+   * A Spanish document.
+   *
+   * The analyzer was measured on Spanish terms: cspell:disable for the
+   * fixtures in this file.
+   */
   protected const DOC = "Estos términos se rigen por las leyes del Estado de California.\n"
     . "Podemos cancelar tu cuenta en cualquier momento y sin aviso previo.\n"
     . "Compartimos tus datos con empresas de nuestro grupo.";
@@ -150,4 +156,5 @@ class TermsAnalyzerTest extends UnitTestCase {
     $this->assertSame(self::DOC, implode("\n", $chunks));
   }
 
+  // cspell:enable
 }

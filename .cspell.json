@@ -7,6 +7,7 @@
     "LICENSE.txt",
     "**/tests/fixtures/**",
     "**/data/mbfc-ratings-full.json",
+    "**/ai_provider_universal_terms/data/**",
     "TESTING-*.md",
     "TESTING-governance.md",
     "ANTHROPIC-BACKEND.md"
@@ -200,6 +201,7 @@
     "xtra",
     "xtramagazine",
     "Lapacho",
-    "cset"
+    "cset",
+    "Quebracho"
   ]
 }
