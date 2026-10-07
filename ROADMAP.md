@@ -322,9 +322,22 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
         what changed, keep every version ("what changed since you
         accepted"), export the catalogue as a versioned file and answer
         lookups by hash prefix.
-      Blocked on Lapacho's measurement step (which model finds which clause,
-      at what context size) — see `lapacho/ROADMAP.md`, "Read the terms
-      before accepting them".
+      Lapacho's measurement step gave the prompt and categories (terms-eval,
+      2026-10-06) — see `lapacho/ROADMAP.md`, "Read the terms before
+      accepting them".
+      - [x] First slice (2026-10-07): `TermsAnalyzer` service with the
+            measured prompt, nonce fence, chunking and verbatim-quote check;
+            results cached by the hash of the normalized text, never by who
+            asked; `POST /api/terms/analyze` (`{"text"}` or `{"url"}`, via
+            `PageFetcher`) behind the `use terms analyzer` permission, to be
+            put behind x402. The model entity must have thinking off: on
+            llama.cpp Qwen that is `chat_template_kwargs.enable_thinking:
+            false` in its extra parameters; `reasoning_effort: none` does
+            not turn it off.
+      - [ ] Settings form (model, chunk size, max length); today `drush cset`.
+      - [ ] Severity per finding (`taxonomy.json` has the rubric), once it is
+            measured.
+      - [ ] Standalone form, scan profiles, catalogue service (above).
 - [x] Factcheck admin notifications: AdminNotifier + FactcheckNotificationEvent
       (ECA/Message seam) with optional default mail via notify_email.
 

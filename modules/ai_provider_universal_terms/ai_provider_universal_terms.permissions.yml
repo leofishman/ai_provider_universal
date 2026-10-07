@@ -1,0 +1,4 @@
+use terms analyzer:
+  title: 'Use the terms analyzer API'
+  description: 'POST pasted text or a public URL to /api/terms/analyze. The site fetches any public URL given, and every new document spends LLM budget. Grant it to anonymous only behind a paywall such as x402.'
+  restrict access: true

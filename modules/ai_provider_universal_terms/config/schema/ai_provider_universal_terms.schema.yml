@@ -1,0 +1,13 @@
+ai_provider_universal_terms.settings:
+  type: config_object
+  label: 'Terms analyzer settings'
+  mapping:
+    model:
+      type: string
+      label: 'Analyzer model (ai_universal_model id). Measured with reasoning off and temperature 0: set both on the model entity'
+    chunk_words:
+      type: integer
+      label: 'Analyze documents in pieces of about this many words (0 = whole document)'
+    max_chars:
+      type: integer
+      label: 'Longest document accepted, in characters'

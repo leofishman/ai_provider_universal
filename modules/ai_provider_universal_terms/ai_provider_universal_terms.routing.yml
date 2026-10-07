@@ -1,0 +1,8 @@
+ai_provider_universal_terms.analyze:
+  path: '/api/terms/analyze'
+  defaults:
+    _controller: '\Drupal\ai_provider_universal_terms\Controller\TermsController::analyze'
+  methods: [POST]
+  requirements:
+    _permission: 'use terms analyzer'
+    _format: json

@@ -1,0 +1,36 @@
+{
+  "terms": {
+    "limitation_of_liability": "Limita o excluye la responsabilidad del proveedor por daños, pérdidas o fallas del servicio.",
+    "unilateral_termination": "El proveedor puede suspender o dar de baja la cuenta o el servicio a su criterio, sin causa o sin aviso.",
+    "unilateral_change": "El proveedor puede cambiar los términos, el precio o el servicio por su cuenta.",
+    "content_removal": "El proveedor puede borrar o bloquear el contenido del usuario a su criterio.",
+    "contract_by_using": "Usar el servicio equivale a aceptar los términos.",
+    "choice_of_law": "Fija qué ley rige el contrato.",
+    "jurisdiction": "Fija qué tribunales o qué país resuelven los conflictos.",
+    "arbitration": "Los conflictos van a arbitraje en lugar de a un tribunal, o se renuncia a demandas colectivas."
+  },
+  "consumer_privacy": {
+    "auto_renewal": "La suscripción o el cobro se renueva solo hasta que el usuario cancele.",
+    "cancellation": "Cómo se cancela, y qué pasa con lo pagado (reembolsos, penalidades, cargos).",
+    "content_license": "El usuario concede al proveedor una licencia sobre el contenido que sube o crea.",
+    "data_sharing": "Los datos personales se comparten con terceros: socios, proveedores, empresas del grupo, autoridades.",
+    "advertising": "Los datos se usan para publicidad personalizada o perfiles comerciales, o se venden.",
+    "tracking": "Rastrea al usuario: ubicación, identificadores del dispositivo, cookies y tecnologías similares, historial de navegación. No incluye el solo hecho de recolectar datos ni el consumo de red.",
+    "data_retention": "Cuánto tiempo se conservan los datos.",
+    "international_transfer": "Los datos se transfieren o almacenan en otros países.",
+    "user_rights": "Derechos del usuario sobre sus datos: acceso, rectificación, supresión, portabilidad, oposición.",
+    "indemnification": "El usuario debe indemnizar o eximir de responsabilidad al proveedor: pagar sus juicios, daños o gastos de abogados.",
+    "rights_waiver": "El usuario renuncia a derechos propios: morales, de privacidad, de publicidad, de aprobar el uso de su contenido."
+  },
+  "rules": {
+    "contract_by_using": "Solo la aceptación por el uso o el acceso inicial. 'Si seguís usando el servicio después de un cambio, lo aceptás' es unilateral_change.",
+    "jurisdiction": "Tribunales judiciales. La sede de un arbitraje va en arbitration.",
+    "content_license": "Cualquier material del usuario, incluidos comentarios y sugerencias. Las renuncias a derechos sobre ese material van en rights_waiver.",
+    "absent": "Una categoría que no figura en present está ausente; no hay etiquetas negativas."
+  },
+  "severity": {
+    "alta": "A criterio exclusivo del proveedor, sin aviso o irrevocable; ley, tribunales o arbitraje en el exterior sin atenuación local; renuncia a derechos; el usuario indemniza al proveedor; datos combinados con los de terceros o vendidos; sin reembolso.",
+    "media": "Unilateral pero con aviso previo, con causa o con límites; prácticas comunes que el usuario puede controlar o desactivar.",
+    "baja": "Neutral o favorable al consumidor: ley y tribunales locales, derechos sobre los datos, salvaguardas explícitas, o una cláusula que solo alcanza a usuarios empresariales."
+  }
+}

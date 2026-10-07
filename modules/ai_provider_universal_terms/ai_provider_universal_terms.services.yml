@@ -1,0 +1,12 @@
+services:
+  Drupal\ai_provider_universal_terms\Service\TermsAnalyzer:
+    class: Drupal\ai_provider_universal_terms\Service\TermsAnalyzer
+    arguments:
+      - '@ai.provider'
+      - '@config.factory'
+      - '@cache.default'
+      - '@logger.channel.ai_provider_universal_terms'
+
+  logger.channel.ai_provider_universal_terms:
+    parent: logger.channel_base
+    arguments: ['ai_provider_universal_terms']
