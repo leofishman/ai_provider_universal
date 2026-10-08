@@ -4,6 +4,7 @@ description: 'Analyzes terms of service and privacy policies into a short report
 core_version_requirement: ^11.1 || ^12
 package: AI Providers
 lifecycle: experimental
+configure: ai_provider_universal_terms.settings
 dependencies:
   - ai_provider_universal:ai_provider_universal
   # PageFetcher (URL fetch with SSRF guard).

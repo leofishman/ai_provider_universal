@@ -12,3 +12,11 @@ ai_provider_universal_terms.analyze:
     # Cookie-authenticated callers must send X-CSRF-Token (from
     # /session/token); other authentication is not affected.
     _csrf_request_header_token: 'TRUE'
+
+ai_provider_universal_terms.settings:
+  path: '/admin/config/ai/terms'
+  defaults:
+    _form: '\Drupal\ai_provider_universal_terms\Form\TermsSettingsForm'
+    _title: 'Terms analyzer'
+  requirements:
+    _permission: 'administer ai providers'

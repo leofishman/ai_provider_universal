@@ -2,7 +2,7 @@
 
 `ai_provider_universal_terms` reads terms of service or a privacy policy and returns what it found per category, each finding quoting the clause it comes from. It is an automated reading, **not legal advice**, and every response says so.
 
-First slice: a JSON API and the analyzer service. A settings form, a standalone page, scan profiles and the catalogue service are planned (see ROADMAP).
+First slice: a JSON API, the analyzer service and a settings form. A standalone page, scan profiles and the catalogue service are planned (see ROADMAP).
 
 ## How it works
 
@@ -25,7 +25,7 @@ From `data/taxonomy.json`:
 
 ## Configuration
 
-No form yet; set the config with Drush:
+**Configuration → AI → Terms analyzer** (`/admin/config/ai/terms`, needs `administer ai providers`), or with Drush:
 
 ```bash
 drush cset ai_provider_universal_terms.settings model <ai_universal_model id>

@@ -81,6 +81,7 @@ No core AI patches are required. Model IDs use the form `server.model` (a dot se
 | `/admin/config/ai/factcheck` | Fact check settings (factcheck submodule) |
 | `/admin/config/ai/factcheck/scan-profiles` | Async content-scan profiles (factcheck; used by governance review) |
 | `/admin/config/ai/providers/universal/governance` | Guardrails defaults, provenance, disclosure (governance submodule) |
+| `/admin/config/ai/terms` | Terms analyzer model, piece size and limits (terms submodule) |
 | `/admin/reports/ai-router-decisions` | Routing decisions report (Views) |
 | `/admin/reports/ai-router-savings` | Estimated routing savings dashboard |
 
