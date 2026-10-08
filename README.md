@@ -37,7 +37,7 @@ Backends are not limited to the OpenAI REST protocol: a backend that implements 
 ## Requirements
 
 - Drupal 11.1+ / 12
-- [AI](https://www.drupal.org/project/ai) ^1.3 (Guardrails API; content governance)
+- [AI](https://www.drupal.org/project/ai) ^1.5 (the Decision submodule needs 1.6+)
 - [Key](https://www.drupal.org/project/key)
 
 ## Installation
@@ -142,8 +142,7 @@ Decision models answer typed questions about a state — `noul` (probability a s
 
 | AI version | How decision models are reached | Needs |
 |---|---|---|
-| 1.3+ | As `chat` (questions in the model's extra request parameters or a JSON system prompt, JSON answers back); `UniversalProvider::decide()` from code; router complexity classifier; fact check checker | nothing |
-| 1.4+ | Also `text_classification`: one yes/no question per label, labels ranked by probability (Tagify AI, classifier automators) | nothing |
+| 1.5+ | As `chat` (questions in the model's extra request parameters or a JSON system prompt, JSON answers back); `text_classification` (one yes/no question per label, labels ranked by probability: Tagify AI, classifier automators); `UniversalProvider::decide()` from code; router complexity classifier; fact check checker | nothing |
 | 1.6+ | Also AI core's `decision` operation: guardrails, Decision automators, the Decision explorer; smart routes of type Decision fail over between decision models | `ai_provider_universal_decision` (experimental) |
 
 Full details — question shapes, capabilities per model, self-hosting Laya: [docs/servers-and-models.md](docs/servers-and-models.md#typesafe-jev); OpenAI Luna: [docs/servers-and-models.md](docs/servers-and-models.md#openai-decisions-gpt-6-luna).

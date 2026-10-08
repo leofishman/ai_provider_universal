@@ -3,6 +3,7 @@ type: module
 description: 'Analyzes terms of service and privacy policies into a short report, each point quoting the clause it comes from. Quotes not found in the text are dropped.'
 core_version_requirement: ^11.1 || ^12
 package: AI Providers
+lifecycle: experimental
 dependencies:
   - ai_provider_universal:ai_provider_universal
   # PageFetcher (URL fetch with SSRF guard).
