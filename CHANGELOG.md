@@ -9,7 +9,8 @@
   - Plagiarism matches link only http(s) URLs; an empty or `javascript:` URL from the search API made the results page fail to render.
   - The Hugging Face pipeline tag lookup only takes `org/name` repo names (the name comes from the server's response and went into the URL path).
   - `PageFetcher` reads at most 5 MB, streamed: refused up front when Content-Length says so, cut off while reading otherwise. A URL to a large file used to be loaded whole into memory.
-- **Terms submodule** (`ai_provider_universal_terms`, experimental): reads terms of service or a privacy policy, pasted or by URL, and returns findings in 19 categories, each quoting the clause it comes from; invented quotes are dropped. `POST /api/terms/analyze?_format=json` behind `use terms analyzer` (restrict access); JSON bodies only, and cookie sessions must send `X-CSRF-Token`. Measured on Spanish documents only so far. See [docs/terms.md](docs/terms.md).
+  - `PageFetcher` connects to the address it checked (closing a DNS rebinding window between the check and the request) and follows redirects by hand, checking and pinning each hop, five at most. Needs Guzzle's curl handler, Drupal's default.
+- **Terms submodule** (`ai_provider_universal_terms`, experimental): reads terms of service or a privacy policy, pasted or by URL, and returns findings in 19 categories, each quoting the clause it comes from; invented quotes are dropped. `POST /api/terms/analyze?_format=json` behind `use terms analyzer` (restrict access); JSON bodies only, and cookie sessions must send `X-CSRF-Token`; at most `requests_per_hour` (default 30) per user or IP, 429 above it (run `drush updb` on existing installs). Measured on Spanish documents only so far. See [docs/terms.md](docs/terms.md).
 - Docs: the content scan needs node **view** access (the docs and permission description said update; the code has required view since July).
 
 ## 1.0.0-beta4 — 2026-10-07

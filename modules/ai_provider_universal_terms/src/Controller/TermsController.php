@@ -3,6 +3,7 @@
 namespace Drupal\ai_provider_universal_terms\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Flood\FloodInterface;
 use Drupal\ai_provider_universal_factcheck\Exception\PageFetchException;
 use Drupal\ai_provider_universal_factcheck\Service\PageFetcher;
 use Drupal\ai_provider_universal_terms\Service\TermsAnalyzer;
@@ -17,6 +18,7 @@ class TermsController extends ControllerBase {
   public function __construct(
     protected TermsAnalyzer $analyzer,
     protected PageFetcher $pageFetcher,
+    protected FloodInterface $flood,
   ) {}
 
   /**
@@ -31,6 +33,19 @@ class TermsController extends ControllerBase {
     $url = $body['url'] ?? NULL;
     if (!is_array($body) || !(is_string($text) xor is_string($url))) {
       return $this->error(400, 'Send a JSON object with either "text" or "url".');
+    }
+
+    // Every analyzed request may cost model calls: limited per user, or per
+    // IP for anonymous callers.
+    $limit = (int) $this->config('ai_provider_universal_terms.settings')->get('requests_per_hour');
+    $who = $this->currentUser()->isAnonymous() ? NULL : 'user:' . $this->currentUser()->id();
+    if ($limit > 0) {
+      if (!$this->flood->isAllowed('ai_provider_universal_terms.analyze', $limit, 3600, $who)) {
+        $response = $this->error(429, sprintf('More than %d requests in the last hour; try again later.', $limit));
+        $response->headers->set('Retry-After', '3600');
+        return $response;
+      }
+      $this->flood->register('ai_provider_universal_terms.analyze', 3600, $who);
     }
 
     if (is_string($url)) {

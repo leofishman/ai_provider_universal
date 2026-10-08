@@ -4,6 +4,9 @@ namespace Drupal\ai_provider_universal_factcheck\Service;
 
 use Drupal\ai_provider_universal_factcheck\Exception\PageFetchException;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Fetches a public web page and reduces it to plain text.
@@ -34,60 +37,81 @@ class PageFetcher {
   }
 
   /**
+   * Largest number of redirects followed.
+   */
+  public const MAX_REDIRECTS = 5;
+
+  /**
    * Fetches a URL and returns the raw body.
    *
-   * Guards against SSRF: only http/https, and the host must not resolve
-   * to a loopback, private or link-local address (blocks cloud metadata
-   * endpoints and internal services).
+   * Guards against SSRF: only http/https, and the host must resolve to a
+   * public address (no loopback, private or link-local: blocks cloud
+   * metadata endpoints and internal services). The connection goes to the
+   * address that was checked, so a DNS server answering differently the
+   * second time (DNS rebinding) cannot point it elsewhere. Redirects are
+   * followed by hand so every hop is checked and pinned the same way.
    *
    * @throws \Drupal\ai_provider_universal_factcheck\Exception\PageFetchException
    *   When the URL is not public http(s), the response is larger than
    *   MAX_BYTES or the fetch fails.
    */
   public function fetch(string $url): string {
-    $this->assertPublicUrl($url);
+    for ($hop = 0; $hop <= static::MAX_REDIRECTS; $hop++) {
+      $response = $this->get($url, $this->assertPublicUrl($url));
+      $location = $response->getHeaderLine('Location');
+      if ($response->getStatusCode() < 300 || $response->getStatusCode() >= 400 || $location === '') {
+        return $this->read($response, $url);
+      }
+      $url = (string) UriResolver::resolve(new Uri($url), new Uri($location));
+    }
+    throw PageFetchException::fetchFailed($url, new \RuntimeException('Too many redirects.'));
+  }
+
+  /**
+   * Sends one GET to a checked address, without following redirects.
+   */
+  protected function get(string $url, string $ip): ResponseInterface {
+    $parts = parse_url($url);
+    $port = $parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80);
     try {
-      $response = $this->httpClient->request('GET', $url, [
+      return $this->httpClient->request('GET', $url, [
         'timeout' => 30,
         // Streamed, so an oversized body is cut off instead of loaded whole.
         'stream' => TRUE,
-        // Every redirect hop gets the same check, or a public URL could
-        // bounce the request to an internal address.
-        'allow_redirects' => [
-          'max' => 5,
-          'protocols' => ['http', 'https'],
-          'on_redirect' => fn($request, $response, $uri) => $this->assertPublicUrl((string) $uri),
-        ],
+        'allow_redirects' => FALSE,
+        // ponytail: pinning needs Guzzle's curl handler (Drupal's default
+        // whenever the curl extension is loaded); the stream handler
+        // ignores it and resolves again.
+        'curl' => [CURLOPT_RESOLVE => [$parts['host'] . ':' . $port . ':' . $ip]],
       ]);
-      if ((int) $response->getHeaderLine('Content-Length') > static::MAX_BYTES) {
-        throw PageFetchException::tooLarge($url, static::MAX_BYTES);
-      }
-      $body = $response->getBody();
-      $data = '';
-      while (!$body->eof() && strlen($data) <= static::MAX_BYTES) {
-        $data .= $body->read(65536);
-      }
-      if (strlen($data) > static::MAX_BYTES) {
-        throw PageFetchException::tooLarge($url, static::MAX_BYTES);
-      }
-      return $data;
-    }
-    catch (PageFetchException $e) {
-      throw $e;
     }
     catch (\Throwable $e) {
-      // Guzzle wraps exceptions thrown from on_redirect.
-      if ($e->getPrevious() instanceof PageFetchException) {
-        throw $e->getPrevious();
-      }
       throw PageFetchException::fetchFailed($url, $e);
     }
   }
 
   /**
-   * Throws unless the URL is http(s) on a host with a public address.
+   * Reads a response body up to MAX_BYTES.
    */
-  protected function assertPublicUrl(string $url): void {
+  protected function read(ResponseInterface $response, string $url): string {
+    if ((int) $response->getHeaderLine('Content-Length') > static::MAX_BYTES) {
+      throw PageFetchException::tooLarge($url, static::MAX_BYTES);
+    }
+    $body = $response->getBody();
+    $data = '';
+    while (!$body->eof() && strlen($data) <= static::MAX_BYTES) {
+      $data .= $body->read(65536);
+    }
+    if (strlen($data) > static::MAX_BYTES) {
+      throw PageFetchException::tooLarge($url, static::MAX_BYTES);
+    }
+    return $data;
+  }
+
+  /**
+   * Returns the public address the URL's host resolves to, or throws.
+   */
+  protected function assertPublicUrl(string $url): string {
     $parts = parse_url($url);
     $host = $parts['host'] ?? '';
     if (!filter_var($url, FILTER_VALIDATE_URL)
@@ -95,13 +119,12 @@ class PageFetcher {
       || $host === '') {
       throw PageFetchException::notPublic();
     }
-    // ponytail: resolve-then-fetch leaves a DNS-rebinding window; a
-    // pinning HTTP middleware is the upgrade if this ever fetches URLs
-    // supplied by untrusted users.
+    // IPv4 only: a host with no A record (or an IPv6 literal) is refused.
     $ip = gethostbyname(trim($host, '[]'));
     if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
       throw PageFetchException::internalAddress();
     }
+    return $ip;
   }
 
   /**

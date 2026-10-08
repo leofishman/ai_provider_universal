@@ -23,10 +23,22 @@ use PHPUnit\Framework\Attributes\Group;
 class PageFetcherTest extends UnitTestCase {
 
   /**
+   * Request options of every request sent, in order.
+   *
+   * @var array<int, array>
+   */
+  private array $sent = [];
+
+  /**
    * Builds a fetcher whose HTTP client answers with the given responses.
    */
   private function fetcher(array $responses): PageFetcher {
-    $client = new Client(['handler' => HandlerStack::create(new MockHandler($responses))]);
+    $stack = HandlerStack::create(new MockHandler($responses));
+    $stack->push(fn (callable $handler) => function ($request, array $options) use ($handler) {
+      $this->sent[] = ['uri' => (string) $request->getUri()] + $options;
+      return $handler($request, $options);
+    });
+    $client = new Client(['handler' => $stack]);
     return new PageFetcher($client);
   }
 
@@ -62,6 +74,31 @@ class PageFetcherTest extends UnitTestCase {
     ]);
     $this->expectException(PageFetchException::class);
     $fetcher->fetch('http://93.184.215.14/');
+  }
+
+  /**
+   * Every hop connects to the address that was checked, not a new lookup.
+   */
+  public function testEveryHopIsPinnedToTheCheckedAddress(): void {
+    $this->fetcher([
+      new Response(301, ['Location' => '/terms']),
+      new Response(200, [], 'Terms'),
+    ])->fetch('https://93.184.215.14:8443/old');
+
+    $this->assertSame(['https://93.184.215.14:8443/old', 'https://93.184.215.14:8443/terms'], array_column($this->sent, 'uri'));
+    foreach ($this->sent as $options) {
+      $this->assertSame(['93.184.215.14:8443:93.184.215.14'], $options['curl'][CURLOPT_RESOLVE]);
+      $this->assertFalse($options['allow_redirects']);
+    }
+  }
+
+  /**
+   * A redirect loop ends with an error, not forever.
+   */
+  public function testRedirectLoopIsCut(): void {
+    $this->expectException(PageFetchException::class);
+    $this->fetcher(array_fill(0, PageFetcher::MAX_REDIRECTS + 1, new Response(302, ['Location' => '/again'])))
+      ->fetch('http://93.184.215.14/');
   }
 
   /**

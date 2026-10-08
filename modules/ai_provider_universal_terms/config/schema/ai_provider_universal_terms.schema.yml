@@ -11,3 +11,6 @@ ai_provider_universal_terms.settings:
     max_chars:
       type: integer
       label: 'Longest document accepted, in characters'
+    requests_per_hour:
+      type: integer
+      label: 'Requests per user (or per IP, for anonymous callers) per hour; 0 = no limit'

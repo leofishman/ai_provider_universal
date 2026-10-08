@@ -337,9 +337,11 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
       - [x] Hardening (2026-10-07): JSON bodies only (`_content_type_format`)
             and `X-CSRF-Token` for cookie sessions; `PageFetcher` reads at
             most 5 MB; docs in `docs/terms.md`.
-      - [ ] **Before anonymous access (x402):** DNS pinning in
-            `PageFetcher` (connect to the address that was checked) and a
-            per-user/IP request limit via the flood service.
+      - [x] Before anonymous access (2026-10-08): `PageFetcher` connects to
+            the address it checked (DNS rebinding) and follows redirects by
+            hand, pinning each hop; `requests_per_hour` per user or IP via
+            the flood service (429 + Retry-After).
+      - [ ] x402 in front of `/api/terms/analyze`.
       - [ ] **English and other languages.** The prompt and the category
             descriptions are Spanish, measured only on Spanish documents.
             (a) Category descriptions in English in `taxonomy.json`, Spanish

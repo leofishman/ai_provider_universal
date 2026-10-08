@@ -31,6 +31,7 @@ No form yet; set the config with Drush:
 drush cset ai_provider_universal_terms.settings model <ai_universal_model id>
 drush cset ai_provider_universal_terms.settings chunk_words 900   # 0 = whole document
 drush cset ai_provider_universal_terms.settings max_chars 200000
+drush cset ai_provider_universal_terms.settings requests_per_hour 30   # 0 = no limit
 ```
 
 Use a model with **reasoning off and temperature 0**, set on the model entity. On llama.cpp, Qwen's thinking only turns off with `chat_template_kwargs.enable_thinking: false` in the model's extra request parameters; `reasoning_effort: none` does not do it.
@@ -41,7 +42,7 @@ Use a model with **reasoning off and temperature 0**, set on the model entity. O
 
 - Needs the **`use terms analyzer`** permission (restrict access).
 - Cookie-authenticated callers must also send an `X-CSRF-Token` header (from `/session/token`); other authentication methods are not affected.
-- A URL is fetched with the fact check submodule's `PageFetcher`: public http(s) only, every redirect hop checked against private and reserved addresses, at most 5 MB read.
+- A URL is fetched with the fact check submodule's `PageFetcher` (see Security below).
 
 ```json
 {
@@ -58,11 +59,11 @@ Use a model with **reasoning off and temperature 0**, set on the model entity. O
 }
 ```
 
-Errors are `{"error": "..."}`: 400 (body is not `text` xor `url`), 413 (longer than `max_chars`), 415 (not JSON), 422 (empty document or the URL could not be fetched), 502 (no piece got a usable answer), 503 (no model configured).
+Errors are `{"error": "..."}`: 400 (body is not `text` xor `url`), 413 (longer than `max_chars`), 415 (not JSON), 429 (over `requests_per_hour`), 422 (empty document or the URL could not be fetched), 502 (no piece got a usable answer), 503 (no model configured).
 
 ## Security
 
-Each new document costs one model call per piece, and a URL makes the site fetch it. Grant the permission to trusted roles only. **Before opening it to anonymous users** (behind x402, as planned), two things are missing:
+Each new document costs one model call per piece, and a URL makes the site fetch it. Grant the permission to trusted roles, or to anonymous only behind a paywall (x402, planned). In place:
 
-- **DNS pinning in `PageFetcher`.** The host is resolved and checked, then resolved again by the HTTP client; a hostile DNS server can answer a public address the first time and an internal one the second. The fetch has to connect to the address that was checked.
-- **A request limit** per user or IP (Drupal's flood service, as the fact check's scan limits do). Each distinct text skips the cache, and a 200,000-character document is about 35 calls at `chunk_words: 900`.
+- **Hourly limit**: `requests_per_hour` (default 30; 0 = no limit) per user, or per IP for anonymous callers, through Drupal's flood service. Over it the API answers 429 with `Retry-After`. Every request that passes validation counts, cached or not.
+- **URL fetching** (`PageFetcher`): public http(s) only; the connection goes to the address that was checked, so a DNS server answering differently the second time cannot redirect it (DNS rebinding); redirects are followed by hand, each hop checked and pinned the same way, five at most; at most 5 MB read. Pinning needs Guzzle's curl handler, Drupal's default when the curl extension is loaded. IPv4 only: a host without an A record is refused.

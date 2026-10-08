@@ -1,3 +1,4 @@
 model: ''
 chunk_words: 0
 max_chars: 200000
+requests_per_hour: 30

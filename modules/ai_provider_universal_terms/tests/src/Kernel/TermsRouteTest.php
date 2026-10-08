@@ -65,4 +65,18 @@ final class TermsRouteTest extends KernelTestBase {
     $this->assertSame(415, $this->post('{"text": "Terms"}', 'text/plain'));
   }
 
+  /**
+   * Requests over the hourly limit are refused before any work.
+   */
+  public function testHourlyLimit(): void {
+    // A model that does not exist: counted requests fail at the call (502).
+    $this->config('ai_provider_universal_terms.settings')
+      ->set('model', 'nowhere.model')
+      ->set('requests_per_hour', 2)
+      ->save();
+    $this->assertSame(502, $this->post('{"text": "Terms"}', 'application/json'));
+    $this->assertSame(502, $this->post('{"text": "Terms"}', 'application/json'));
+    $this->assertSame(429, $this->post('{"text": "Terms"}', 'application/json'));
+  }
+
 }
