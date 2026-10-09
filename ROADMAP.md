@@ -317,7 +317,9 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
       dataset's terms, so nothing non-GPL is redistributed. Steps:
       - [ ] Ask the authors for an explicit license (the README only says
             "Feel free to reuse the data"); needed before shipping any rows,
-            not for downloading.
+            not for downloading Asked in a GitHub issue on
+            hauselin/domain-quality-ratings (2026-10-09); if no answer in
+            two weeks, email the first author.
       - [x] Calibrate the `pc1` → reputation mapping against the
             hand-curated trusted sites (bias is not in the dataset: it stays
             empty or comes from another source). Linear, `pc1 × 20 − 10`:
