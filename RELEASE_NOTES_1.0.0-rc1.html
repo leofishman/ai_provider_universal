@@ -6,10 +6,17 @@
 <p>A security pass over the whole module ahead of the security advisory coverage review. None of these was exploitable without an account holding the permission involved.</p>
 <ul>
   <li><strong>Fact check results: viewing no longer grants editing.</strong> <code>view factcheck results</code> was the entity's admin permission, so anyone allowed to view results could also create, edit and delete them wherever entity access is the gate (JSON:API, REST). Viewing now needs that permission; changing or deleting needs <code>administer factcheck settings</code>.</li>
-  <li><strong>URL fetching is pinned and capped.</strong> <code>PageFetcher</code>, used by the standalone fact check and the terms API, connects to the address it checked, closing a DNS rebinding window between the check and the request; follows redirects by hand, checking and pinning each hop, five at most; and reads at most 5 MB, streamed, instead of loading any response whole into memory.</li>
+  <li><strong>URL fetching is pinned and capped.</strong> <code>PageFetcher</code>, used by the standalone fact check and the terms API, connects to the address it checked, closing a DNS rebinding window between the check and the request; follows redirects by hand, checking and pinning each hop, five at most; and reads at most 5 MB, streamed, instead of loading any response whole into memory. Without PHP's curl extension the pin cannot be applied, so URL fetches are refused rather than made unpinned.</li>
+  <li><strong>Every non-global address is refused</strong>, not only private and reserved ones: shared address space 100.64.0.0/10 (cloud metadata such as 100.100.100.200, CGNAT, Tailscale), 192.0.0.0/24, 198.18.0.0/15, multicast and the documentation ranges.</li>
   <li><strong><code>use standalone fact check</code> is marked restrict access</strong>: the site fetches any public URL the user gives and spends API budget on it.</li>
   <li>Plagiarism matches link only http(s) URLs: an empty or <code>javascript:</code> URL from the search API made the results page fail to render.</li>
   <li>The Hugging Face pipeline tag lookup only takes <code>org/name</code> repo names; the name comes from the server's response and went into the URL path.</li>
+</ul>
+
+<h3>Bias ratings: no third-party data in the repository</h3>
+<ul>
+  <li>The bundled Media Bias/Fact Check dataset (<code>data/mbfc-ratings-full.json</code>, ~8,700 ratings) is removed: MBFC's data is not GPL and cannot be redistributed from a drupal.org repository. Ratings come from a file you are licensed to use (<code>--file</code>) or live from the MBFC API (<code>--fetch</code>).</li>
+  <li><code>drush factcheck:sync-bias-ratings</code> without options no longer imports a bundled sample; the format is shown in <code>data/bias-ratings-example.json</code>, with invented rows. Trusted sites already imported are untouched.</li>
 </ul>
 
 <h3>New: terms and privacy analyzer (experimental)</h3>
@@ -32,6 +39,7 @@
   <li><code>drush updb</code>: sets the terms API's hourly limit on sites that already enabled the submodule from 1.0.x-dev.</li>
   <li><code>drush cr</code>.</li>
   <li>Check roles that hold <code>view factcheck results</code>: they keep viewing results but can no longer change or delete them. Roles granted <code>use standalone fact check</code> keep it; the permission is now flagged as restrict access on the permissions page.</li>
+  <li>Scripts calling <code>drush factcheck:sync-bias-ratings</code> with no options, or with <code>--file</code> pointing at <code>mbfc-ratings-full.json</code> or <code>mbfc-ratings-sample.json</code>, need their own ratings file or <code>--fetch</code>.</li>
   <li>Callers of the terms API from 1.0.x-dev: send <code>Content-Type: application/json</code>, and <code>X-CSRF-Token</code> when authenticated by cookie.</li>
 </ol>
 
@@ -39,7 +47,7 @@
 <ul>
   <li>Jev (TypeSafe) and OpenAI's Decisions API (gpt-6-luna) are still not verified against their live APIs; everything decision-related is verified end to end against self-hosted Laya, and against both documented wire formats with mocked HTTP.</li>
   <li>The Decision and terms submodules are experimental: Decision targets AI 1.6.x-dev, whose interfaces may still change, and terms is measured on Spanish documents only.</li>
-  <li>URL pinning needs Guzzle's curl handler (Drupal's default when the curl extension is loaded), and hosts without an IPv4 address are refused.</li>
+  <li>URL fetching needs PHP's curl extension (used by Drupal's default HTTP handler) and is refused without it; hosts without an IPv4 address are refused.</li>
 </ul>
 
 <h3>Requirements</h3>

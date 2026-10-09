@@ -61,7 +61,32 @@ class PageFetcherTest extends UnitTestCase {
       'cloud metadata' => ['http://169.254.169.254/latest/meta-data/'],
       'private range' => ['http://192.168.1.150:8095/'],
       'ipv6 loopback' => ['http://[::1]/'],
+      'shared address space metadata' => ['http://100.100.100.200/latest/meta-data/'],
+      'CGNAT / Tailscale' => ['http://100.64.0.1/'],
+      'IETF protocol assignments' => ['http://192.0.0.8/'],
+      'benchmarking' => ['http://198.18.0.1/'],
+      'multicast' => ['http://224.0.0.1/'],
+      'documentation' => ['http://192.0.2.1/'],
     ];
+  }
+
+  /**
+   * Without curl the address cannot be pinned, so nothing is fetched.
+   */
+  public function testRefusesWithoutCurl(): void {
+    $client = new Client(['handler' => HandlerStack::create(new MockHandler([new Response(200, [], 'ok')]))]);
+    $fetcher = new class($client) extends PageFetcher {
+
+      /**
+       * {@inheritdoc}
+       */
+      protected function canPin(): bool {
+        return FALSE;
+      }
+
+    };
+    $this->expectExceptionMessage('curl extension');
+    $fetcher->fetch('http://93.184.215.14/');
   }
 
   /**

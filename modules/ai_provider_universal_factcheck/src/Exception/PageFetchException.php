@@ -32,6 +32,13 @@ class PageFetchException extends \RuntimeException {
   }
 
   /**
+   * PHP's curl extension is missing, so the address cannot be pinned.
+   */
+  public static function noCurl(): static {
+    return new static(new TranslatableMarkup('Fetching URLs needs the PHP curl extension, which this server does not have.'));
+  }
+
+  /**
    * The response is larger than the fetcher accepts.
    */
   public static function tooLarge(string $url, int $bytes): static {

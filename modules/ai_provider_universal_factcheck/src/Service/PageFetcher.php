@@ -22,6 +22,21 @@ class PageFetcher {
    */
   public const MAX_BYTES = 5000000;
 
+  /**
+   * Ranges refused on top of FILTER_FLAG_GLOBAL_RANGE.
+   *
+   * The flag (RFC 6890 non-global ranges) already covers all of these but
+   * multicast; they are listed so the guard does not rest on PHP's list
+   * alone: shared address space (cloud metadata such as 100.100.100.200,
+   * CGNAT, Tailscale), IETF protocol assignments, benchmarking, multicast.
+   */
+  public const DENIED_RANGES = [
+    '100.64.0.0/10',
+    '192.0.0.0/24',
+    '198.18.0.0/15',
+    '224.0.0.0/4',
+  ];
+
   public function __construct(
     protected ClientInterface $httpClient,
   ) {}
@@ -45,11 +60,12 @@ class PageFetcher {
    * Fetches a URL and returns the raw body.
    *
    * Guards against SSRF: only http/https, and the host must resolve to a
-   * public address (no loopback, private or link-local: blocks cloud
-   * metadata endpoints and internal services). The connection goes to the
-   * address that was checked, so a DNS server answering differently the
-   * second time (DNS rebinding) cannot point it elsewhere. Redirects are
-   * followed by hand so every hop is checked and pinned the same way.
+   * public address (no loopback, private, link-local, shared or reserved
+   * range: blocks cloud metadata endpoints and internal services). The
+   * connection goes to the address that was checked, so a DNS server
+   * answering differently the second time (DNS rebinding) cannot point it
+   * elsewhere. Redirects are followed by hand so every hop is checked and
+   * pinned the same way.
    *
    * @throws \Drupal\ai_provider_universal_factcheck\Exception\PageFetchException
    *   When the URL is not public http(s), the response is larger than
@@ -71,6 +87,11 @@ class PageFetcher {
    * Sends one GET to a checked address, without following redirects.
    */
   protected function get(string $url, string $ip): ResponseInterface {
+    // Without curl the pin below is ignored and the host resolved again, so
+    // refuse rather than fetch unpinned.
+    if (!$this->canPin()) {
+      throw PageFetchException::noCurl();
+    }
     $parts = parse_url($url);
     $port = $parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80);
     try {
@@ -79,9 +100,8 @@ class PageFetcher {
         // Streamed, so an oversized body is cut off instead of loaded whole.
         'stream' => TRUE,
         'allow_redirects' => FALSE,
-        // ponytail: pinning needs Guzzle's curl handler (Drupal's default
-        // whenever the curl extension is loaded); the stream handler
-        // ignores it and resolves again.
+        // Needs Guzzle's curl handler, Drupal's default whenever the curl
+        // extension is loaded (checked above).
         'curl' => [CURLOPT_RESOLVE => [$parts['host'] . ':' . $port . ':' . $ip]],
       ]);
     }
@@ -121,10 +141,24 @@ class PageFetcher {
     }
     // IPv4 only: a host with no A record (or an IPv6 literal) is refused.
     $ip = gethostbyname(trim($host, '[]'));
-    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_GLOBAL_RANGE)) {
       throw PageFetchException::internalAddress();
     }
+    foreach (static::DENIED_RANGES as $range) {
+      [$subnet, $bits] = explode('/', $range);
+      $mask = -1 << (32 - (int) $bits);
+      if ((ip2long($ip) & $mask) === (ip2long($subnet) & $mask)) {
+        throw PageFetchException::internalAddress();
+      }
+    }
     return $ip;
+  }
+
+  /**
+   * Whether the connection can be pinned to the checked address.
+   */
+  protected function canPin(): bool {
+    return extension_loaded('curl');
   }
 
   /**

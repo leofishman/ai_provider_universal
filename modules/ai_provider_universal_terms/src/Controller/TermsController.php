@@ -2,8 +2,10 @@
 
 namespace Drupal\ai_provider_universal_terms\Controller;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Flood\FloodInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\ai_provider_universal_factcheck\Exception\PageFetchException;
 use Drupal\ai_provider_universal_factcheck\Service\PageFetcher;
 use Drupal\ai_provider_universal_terms\Service\TermsAnalyzer;
@@ -19,7 +21,14 @@ class TermsController extends ControllerBase {
     protected TermsAnalyzer $analyzer,
     protected PageFetcher $pageFetcher,
     protected FloodInterface $flood,
-  ) {}
+    ConfigFactoryInterface $config_factory,
+    AccountProxyInterface $current_user,
+  ) {
+    // ControllerBase's own properties, so config() and currentUser() use the
+    // injected services instead of the container.
+    $this->configFactory = $config_factory;
+    $this->currentUser = $current_user;
+  }
 
   /**
    * Analyzes the posted document.

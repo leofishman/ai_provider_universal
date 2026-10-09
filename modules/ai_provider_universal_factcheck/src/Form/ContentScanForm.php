@@ -461,7 +461,7 @@ class ContentScanForm extends FormBase {
           ]
           : $analysis;
         return [
-          ['data' => ['#markup' => '<strong>' . htmlspecialchars($c['claim']) . '</strong>']],
+          ['data' => ['#plain_text' => $c['claim'], '#prefix' => '<strong>', '#suffix' => '</strong>']],
           $verdictText,
           $this->formatCoverage($c['coverage'] ?? []),
           $analysisCell,
