@@ -39,6 +39,7 @@ Backends are not limited to the OpenAI REST protocol: a backend that implements 
 - Drupal 11.1+ / 12
 - [AI](https://www.drupal.org/project/ai) ^1.5 (the Decision submodule needs 1.6+)
 - [Key](https://www.drupal.org/project/key)
+- PHP's curl extension for URL fetching in the factcheck and terms submodules (refused without it)
 
 ## Installation
 

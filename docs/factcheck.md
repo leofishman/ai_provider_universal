@@ -85,7 +85,7 @@ Tip: if your evidence index covers all content types, exclude `trusted_site` fro
 
 Besides the per-node tab, **Content → Fact check** (`/admin/content/factcheck`) scans anything: give it a URL (this site or any other — the page is fetched and its text extracted) or paste text directly. Same checks, same result rendering. A **Fact check** block (category "AI") exposes the same form for placement anywhere; both are gated by the `use standalone fact check` permission. PDF upload is planned (needs a text-extraction library — see ROADMAP).
 
-URL fetches are **SSRF-hardened**: only `http`/`https`, and the resolved host must be a global IPv4 address (no localhost, RFC1918, link-local, shared 100.64.0.0/10, multicast, …), and the connection is pinned to that address, redirects included. Invalid or non-public targets fail with a form error instead of being requested.
+URL fetches are **SSRF-hardened**: only `http`/`https`, and the resolved host must be a global IPv4 address (no localhost, RFC1918, link-local, shared 100.64.0.0/10, multicast, …), and the connection is pinned to that address, redirects included (this needs PHP's curl extension; without it URL fetches are refused). Invalid or non-public targets fail with a form error instead of being requested.
 
 Every scan (tab or standalone) is also stored as an `aip_factcheck_result` entity, and the shipped **Fact check results** view lists the history at **Content → Fact check results** (`/admin/content/factcheck/results`) with a matching block. It is a normal view: edit columns, filters, path and displays at **Structure → Views** like any other. Rows are plain audit data (subject, scores, who ran it, full details) — deleting them is safe, and uninstalling the module removes them.
 
