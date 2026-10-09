@@ -22,9 +22,10 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * MBFC API fetch path, with mocked HTTP.
  *
- * The fixture in tests/fixtures/mbfc-api-response-mini.json is 3 rows cut
- * from a real /fetch-data capture (the endpoint dumps the full ~15k dataset),
- * so this test validates our parsing against the real schema.
+ * The fixture in tests/fixtures/mbfc-api-response-mini.json has the schema
+ * of a real /fetch-data capture (the endpoint dumps the full ~15k dataset)
+ * with invented rows, so this test validates our parsing against the real
+ * schema without shipping MBFC's data.
  */
 #[CoversClass(BiasRatingImporter::class)]
 #[Group('ai_provider_universal')]
@@ -69,20 +70,20 @@ class BiasRatingImporterTest extends UnitTestCase {
     $importer = $this->buildImporter([new Response(200, [], $fixture)]);
 
     // Two domains, one of them stored in the dataset with a path suffix
-    // ("metapedia.org/wiki/Main_Page") — one HTTP call covers both.
-    $result = $importer->fetchFromApi(['canarymission.org', 'https://www.metapedia.org']);
+    // ("beta-wiki.example/wiki/Main_Page") — one HTTP call covers both.
+    $result = $importer->fetchFromApi(['alpha-watch.example', 'https://www.beta-wiki.example']);
 
     $this->assertSame([], $result['errors']);
     $this->assertCount(2, $result['sites']);
-    [$canary, $metapedia] = $result['sites'];
-    $this->assertSame('canarymission.org', $canary['domain']);
-    $this->assertSame('Canary Mission', $canary['name']);
+    [$alpha, $beta] = $result['sites'];
+    $this->assertSame('alpha-watch.example', $alpha['domain']);
+    $this->assertSame('Alpha Watch', $alpha['name']);
     // "Bias" is the unmappable "Questionable"; "Political Bias" wins.
-    $this->assertSame('Right', $canary['bias']);
-    $this->assertSame('Mixed', $canary['factual']);
-    $this->assertSame('Low', $canary['credibility']);
-    $this->assertSame('metapedia.org', $metapedia['domain']);
-    $this->assertSame('Low', $metapedia['factual']);
+    $this->assertSame('Right', $alpha['bias']);
+    $this->assertSame('Mixed', $alpha['factual']);
+    $this->assertSame('Low', $alpha['credibility']);
+    $this->assertSame('beta-wiki.example', $beta['domain']);
+    $this->assertSame('Low', $beta['factual']);
 
     // Exactly one request, carrying the RapidAPI auth headers.
     $this->assertCount(1, $this->history);
@@ -111,12 +112,12 @@ class BiasRatingImporterTest extends UnitTestCase {
     $fixture = (string) file_get_contents(__DIR__ . '/../../fixtures/mbfc-api-response-mini.json');
     $importer = $this->buildImporter([new Response(200, [], $fixture)]);
 
-    $result = $importer->fetchFromApi(['down.example', 'xtramagazine.com']);
+    $result = $importer->fetchFromApi(['down.example', 'gamma-magazine.example']);
 
     $this->assertCount(1, $result['errors']);
     $this->assertStringContainsString('down.example', $result['errors'][0]);
     $this->assertCount(1, $result['sites']);
-    $this->assertSame('xtramagazine.com', $result['sites'][0]['domain']);
+    $this->assertSame('gamma-magazine.example', $result['sites'][0]['domain']);
     $this->assertSame('Left', $result['sites'][0]['bias']);
   }
 

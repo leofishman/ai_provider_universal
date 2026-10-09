@@ -6,7 +6,6 @@
     "*.po",
     "LICENSE.txt",
     "**/tests/fixtures/**",
-    "**/data/mbfc-ratings-full.json",
     "**/ai_provider_universal_terms/data/**",
     "TESTING-*.md",
     "TESTING-governance.md",
@@ -203,6 +202,7 @@
     "Lapacho",
     "cset",
     "Quebracho",
-    "CURLOPT"
+    "CURLOPT",
+    "CGNAT"
   ]
 }

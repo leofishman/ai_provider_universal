@@ -1,0 +1,26 @@
+[
+  {
+    "domain": "news.example",
+    "name": "Example News",
+    "bias": "Center",
+    "factual": "High",
+    "credibility": "High",
+    "notes": "Invented row showing the format; not a real rating."
+  },
+  {
+    "domain": "opinion.example",
+    "name": "Example Opinion",
+    "bias": "Right",
+    "factual": "Mixed",
+    "credibility": "Medium",
+    "notes": "Invented row showing the format; not a real rating."
+  },
+  {
+    "domain": "tabloid.example",
+    "name": "Example Tabloid",
+    "bias": "Left",
+    "factual": "Very Low",
+    "credibility": "Low",
+    "notes": "Invented row showing the format; not a real rating."
+  }
+]

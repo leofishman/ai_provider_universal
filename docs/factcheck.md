@@ -85,7 +85,7 @@ Tip: if your evidence index covers all content types, exclude `trusted_site` fro
 
 Besides the per-node tab, **Content → Fact check** (`/admin/content/factcheck`) scans anything: give it a URL (this site or any other — the page is fetched and its text extracted) or paste text directly. Same checks, same result rendering. A **Fact check** block (category "AI") exposes the same form for placement anywhere; both are gated by the `use standalone fact check` permission. PDF upload is planned (needs a text-extraction library — see ROADMAP).
 
-URL fetches are **SSRF-hardened**: only `http`/`https`, and the resolved host must not be a private or reserved address (localhost, RFC1918, link-local, …). Invalid or non-public targets fail with a form error instead of being requested.
+URL fetches are **SSRF-hardened**: only `http`/`https`, and the resolved host must be a global IPv4 address (no localhost, RFC1918, link-local, shared 100.64.0.0/10, multicast, …), and the connection is pinned to that address, redirects included. Invalid or non-public targets fail with a form error instead of being requested.
 
 Every scan (tab or standalone) is also stored as an `aip_factcheck_result` entity, and the shipped **Fact check results** view lists the history at **Content → Fact check results** (`/admin/content/factcheck/results`) with a matching block. It is a normal view: edit columns, filters, path and displays at **Structure → Views** like any other. Rows are plain audit data (subject, scores, who ran it, full details) — deleting them is safe, and uninstalling the module removes them.
 
@@ -177,16 +177,16 @@ The `trusted_site` content type has a `field_bias` field (left / center / right 
 You can populate them from external raters using:
 
 ```bash
-drush factcheck:sync-bias-ratings
+drush factcheck:sync-bias-ratings --file=/path/to/ratings.json
 ```
 
-This command reads `data/mbfc-ratings-sample.json` (in the factcheck submodule) and creates/updates trusted sites with:
+This command reads a JSON file of ratings, in the format of `data/bias-ratings-example.json` (in the factcheck submodule; its rows are invented), and creates/updates trusted sites with:
 
 - `field_reputation` derived from factual reporting + bias
 - `field_assessments` containing the source rating (e.g. "Media Bias / Fact Check — Bias: Right | Factual: Mixed")
 - `field_bias` normalized
 
-You can extend the JSON file with more domains from https://mediabiasfactcheck.com/ or other raters (AllSides, Ad Fontes, etc.).
+No ratings ship with the module: raters' databases (MediaBiasFactCheck, AllSides, Ad Fontes…) are not GPL, so the file has to be one you are licensed to use, or fetch them live as below.
 
 To fetch ratings live instead of maintaining JSON, subscribe to the [MBFC Ratings API on RapidAPI](https://rapidapi.com/mbfcnews/api/media-bias-fact-check-ratings-api2) (or the commercial direct API), store the key in a Key entity, select it under **Fact check settings → Media bias ratings API key**, and run:
 
