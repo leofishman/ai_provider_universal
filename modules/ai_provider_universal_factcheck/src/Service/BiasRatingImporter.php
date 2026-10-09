@@ -35,6 +35,16 @@ class BiasRatingImporter {
     'extreme right' => 'right',
   ];
 
+  /**
+   * Lin et al. (2023) domain quality ratings, pinned to a commit.
+   */
+  public const LIN2023_URL = 'https://raw.githubusercontent.com/hauselin/domain-quality-ratings/5671d57e545e48225ef2cbf559a6ab7f8f77a9de/data/domain_pc1.csv';
+
+  /**
+   * SHA-256 of the file at LIN2023_URL.
+   */
+  public const LIN2023_SHA256 = '18221d8c4ce30e25ceab4ce3d1c9a7babaf9e935bd42ed2c89e3c52fc19d5e1a';
+
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected ConfigFactoryInterface $configFactory,
@@ -51,7 +61,9 @@ class BiasRatingImporter {
    *   - name (optional)
    *   - bias (e.g. 'Right', 'Left-Center', 'Center')
    *   - factual (e.g. 'High', 'Mixed', 'Low')
-   *   - credibility, notes, source (optional).
+   *   - credibility, notes, source (optional)
+   *   - reputation (optional, -10..+10): used as is instead of deriving it
+   *     from bias and factual.
    * @param bool $update_existing
    *   Whether to overwrite reputation/assessments on existing sites.
    *
@@ -88,7 +100,9 @@ class BiasRatingImporter {
         'type' => 'trusted_site',
         'title' => $name,
         'field_domain' => $domain,
-        'field_reputation' => $this->mapToReputation($site['factual'] ?? 'mixed', $site['bias'] ?? 'center'),
+        'field_reputation' => isset($site['reputation'])
+          ? max(-10, min(10, (int) $site['reputation']))
+          : $this->mapToReputation($site['factual'] ?? 'mixed', $site['bias'] ?? 'center'),
         'status' => 1,
       ];
 
@@ -203,10 +217,75 @@ class BiasRatingImporter {
   }
 
   /**
+   * Fetch quality ratings for the given domains from Lin et al. (2023).
+   *
+   * Downloads domain_pc1.csv (~11.5k domains, ~400 KB) at a pinned commit
+   * and refuses it if the checksum changed, so imports are reproducible and
+   * a modified file is noticed. The dataset has one quality score (pc1,
+   * 0..1) and no bias, so field_bias is left as it is.
+   *
+   * @param string[] $domains
+   *   Domains to look up.
+   *
+   * @return array{sites: array, errors: string[]}
+   *   Sites in the same format as the JSON import, plus per-domain errors.
+   */
+  public function fetchFromLin2023(array $domains): array {
+    try {
+      $body = (string) $this->httpClient->request('GET', static::LIN2023_URL, ['timeout' => 60])->getBody();
+    }
+    catch (\Throwable $e) {
+      return ['sites' => [], 'errors' => ['Lin et al. 2023 download failed: ' . $e->getMessage()]];
+    }
+    if (!hash_equals(static::LIN2023_SHA256, hash('sha256', $body))) {
+      return ['sites' => [], 'errors' => ['Lin et al. 2023 file checksum mismatch; refusing to import it.']];
+    }
+
+    $index = [];
+    foreach (preg_split('/\r?\n/', trim($body)) as $line) {
+      [$domain, $pc1] = str_getcsv($line, ',', '"', '') + [1 => ''];
+      if (is_numeric($pc1)) {
+        $index[$this->normalizeDomain($domain)] = (float) $pc1;
+      }
+    }
+
+    $sites = [];
+    $errors = [];
+    foreach ($domains as $domain) {
+      $domain = $this->normalizeDomain($domain);
+      if (!isset($index[$domain])) {
+        $errors[] = "$domain: not found in Lin et al. 2023.";
+        continue;
+      }
+      $pc1 = $index[$domain];
+      $sites[] = [
+        'domain' => $domain,
+        'reputation' => $this->pc1ToReputation($pc1),
+        'source' => 'Lin et al. 2023, PNAS Nexus, https://doi.org/10.1093/pnasnexus/pgad286',
+        'notes' => sprintf('Domain quality (pc1, 0 to 1): %.2f.', $pc1),
+      ];
+    }
+    return ['sites' => $sites, 'errors' => $errors];
+  }
+
+  /**
+   * Maps a Lin et al. pc1 score (0..1) onto the -10..+10 reputation scale.
+   *
+   * Linear. Against the hand-curated seeds it lands within 2 points for
+   * apnews.com, reuters.com, nature.com and wikipedia.org, and ranks
+   * infowars.com (-9), breitbart.com (-4) and foxnews.com (+1) below them.
+   * It undershoots some (who.int +6, science.org +2): curated sites win,
+   * import them with --no-update.
+   */
+  public function pc1ToReputation(float $pc1): int {
+    return max(-10, min(10, (int) round($pc1 * 20 - 10)));
+  }
+
+  /**
    * Reduces a URL or hostname to its bare domain (no scheme, www or path).
    */
   protected function normalizeDomain(string $url): string {
-    $url = preg_replace('~^https?://(www\.)?~', '', strtolower(trim($url)));
+    $url = preg_replace('~^(https?://)?(www\.)?~', '', strtolower(trim($url)));
     return explode('/', $url)[0];
   }
 
@@ -244,7 +323,9 @@ class BiasRatingImporter {
     $assessments = [];
 
     $source = $site['source'] ?? 'Media Bias / Fact Check';
-    $header = sprintf('%s — Bias: %s | Factual: %s', $source, $site['bias'] ?? '?', $site['factual'] ?? '?');
+    $header = isset($site['bias']) || isset($site['factual'])
+      ? sprintf('%s — Bias: %s | Factual: %s', $source, $site['bias'] ?? '?', $site['factual'] ?? '?')
+      : $source;
     if (!empty($site['credibility'])) {
       $header .= ' | Credibility: ' . $site['credibility'];
     }

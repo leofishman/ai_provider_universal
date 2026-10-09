@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased (1.1.x)
+
+- **Open quality ratings**: `drush factcheck:sync-bias-ratings --source=lin2023 --fetch=domain,…` rates the listed domains from Lin et al. (2023, PNAS Nexus), downloaded at a pinned commit and checked against its SHA-256; `pc1` (0..1) maps linearly onto reputation −10..+10, and the assessment cites the paper. No key, nothing bundled. See [docs/factcheck.md](docs/factcheck.md#open-quality-ratings-lin-et-al-2023).
+- The ratings import strips a leading `www.` from bare domains too (it did only after `http(s)://`), so `www.example.com` in a ratings file matches `example.com`.
+
 ## 1.0.0-rc1 — unreleased
 
 - **Requires AI ^1.5** (was ^1.3): AI 1.3.x is out of support. Fallbacks for AI 1.3/1.4 stay in the code but are no longer tested.

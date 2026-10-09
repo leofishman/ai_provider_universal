@@ -24,11 +24,16 @@ class FactcheckCommands extends DrushCommands {
    * Reads JSON in MediaBiasFactCheck style (or similar raters); see
    * data/bias-ratings-example.json in this module for the format (invented
    * rows). No ratings ship with the module: raters' data is not GPL, so it
-   * comes from a file you are licensed to use, or live via --fetch.
+   * comes from a file you are licensed to use, or is downloaded via --fetch:
+   * from the MBFC API (default) or, with --source=lin2023, from the open
+   * Lin et al. (2023) quality ratings (no bias; pinned to a commit and a SHA-256).
+   * Only the listed domains are imported: they become Tavily include and
+   * exclude domains, so a bulk import would crowd out curated ones.
    *
    * @command factcheck:sync-bias-ratings
    * @option file Path to a JSON file of ratings.
-   * @option fetch Comma-separated domains to fetch live from the MBFC API (needs the mbfc_key setting). Replaces the file input.
+   * @option fetch Comma-separated domains to fetch live. Replaces the file input.
+   * @option source Where --fetch reads from: mbfc (needs the mbfc_key setting) or lin2023.
    * @option update Update existing trusted sites (use --no-update to only create).
    * @aliases fcsyncbias
    * @usage drush factcheck:sync-bias-ratings --file=/path/to/ratings.json
@@ -37,16 +42,33 @@ class FactcheckCommands extends DrushCommands {
    *   Import a file, creating new sites only.
    * @usage drush factcheck:sync-bias-ratings --fetch=lanacion.com.ar,pagina12.com.ar
    *   Fetch fresh ratings for two domains from the MBFC API.
+   * @usage drush factcheck:sync-bias-ratings --source=lin2023 --fetch=apnews.com,breitbart.com --no-update
+   *   Rate two new domains from Lin et al. (2023), leaving curated ones alone.
    */
-  public function syncBiasRatings(array $options = ['file' => NULL, 'fetch' => NULL, 'update' => TRUE]): void {
+  public function syncBiasRatings(
+    array $options = [
+      'file' => NULL,
+      'fetch' => NULL,
+      'source' => 'mbfc',
+      'update' => TRUE,
+    ],
+  ): void {
     if ($options['fetch']) {
-      $result = $this->biasRatingImporter->fetchFromApi(array_filter(array_map('trim', explode(',', $options['fetch']))));
+      $domains = array_filter(array_map('trim', explode(',', $options['fetch'])));
+      $result = match ($options['source']) {
+        'mbfc' => $this->biasRatingImporter->fetchFromApi($domains),
+        'lin2023' => $this->biasRatingImporter->fetchFromLin2023($domains),
+        default => [
+          'sites' => [],
+          'errors' => ["Unknown --source={$options['source']}: use mbfc or lin2023."],
+        ],
+      };
       foreach ($result['errors'] as $error) {
         $this->output()->writeln("<comment>$error</comment>");
       }
       $data = $result['sites'];
       if (!$data) {
-        $this->output()->writeln('<error>Nothing fetched from the MBFC API.</error>');
+        $this->output()->writeln('<error>Nothing fetched.</error>');
         return;
       }
     }

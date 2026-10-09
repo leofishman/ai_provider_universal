@@ -318,11 +318,17 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
       - [ ] Ask the authors for an explicit license (the README only says
             "Feel free to reuse the data"); needed before shipping any rows,
             not for downloading.
-      - [ ] Calibrate the `pc1` → reputation mapping against the
+      - [x] Calibrate the `pc1` → reputation mapping against the
             hand-curated trusted sites (bias is not in the dataset: it stays
-            empty or comes from another source).
-      - [ ] Pin the download to a commit and checksum, so the import is
-            reproducible and a changed file is noticed.
+            empty or comes from another source). Linear, `pc1 × 20 − 10`:
+            within 2 points of the seeds for apnews, reuters, nature and
+            wikipedia; low on who.int (+6) and science.org (+2), so
+            `--no-update` keeps curated values.
+      - [x] Pin the download to a commit and checksum, so the import is
+            reproducible and a changed file is noticed (2026-10-09,
+            `feature/lin2023`). Only listed domains are imported: a bulk
+            import would crowd curated sites out of Tavily's 300-domain
+            include list.
       - Not a dataset distilled from MBFC or Iffy: their labels are the
         protected part, and a copy relabelled by us is still their data.
         Our own ratings would have to come from our own evidence (e.g.

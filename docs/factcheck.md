@@ -196,6 +196,20 @@ drush factcheck:sync-bias-ratings --fetch=example.com,othersite.org
 
 Note MBFC's terms: RapidAPI access is for testing, research and small non-commercial projects, with attribution to MediaBiasFactCheck.com.
 
+### Open quality ratings (Lin et al. 2023)
+
+[Lin et al. (2023, PNAS Nexus)](https://doi.org/10.1093/pnasnexus/pgad286) combine several raters into one quality score (`pc1`, 0 to 1) for ~11,500 domains, published at [hauselin/domain-quality-ratings](https://github.com/hauselin/domain-quality-ratings). No key needed:
+
+```bash
+drush factcheck:sync-bias-ratings --source=lin2023 --fetch=example.com,othersite.org --no-update
+```
+
+- The file is downloaded at a pinned commit and refused if its SHA-256 changed, so an import is reproducible.
+- `field_reputation` is `round(pc1 × 20 − 10)`: reuters.com +10, nytimes.com +7, foxnews.com +1, breitbart.com −4, infowars.com −9. The dataset has no bias, so `field_bias` is left as it is.
+- `field_assessments` cites the paper and the score.
+- Only the domains listed are imported. Positive and negative reputations become the Tavily include and exclude lists (300 each, best first), so importing the whole dataset would push hand-curated sites out. `--no-update` keeps the reputation you already set by hand.
+- Nothing from the dataset ships with the module; each site downloads it. The repository says "Feel free to reuse the data" but has no formal license.
+
 The bias information is already used in:
 - Discrepancy analysis (shows the spread of biases behind a claim)
 - Blindspot detection (when all evidence comes from one side)

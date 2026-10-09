@@ -39,7 +39,7 @@ class BiasRatingImporterTest extends UnitTestCase {
   /**
    * Builds an importer with scripted HTTP responses.
    */
-  protected function buildImporter(array $responses, string $mbfcKey = 'mbfc'): BiasRatingImporter {
+  protected function buildImporter(array $responses, string $mbfcKey = 'mbfc', string $class = BiasRatingImporter::class): BiasRatingImporter {
     $this->history = [];
     $stack = HandlerStack::create(new MockHandler($responses));
     $stack->push(Middleware::history($this->history));
@@ -54,7 +54,7 @@ class BiasRatingImporterTest extends UnitTestCase {
     $keyRepository = $this->createMock(KeyRepositoryInterface::class);
     $keyRepository->method('getKey')->willReturnCallback(static fn (string $id) => $id === 'mbfc' ? $key : NULL);
 
-    return new BiasRatingImporter(
+    return new $class(
       $this->createMock(EntityTypeManagerInterface::class),
       $configFactory,
       $keyRepository,
@@ -132,5 +132,61 @@ class BiasRatingImporterTest extends UnitTestCase {
     $this->assertSame([], $result['sites']);
     $this->assertCount(1, $result['errors']);
   }
+
+  /**
+   * Lin et al. rows map pc1 onto reputation, with a citing assessment.
+   */
+  public function testLin2023ParsesPinnedFile(): void {
+    $importer = $this->buildImporter([new Response(200, [], Lin2023TestImporter::CSV)], class: Lin2023TestImporter::class);
+
+    $result = $importer->fetchFromLin2023(['alpha-watch.example', 'https://www.gamma-magazine.example/', 'down.example']);
+
+    $this->assertSame(['down.example: not found in Lin et al. 2023.'], $result['errors']);
+    $this->assertSame(['alpha-watch.example', 'gamma-magazine.example'], array_column($result['sites'], 'domain'));
+    $this->assertSame([-9, 10], array_column($result['sites'], 'reputation'));
+    $this->assertStringContainsString('pgad286', $result['sites'][0]['source']);
+    $this->assertArrayNotHasKey('bias', $result['sites'][0]);
+    $this->assertStringContainsString('hauselin/domain-quality-ratings/5671d57', (string) $this->history[0]['request']->getUri());
+  }
+
+  /**
+   * A file that no longer matches the pinned checksum is refused.
+   */
+  public function testLin2023RefusesChangedFile(): void {
+    $importer = $this->buildImporter([new Response(200, [], Lin2023TestImporter::CSV . "evil.example,1\r\n")], class: Lin2023TestImporter::class);
+
+    $result = $importer->fetchFromLin2023(['alpha-watch.example']);
+
+    $this->assertSame([], $result['sites']);
+    $this->assertStringContainsString('checksum', $result['errors'][0]);
+  }
+
+  /**
+   * The pc1 mapping is linear and clamped.
+   */
+  public function testPc1ToReputation(): void {
+    $importer = $this->buildImporter([]);
+    $this->assertSame(-10, $importer->pc1ToReputation(0.0));
+    $this->assertSame(0, $importer->pc1ToReputation(0.5));
+    $this->assertSame(7, $importer->pc1ToReputation(0.86));
+    $this->assertSame(10, $importer->pc1ToReputation(1.2));
+  }
+
+}
+
+/**
+ * Importer pinned to an invented CSV instead of the real file.
+ */
+class Lin2023TestImporter extends BiasRatingImporter {
+
+  /**
+   * Invented rows in the format of domain_pc1.csv.
+   */
+  public const CSV = "domain,pc1\r\nalpha-watch.example,0.05\r\nbeta-wiki.example,0.8\r\nwww.gamma-magazine.example,1\r\n";
+
+  /**
+   * SHA-256 of CSV.
+   */
+  public const LIN2023_SHA256 = 'dde6703ea8eb4f3f92ab1ea19dea736af90671a8def440621752f44c695c68ac';
 
 }
