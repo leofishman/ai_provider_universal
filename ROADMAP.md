@@ -305,6 +305,29 @@ ECA/Workflow own site policy (including satire/quotation exemptions).
 - [ ] MCP integration, the Drupal AI way.
 - [x] `PageFetcher` service: URL fetch (SSRF guard on every redirect hop)
       and HTML-to-text, shared by the standalone form and future submodules.
+- [x] No third-party ratings in the repository (2026-10-09, security
+      coverage review #3609892): MBFC's data is not GPL, so the bundled
+      files went; `--file` or `--fetch` only.
+- [ ] **Open bias/quality ratings, downloaded, never bundled (1.1.x).**
+      `drush factcheck:sync-bias-ratings --source=lin2023` downloads
+      `domain_pc1.csv` from [hauselin/domain-quality-ratings](https://github.com/hauselin/domain-quality-ratings)
+      (Lin et al. 2023, PNAS Nexus: ~11k domains, one quality score 0–1
+      combining several raters) and maps `pc1` onto the -10..+10 reputation
+      scale; the assessment cites the paper. The site downloads it under the
+      dataset's terms, so nothing non-GPL is redistributed. Steps:
+      - [ ] Ask the authors for an explicit license (the README only says
+            "Feel free to reuse the data"); needed before shipping any rows,
+            not for downloading.
+      - [ ] Calibrate the `pc1` → reputation mapping against the
+            hand-curated trusted sites (bias is not in the dataset: it stays
+            empty or comes from another source).
+      - [ ] Pin the download to a commit and checksum, so the import is
+            reproducible and a changed file is noticed.
+      - Not a dataset distilled from MBFC or Iffy: their labels are the
+        protected part, and a copy relabelled by us is still their data.
+        Our own ratings would have to come from our own evidence (e.g.
+        fact check results aggregated per domain) — a research item, not
+        this one.
 - [ ] **`ai_provider_universal_terms` submodule (1.1.x)**: analyzes terms
       and privacy policies into a short report (data collected and shared,
       retention, auto-renewal, arbitration, jurisdiction, license over
