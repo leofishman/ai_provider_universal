@@ -4,6 +4,23 @@
 
 First slice: a JSON API, the analyzer service and a settings form. A standalone page, scan profiles and the catalogue service are planned (see ROADMAP).
 
+## Quick start
+
+```bash
+drush pm:enable ai_provider_universal_terms   # also enables the fact check submodule (PageFetcher)
+drush cset ai_provider_universal_terms.settings model <ai_universal_model id>
+```
+
+Grant `use terms analyzer` to the role that will call the API, then:
+
+```bash
+curl -X POST 'https://example.com/api/terms/analyze?_format=json' \
+  -u user:pass -H 'Content-Type: application/json' \
+  -d '{"url": "https://example.com/terms"}'
+```
+
+`-u` needs core's `basic_auth` module; with a cookie session, send `X-CSRF-Token` as well (see API below).
+
 ## How it works
 
 1. The document is split into pieces of about `chunk_words` words, cut between paragraphs (0 = the whole document in one call).

@@ -45,7 +45,7 @@ Backends are not limited to the OpenAI REST protocol: a backend that implements 
 
 ```bash
 # Recommended (beta):
-composer require 'drupal/ai_provider_universal:^1.0@beta'
+composer require 'drupal/ai_provider_universal:^1.0@RC'
 
 # Or track the development branch:
 # composer require drupal/ai_provider_universal:1.0.x-dev
@@ -55,10 +55,13 @@ drush pm:enable ai_provider_universal
 drush pm:enable ai_provider_universal_router ai_provider_universal_factcheck ai_provider_universal_governance
 # AI 1.6+ only (experimental): AI core's Decision operation for Jev / Laya
 drush pm:enable ai_provider_universal_decision
+# experimental: terms of service / privacy policy analyzer
+drush pm:enable ai_provider_universal_terms
 ```
 
 Release notes:
 
+- **1.0.0-rc1** (changes since beta4): [RELEASE_NOTES_1.0.0-rc1.html](RELEASE_NOTES_1.0.0-rc1.html)
 - **1.0.0-beta4** (changes since beta3): [RELEASE_NOTES_1.0.0-beta4.html](RELEASE_NOTES_1.0.0-beta4.html)
 - **1.0.0-beta3** (changes since beta2): [RELEASE_NOTES_1.0.0-beta3.html](RELEASE_NOTES_1.0.0-beta3.html)
 - **1.0.0-beta2** (changes since beta1): [RELEASE_NOTES_1.0.0-beta2.html](RELEASE_NOTES_1.0.0-beta2.html)
