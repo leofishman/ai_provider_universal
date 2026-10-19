@@ -34,6 +34,11 @@ class EvidenceRetriever {
   protected const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 
   /**
+   * Tavily's cap on include/exclude domain lists (400 past it).
+   */
+  protected const TAVILY_MAX_DOMAINS = 150;
+
+  /**
    * Jaccard similarity threshold (on 4-word shingles) for a duplicate.
    *
    * At or above this score two passages are treated as the same source.
@@ -152,12 +157,11 @@ class EvidenceRetriever {
       'max_results' => $limit,
       'search_depth' => 'basic',
     ];
-    // Tavily caps domain lists at 300 entries; a curated list won't get
-    // close, but slice defensively.
-    if ($include = array_slice($this->trustedSites->includeDomains(), 0, 300)) {
+    // Tavily caps domain lists; an imported bias list (MBFC) goes past it.
+    if ($include = array_slice($this->trustedSites->includeDomains(), 0, self::TAVILY_MAX_DOMAINS)) {
       $payload['include_domains'] = $include;
     }
-    if ($exclude = array_slice($this->trustedSites->excludeDomains(), 0, 300)) {
+    if ($exclude = array_slice($this->trustedSites->excludeDomains(), 0, self::TAVILY_MAX_DOMAINS)) {
       $payload['exclude_domains'] = $exclude;
     }
 
@@ -181,7 +185,7 @@ class EvidenceRetriever {
    */
   public function retrieveDistrusted(string $claim, int $limit = 3): array {
     $keyId = (string) $this->settings()->get('tavily_key');
-    $domains = array_slice($this->trustedSites->excludeDomains(), 0, 300);
+    $domains = array_slice($this->trustedSites->excludeDomains(), 0, self::TAVILY_MAX_DOMAINS);
     if (!$keyId || !$domains) {
       return [];
     }

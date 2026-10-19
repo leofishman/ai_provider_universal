@@ -55,10 +55,12 @@ class TrustedSiteRepository {
    * Domains with negative reputation.
    *
    * @return string[]
-   *   Domains to exclude.
+   *   Domains to exclude, least trusted first (callers may truncate).
    */
   public function excludeDomains(): array {
-    return array_keys(array_filter($this->reputationMap(), static fn (int $r) => $r < 0));
+    $distrusted = array_filter($this->reputationMap(), static fn (int $r) => $r < 0);
+    asort($distrusted);
+    return array_keys($distrusted);
   }
 
   /**

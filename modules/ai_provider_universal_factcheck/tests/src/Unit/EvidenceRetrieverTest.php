@@ -136,6 +136,21 @@ class EvidenceRetrieverTest extends UnitTestCase {
   }
 
   /**
+   * An imported bias list past Tavily's 150-domain cap is truncated.
+   */
+  public function testDomainListsStayUnderTavilysCap(): void {
+    $exclude = array_map(static fn (int $i) => "bad$i.example", range(1, 200));
+    $retriever = $this->buildRetriever(
+      [$this->tavilyResponse(['https://good.example/a' => 'Passage.'])],
+      exclude: $exclude,
+    );
+
+    $retriever->retrieve('Some claim.');
+
+    $this->assertSame(array_slice($exclude, 0, 150), $this->requestPayload(0)['exclude_domains']);
+  }
+
+  /**
    * Empty curated search retries once without the include list.
    */
   public function testEmptyCuratedSearchRetriesUnrestricted(): void {
