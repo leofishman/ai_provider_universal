@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - ai_provider_universal_factcheck
+    - basic_auth
+    - serialization
+    - user
+id: factcheck
+plugin_id: factcheck
+granularity: resource
+configuration:
+  methods:
+    - POST
+  formats:
+    - json
+  authentication:
+    - basic_auth
+    - cookie
